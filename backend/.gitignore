@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Production Build
+dist/
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Upload files (local storage dev environment)
+storage/temp/*
+!storage/temp/.gitkeep
+storage/products/*
+!storage/products/.gitkeep
+storage/categories/*
+!storage/categories/.gitkeep
+storage/company/*
+!storage/company/.gitkeep
+storage/downloads/*
+!storage/downloads/.gitkeep
+
+# IDE Settings
+.vscode/
+.idea/
+.DS_Store
