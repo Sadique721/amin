@@ -18,6 +18,7 @@ export interface IUser extends Document {
   isActive: boolean;
   isEmailVerified: boolean;
   googleId?: string;
+  password?: string;
   addresses: IAddress[];
   createdAt: Date;
   updatedAt: Date;
@@ -55,6 +56,7 @@ const UserSchema = new Schema<IUser>(
     isActive: { type: Boolean, default: true },
     isEmailVerified: { type: Boolean, default: false },
     googleId: { type: String },
+    password: { type: String },
     addresses: [AddressSchema],
   },
   {

@@ -37,3 +37,12 @@ export const verifyCodPaymentSchema = z.object({
     orderId: z.string({ required_error: 'Order ID is required' }),
   }),
 });
+
+export const updateOrderStatusSchema = z.object({
+  body: z.object({
+    status: z.enum(['pending', 'processing', 'shipped', 'delivered', 'cancelled'], {
+      required_error: 'Status is required',
+    }),
+    paymentStatus: z.enum(['pending', 'paid', 'failed']).optional(),
+  }),
+});

@@ -20,6 +20,7 @@ export const createUserValidationSchema = z.object({
 export const updateUserValidationSchema = z.object({
   name: z.string().trim().min(2, 'Name must be at least 2 characters').optional(),
   phone: z.string().trim().optional(),
+  password: z.string().trim().min(6, 'Password must be at least 6 characters').optional(),
 });
 
 export type CreateUserDTO = z.infer<typeof createUserValidationSchema>;

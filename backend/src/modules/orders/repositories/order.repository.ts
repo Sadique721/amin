@@ -20,4 +20,8 @@ export class OrderRepository {
   async list(filter: any = {}, options: any = {}): Promise<any> {
     return await Order.paginate(filter, options);
   }
+
+  async aggregate(pipeline: any[]): Promise<any[]> {
+    return await Order.aggregate(pipeline);
+  }
 }
