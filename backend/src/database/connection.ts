@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { env } from '@/config/env';
-import { seedDefaultAdmin } from './seed';
+import { seedDefaultAdmin, seedCmsData } from './seed';
 
 export const connectDB = async (): Promise<void> => {
   if (mongoose.connection.readyState >= 1) {
@@ -10,8 +10,9 @@ export const connectDB = async (): Promise<void> => {
     const conn = await mongoose.connect(env.MONGODB_URI);
     console.log(`🔌 MongoDB Connected: ${conn.connection.host}`);
     
-    // Seed default admin
+    // Seed default admin and cms data
     await seedDefaultAdmin();
+    await seedCmsData();
   } catch (error) {
     console.error(`❌ Database connection error: ${(error as Error).message}`);
     if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
