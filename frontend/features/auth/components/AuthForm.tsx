@@ -22,6 +22,8 @@ export function AuthForm() {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [timer, setTimer] = React.useState(0);
+  const [hasPassword, setHasPassword] = React.useState(false);
+  const [usePassword, setUsePassword] = React.useState(false);
 
   React.useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -45,10 +47,21 @@ export function AuthForm() {
       }
     }
 
+    const isAdmin = email.toLowerCase() === 'admin@sanab.com' || email.toLowerCase().startsWith('admin@');
+    if (isAdmin) {
+      setHasPassword(true);
+      setUsePassword(true);
+      setStep(2);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      await sendOtpApi(email);
+      const response = await sendOtpApi(email);
+      const hasPwd = !!response.data?.hasPassword;
+      setHasPassword(hasPwd);
+      setUsePassword(hasPwd);
       setStep(2);
       setTimer(60);
     } catch (err: any) {
@@ -61,12 +74,15 @@ export function AuthForm() {
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    try {
-      otpSchema.parse(otp);
-    } catch (err) {
-      if (err instanceof ZodError) {
-        setError(err.issues[0].message);
-        return;
+    const isAdmin = email.toLowerCase() === 'admin@sanab.com' || email.toLowerCase().startsWith('admin@');
+    if (!isAdmin && !usePassword) {
+      try {
+        otpSchema.parse(otp);
+      } catch (err) {
+        if (err instanceof ZodError) {
+          setError(err.issues[0].message);
+          return;
+        }
       }
     }
 
@@ -77,9 +93,13 @@ export function AuthForm() {
       const { user, accessToken, refreshToken } = response.data;
       
       dispatch(setCredentials({ user, accessToken, refreshToken }));
-      router.push('/');
+      if (user?.role === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push('/');
+      }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid or expired OTP. Please try again.');
+      setError(err.response?.data?.message || 'Invalid credentials or OTP. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -104,13 +124,19 @@ export function AuthForm() {
       const { user, accessToken, refreshToken } = response.data;
       
       dispatch(setCredentials({ user, accessToken, refreshToken }));
-      router.push('/');
+      if (user?.role === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push('/');
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Google Sign-In failed.');
     } finally {
       setLoading(false);
     }
   };
+
+  const isAdmin = email.toLowerCase() === 'admin@sanab.com' || email.toLowerCase().startsWith('admin@');
 
   return (
     <Card className="w-full max-w-md border-border bg-background/60 backdrop-blur-md shadow-2xl">
@@ -119,11 +145,13 @@ export function AuthForm() {
           <Sparkles className="h-6 w-6" />
         </div>
         <CardTitle className="text-2xl font-bold tracking-tight text-foreground">
-          {step === 1 ? 'Welcome back' : 'Enter security code'}
+          {step === 1 ? 'Welcome back' : usePassword ? 'Enter Password' : 'Enter security code'}
         </CardTitle>
         <CardDescription className="text-muted-foreground">
           {step === 1 
             ? 'Sign in or sign up passwordless with email OTP' 
+            : usePassword 
+            ? 'Please enter your account password to log in'
             : `We've sent a 6-digit code to ${email}`}
         </CardDescription>
       </CardHeader>
@@ -171,41 +199,76 @@ export function AuthForm() {
           </form>
         ) : (
           <form onSubmit={handleVerifyOtp} className="space-y-4">
+            {hasPassword && !isAdmin && (
+              <div className="flex border border-border rounded-xl p-1 bg-muted/10 gap-1 select-none mb-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUsePassword(true);
+                    setOtp('');
+                  }}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                    usePassword
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Password Login
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUsePassword(false);
+                    setOtp('');
+                  }}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                    !usePassword
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  OTP Verification
+                </button>
+              </div>
+            )}
+
             <div className="space-y-2">
               <label htmlFor="otp" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                6-Digit Verification Code
+                {usePassword ? 'Account Password' : '6-Digit Verification Code'}
               </label>
               <div className="relative">
                 <Input
                   id="otp"
-                  type="text"
-                  placeholder="123456"
-                  maxLength={6}
+                  type={usePassword ? 'password' : 'text'}
+                  placeholder={usePassword ? '••••••••' : '123456'}
+                  maxLength={usePassword ? undefined : 6}
                   required
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                  className="pl-10 tracking-widest text-center text-lg font-bold focus-visible:ring-amber-500"
+                  onChange={(e) => setOtp(usePassword ? e.target.value : e.target.value.replace(/\D/g, ''))}
+                  className={`pl-10 focus-visible:ring-amber-500 ${!usePassword ? 'tracking-widest text-center text-lg font-bold' : ''}`}
                   disabled={loading}
                 />
                 <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               </div>
             </div>
             
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Didn't receive it?</span>
-              {timer > 0 ? (
-                <span className="text-amber-500 font-semibold">Resend in {timer}s</span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleSendOtp}
-                  className="text-amber-500 hover:underline font-semibold"
-                  disabled={loading}
-                >
-                  Resend OTP
-                </button>
-              )}
-            </div>
+            {!usePassword && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Didn't receive it?</span>
+                {timer > 0 ? (
+                  <span className="text-amber-500 font-semibold">Resend in {timer}s</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSendOtp}
+                    className="text-amber-500 hover:underline font-semibold"
+                    disabled={loading}
+                  >
+                    Resend OTP
+                  </button>
+                )}
+              </div>
+            )}
 
             <Button
               type="submit"
