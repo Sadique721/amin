@@ -4,6 +4,7 @@ import { userRoutes } from '@/modules/users';
 import { categoryRoutes } from '@/modules/categories';
 import { productRoutes } from '@/modules/products';
 import { couponRoutes } from '@/modules/coupons';
+import { orderRoutes } from '@/modules/orders';
 
 const router = Router();
 
@@ -12,5 +13,6 @@ router.use('/users', userRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/products', productRoutes);
 router.use('/coupons', couponRoutes);
+router.use('/orders', orderRoutes);
 
 export default router;
