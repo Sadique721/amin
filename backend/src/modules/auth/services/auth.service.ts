@@ -4,26 +4,96 @@ import { EmailService } from '@/shared/email';
 import { signToken } from '@/shared/auth/jwt';
 import { env } from '@/config/env';
 import { BadRequestException } from '@/shared/exceptions';
+import crypto from 'crypto';
 
 export class AuthService {
   private userRepository = new UserRepository();
 
-  async requestOtp(email: string): Promise<void> {
+  async requestOtp(email: string): Promise<{ hasPassword: boolean }> {
+    const formattedEmail = email.toLowerCase();
+    const adminEmail = env.ADMIN_EMAIL ? env.ADMIN_EMAIL.toLowerCase() : '';
+    
+    const user = await this.userRepository.findByEmail(formattedEmail);
+    const hasPassword = !!(user?.password) || !!(adminEmail && formattedEmail === adminEmail);
+
+    // Skip sending OTP if email belongs to the admin
+    if (adminEmail && formattedEmail === adminEmail) {
+      return { hasPassword };
+    }
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
     await OTP.findOneAndUpdate(
-      { email: email.toLowerCase() },
+      { email: formattedEmail },
       { otp, expiresAt },
       { upsert: true, new: true }
     );
 
     await EmailService.sendOTP(email, otp);
+    return { hasPassword };
   }
 
   async verifyOtp(email: string, otpCode: string) {
     const formattedEmail = email.toLowerCase();
+    const adminEmail = env.ADMIN_EMAIL ? env.ADMIN_EMAIL.toLowerCase() : '';
+    const adminPassword = env.ADMIN_PASSWORD || '';
     
+    let user = await this.userRepository.findByEmail(formattedEmail);
+
+    // Check if logging in as admin using the set password
+    if (adminEmail && formattedEmail === adminEmail && otpCode === adminPassword) {
+      if (!user) {
+        user = await this.userRepository.create({
+          name: 'Store Administrator',
+          email: formattedEmail,
+          role: 'admin',
+          isEmailVerified: true,
+          password: crypto.createHash('sha256').update(adminPassword).digest('hex'),
+        });
+      }
+      
+      const payload = { sub: user._id, role: user.role };
+      const accessToken = signToken(payload, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN });
+      const refreshToken = signToken(payload, env.JWT_REFRESH_SECRET, { expiresIn: env.JWT_REFRESH_EXPIRES_IN });
+      
+      return {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          isActive: user.isActive,
+          isEmailVerified: user.isEmailVerified,
+        },
+        accessToken,
+        refreshToken,
+      };
+    }
+
+    // Check if user has password set and matches
+    if (user && user.password) {
+      const hashedInput = crypto.createHash('sha256').update(otpCode).digest('hex');
+      if (user.password === hashedInput) {
+        const payload = { sub: user._id, role: user.role };
+        const accessToken = signToken(payload, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN });
+        const refreshToken = signToken(payload, env.JWT_REFRESH_SECRET, { expiresIn: env.JWT_REFRESH_EXPIRES_IN });
+        
+        return {
+          user: {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            isActive: user.isActive,
+            isEmailVerified: user.isEmailVerified,
+          },
+          accessToken,
+          refreshToken,
+        };
+      }
+    }
+
     const otpRecord = await OTP.findOne({ email: formattedEmail, otp: otpCode });
     if (!otpRecord) {
       throw new BadRequestException('Invalid or expired OTP');
@@ -36,7 +106,6 @@ export class AuthService {
 
     await OTP.deleteOne({ _id: otpRecord._id });
 
-    let user = await this.userRepository.findByEmail(formattedEmail);
     if (!user) {
       const defaultName = formattedEmail.split('@')[0];
       user = await this.userRepository.create({

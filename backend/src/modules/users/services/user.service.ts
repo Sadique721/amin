@@ -2,6 +2,7 @@ import { UserRepository } from '../repositories/user.repository';
 import { AddressDTO, UpdateUserDTO } from '../validators/user.validator';
 import { NotFoundException } from '@/shared/exceptions';
 import { IUser } from '../models/user.model';
+import crypto from 'crypto';
 
 export class UserService {
   private userRepository = new UserRepository();
@@ -15,7 +16,12 @@ export class UserService {
   }
 
   async updateProfile(userId: string, data: UpdateUserDTO): Promise<IUser> {
-    const user = await this.userRepository.update(userId, data);
+    const { name, phone, password } = data;
+    const updateData: any = { name, phone };
+    if (password) {
+      updateData.password = crypto.createHash('sha256').update(password).digest('hex');
+    }
+    const user = await this.userRepository.update(userId, updateData);
     if (!user) {
       throw new NotFoundException('User profile not found');
     }

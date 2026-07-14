@@ -8,8 +8,8 @@ export class AuthController {
   requestOtp = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { email } = req.body;
-      await this.authService.requestOtp(email);
-      res.status(200).json(new ApiResponse(200, null, 'OTP sent successfully to your email'));
+      const data = await this.authService.requestOtp(email);
+      res.status(200).json(new ApiResponse(200, data, 'OTP request processed successfully'));
     } catch (error) {
       next(error);
     }

@@ -191,6 +191,70 @@ export class OrderService {
     return await this.repository.list({ user: userId }, { page, limit, sort: { createdAt: -1 } });
   }
 
+  async listAllOrders(page: number, limit: number, status?: string): Promise<any> {
+    const filter: any = {};
+    if (status && status !== 'all') {
+      filter.status = status;
+    }
+    return await this.repository.list(filter, { page, limit, sort: { createdAt: -1 } });
+  }
+
+  async updateOrderStatus(id: string, status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled', paymentStatus?: 'pending' | 'paid' | 'failed'): Promise<IOrder> {
+    const order = await this.repository.findById(id);
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    order.status = status;
+    if (paymentStatus) {
+      order.paymentDetails.status = paymentStatus;
+    }
+    await order.save();
+    return order;
+  }
+
+  async getSalesStats(): Promise<any> {
+    const stats = await this.repository.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: '$total' },
+          totalOrders: { $sum: 1 },
+          avgOrderValue: { $avg: '$total' },
+        },
+      },
+    ]);
+
+    const statusBreakdown = await this.repository.aggregate([
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+          revenue: { $sum: '$total' },
+        },
+      },
+    ]);
+
+    const paymentBreakdown = await this.repository.aggregate([
+      {
+        $group: {
+          _id: '$paymentDetails.method',
+          count: { $sum: 1 },
+          revenue: { $sum: '$total' },
+        },
+      },
+    ]);
+
+    const result = stats[0] || { totalRevenue: 0, totalOrders: 0, avgOrderValue: 0 };
+    return {
+      totalRevenue: result.totalRevenue,
+      totalOrders: result.totalOrders,
+      avgOrderValue: Math.round(result.avgOrderValue * 100) / 100,
+      statusBreakdown,
+      paymentBreakdown,
+    };
+  }
+
   private async deductInventory(items: IOrderItem[]): Promise<void> {
     for (const item of items) {
       await Product.updateOne(
