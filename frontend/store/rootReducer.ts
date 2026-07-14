@@ -1,8 +1,6 @@
 import { combineReducers } from '@reduxjs/toolkit';
-
-// Temporary dummy reducer to keep Redux happy before real features are loaded
-const dummyReducer = (state = {}, action: any) => state;
+import { authReducer } from '@/features/auth';
 
 export const rootReducer = combineReducers({
-  _dummy: dummyReducer,
+  auth: authReducer,
 });

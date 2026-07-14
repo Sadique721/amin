@@ -21,9 +21,9 @@ This document lists the tasks required to implement the Jewellery & Cosmetics E-
 ---
 
 ## Phase 2: Authentication & Profile Management
-- [ ] **Task 2.1**: Define Mongoose User Schema and write validation/DTO schemas.
-- [ ] **Task 2.2**: Implement passwordless email-OTP service routines, secure JWT provision token setups, and Google OAuth hooks.
-- [ ] **Task 2.3**: Build frontend Redux auth slices, dynamic OTP inputs forms UI, and profile address management screens.
+- [x] **Task 2.1**: Define Mongoose User Schema and write validation/DTO schemas.
+- [x] **Task 2.2**: Implement passwordless email-OTP service routines, secure JWT provision token setups, and Google OAuth hooks.
+- [x] **Task 2.3**: Build frontend Redux auth slices, dynamic OTP inputs forms UI, and profile address management screens.
 
 ---
 
