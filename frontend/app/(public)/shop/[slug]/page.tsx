@@ -1,7 +1,9 @@
 'use client';
 
 import * as React from 'react';
+import { useAppDispatch } from '@/hooks/redux';
 import { fetchProductBySlugApi, IProduct, IVariant, VariantSelector } from '@/features/products';
+import { addToCart } from '@/features/cart';
 import { ZoomGallery } from '@/components/ui/zoom-gallery';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Star, ShoppingCart, ShieldCheck, Truck, RefreshCcw, PackageSearch } from 'lucide-react';
@@ -35,9 +37,12 @@ export default function ShopDetailPage({ params }: { params: Promise<{ slug: str
     loadProduct();
   }, [slug]);
 
+  const dispatch = useAppDispatch();
+
   const handleAddToCart = () => {
-    if (!selectedVariant) return;
-    toast.success(`Added ${product?.name} (${selectedVariant.sku}) to cart!`, {
+    if (!product || !selectedVariant) return;
+    dispatch(addToCart({ product, variant: selectedVariant, quantity }));
+    toast.success(`Added ${product.name} to cart!`, {
       description: `Quantity: ${quantity} • Price: ₹${selectedVariant.price * quantity}`,
     });
   };
