@@ -2,12 +2,18 @@ import mongoose from 'mongoose';
 import { env } from '@/config/env';
 
 export const connectDB = async (): Promise<void> => {
+  if (mongoose.connection.readyState >= 1) {
+    return;
+  }
   try {
     const conn = await mongoose.connect(env.MONGODB_URI);
     console.log(`🔌 MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
     console.error(`❌ Database connection error: ${(error as Error).message}`);
-    process.exit(1);
+    if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+      process.exit(1);
+    }
+    throw error;
   }
 };
 

@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import router from './routes';
 import { errorMiddleware } from './middlewares/error.middleware';
 import { notFoundMiddleware } from './middlewares/not-found.middleware';
+import { connectDB } from './database/connection';
 
 const app = express();
 
@@ -15,6 +16,16 @@ app.use(cors());
 // Parsing Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Lazily connect to database on request (crucial for serverless environments)
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 // HTTP Request Logger
 app.use(morgan('dev'));
