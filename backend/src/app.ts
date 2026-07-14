@@ -6,6 +6,7 @@ import router from './routes';
 import { errorMiddleware } from './middlewares/error.middleware';
 import { notFoundMiddleware } from './middlewares/not-found.middleware';
 import { connectDB } from './database/connection';
+import path from 'path';
 
 const app = express();
 
@@ -16,6 +17,9 @@ app.use(cors());
 // Parsing Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static uploads
+app.use('/uploads', express.static(path.join(process.cwd(), 'storage/uploads')));
 
 // Lazily connect to database on request (crucial for serverless environments)
 app.use(async (req, res, next) => {
