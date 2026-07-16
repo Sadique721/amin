@@ -2,10 +2,16 @@ import app from './app';
 import { env } from './config/env';
 import { connectDB } from './database/connection';
 import { logger } from './shared/logger';
+import { initQueueSystem } from './queues/queue.helper';
+import './queues/email.queue';
+import './queues/notification.queue';
 
 const startServer = async () => {
   // Connect to Database
   await connectDB();
+
+  // Initialize Queue System
+  await initQueueSystem();
 
   const server = app.listen(env.PORT, () => {
     logger.info(`🚀 Server running in ${env.NODE_ENV} mode on port ${env.PORT}`);

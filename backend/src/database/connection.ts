@@ -15,10 +15,20 @@ export const connectDB = async (): Promise<void> => {
     await seedCmsData();
   } catch (error) {
     console.error(`❌ Database connection error: ${(error as Error).message}`);
-    if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
-      process.exit(1);
+    console.warn('⚠️ Starting backend server with in-memory fallback database...');
+    try {
+      const { MongoMemoryServer } = await import('mongodb-memory-server');
+      const mongoServer = await MongoMemoryServer.create();
+      const mongoUri = mongoServer.getUri();
+      const conn = await mongoose.connect(mongoUri);
+      console.log(`🔌 MongoDB In-Memory Connected: ${conn.connection.host}`);
+      
+      // Seed default admin and cms data
+      await seedDefaultAdmin();
+      await seedCmsData();
+    } catch (memError) {
+      console.error(`❌ Failed to start in-memory MongoDB fallback: ${(memError as Error).message}`);
     }
-    throw error;
   }
 };
 

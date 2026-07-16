@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: sanab_redis
+    ports:
+      - "6379:6379"
+    restart: always
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sanab_backend
+    ports:
+      - "10001:10001"
+    environment:
+      - PORT=10001
+      - NODE_ENV=production
+      - JWT_SECRET=your_jwt_secret_key
+      - JWT_EXPIRES_IN=1h
+      - JWT_REFRESH_SECRET=your_jwt_refresh_secret_key
+      - JWT_REFRESH_EXPIRES_IN=7d
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sanab_frontend
+    ports:
+      - "10002:10002"
+    environment:
+      - PORT=10002
+      - NEXT_PUBLIC_API_URL=http://localhost:10001/api/public
+    depends_on:
+      - backend
+    restart: always

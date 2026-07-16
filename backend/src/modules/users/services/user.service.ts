@@ -2,6 +2,7 @@ import { UserRepository } from '../repositories/user.repository';
 import { AddressDTO, UpdateUserDTO } from '../validators/user.validator';
 import { NotFoundException } from '@/shared/exceptions';
 import { IUser } from '../models/user.model';
+import { hashPassword } from '@/shared/auth/password';
 import crypto from 'crypto';
 
 export class UserService {
@@ -19,7 +20,7 @@ export class UserService {
     const { name, phone, password } = data;
     const updateData: any = { name, phone };
     if (password) {
-      updateData.password = crypto.createHash('sha256').update(password).digest('hex');
+      updateData.password = await hashPassword(password);
     }
     const user = await this.userRepository.update(userId, updateData);
     if (!user) {
@@ -78,5 +79,15 @@ export class UserService {
 
     await user.save();
     return user.addresses;
+  }
+
+  async getSessions(userId: string): Promise<any[]> {
+    const { Session } = await import('@/modules/auth/models/session.model');
+    return Session.find({ userId, isActive: true, expiresAt: { $gt: new Date() } }).sort({ updatedAt: -1 });
+  }
+
+  async revokeSession(userId: string, sessionId: string): Promise<void> {
+    const { Session } = await import('@/modules/auth/models/session.model');
+    await Session.findOneAndUpdate({ _id: sessionId, userId }, { isActive: false });
   }
 }

@@ -14,5 +14,7 @@ router.patch('/profile', validationMiddleware(updateUserValidationSchema), contr
 router.post('/addresses', validationMiddleware(addressValidationSchema), controller.addAddress);
 router.delete('/addresses/:addressId', controller.deleteAddress);
 router.patch('/addresses/:addressId/default', controller.setDefaultAddress);
+router.get('/sessions', controller.getSessions);
+router.delete('/sessions/:sessionId', controller.revokeSession);
 
 export default router;

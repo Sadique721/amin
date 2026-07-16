@@ -57,4 +57,25 @@ export class UserController {
       next(error);
     }
   };
+
+  getSessions = async (req: any, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = (req as AuthenticatedRequest).user!.id;
+      const sessions = await this.userService.getSessions(userId);
+      res.status(200).json(new ApiResponse(200, sessions, 'Active sessions retrieved successfully'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  revokeSession = async (req: any, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = (req as AuthenticatedRequest).user!.id;
+      const { sessionId } = req.params;
+      await this.userService.revokeSession(userId, sessionId);
+      res.status(200).json(new ApiResponse(200, null, 'Session revoked successfully'));
+    } catch (error) {
+      next(error);
+    }
+  };
 }

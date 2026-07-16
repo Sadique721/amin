@@ -7,6 +7,7 @@ import { couponRoutes } from '@/modules/coupons';
 import { orderRoutes } from '@/modules/orders';
 import { uploadRoutes } from '@/modules/upload';
 import { cmsRoutes } from '@/modules/cms';
+import { wishlistRoutes } from '@/modules/wishlist';
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use('/coupons', couponRoutes);
 router.use('/orders', orderRoutes);
 router.use('/upload', uploadRoutes);
 router.use('/cms', cmsRoutes);
+router.use('/wishlist', wishlistRoutes);
 
 export default router;

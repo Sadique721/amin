@@ -1,9 +1,12 @@
 import { OTP } from '../models/otp.model';
 import { UserRepository } from '../../users/repositories/user.repository';
-import { EmailService } from '@/shared/email';
+import { emailQueue } from '@/queues/email.queue';
 import { signToken } from '@/shared/auth/jwt';
 import { env } from '@/config/env';
 import { BadRequestException } from '@/shared/exceptions';
+import { hashPassword, comparePassword } from '@/shared/auth/password';
+import { Session } from '../models/session.model';
+import { parseUserAgent } from '@/shared/auth/ua';
 import crypto from 'crypto';
 
 export class AuthService {
@@ -30,11 +33,11 @@ export class AuthService {
       { upsert: true, new: true }
     );
 
-    await EmailService.sendOTP(email, otp);
+    await emailQueue.add({ type: 'otp', email, otp });
     return { hasPassword };
   }
 
-  async verifyOtp(email: string, otpCode: string) {
+  async verifyOtp(email: string, otpCode: string, meta?: { ip: string; userAgent: string }) {
     const formattedEmail = email.toLowerCase();
     const adminEmail = env.ADMIN_EMAIL ? env.ADMIN_EMAIL.toLowerCase() : '';
     const adminPassword = env.ADMIN_PASSWORD || '';
@@ -49,13 +52,15 @@ export class AuthService {
           email: formattedEmail,
           role: 'admin',
           isEmailVerified: true,
-          password: crypto.createHash('sha256').update(adminPassword).digest('hex'),
+          password: await hashPassword(adminPassword),
         });
       }
       
       const payload = { sub: user._id, role: user.role };
       const accessToken = signToken(payload, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN });
       const refreshToken = signToken(payload, env.JWT_REFRESH_SECRET, { expiresIn: env.JWT_REFRESH_EXPIRES_IN });
+      
+      await this.createSession(user._id, accessToken, meta);
       
       return {
         user: {
@@ -73,11 +78,13 @@ export class AuthService {
 
     // Check if user has password set and matches
     if (user && user.password) {
-      const hashedInput = crypto.createHash('sha256').update(otpCode).digest('hex');
-      if (user.password === hashedInput) {
+      const isMatch = await comparePassword(otpCode, user.password);
+      if (isMatch) {
         const payload = { sub: user._id, role: user.role };
         const accessToken = signToken(payload, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN });
         const refreshToken = signToken(payload, env.JWT_REFRESH_SECRET, { expiresIn: env.JWT_REFRESH_EXPIRES_IN });
+        
+        await this.createSession(user._id, accessToken, meta);
         
         return {
           user: {
@@ -125,6 +132,8 @@ export class AuthService {
       expiresIn: env.JWT_REFRESH_EXPIRES_IN,
     });
 
+    await this.createSession(user._id, accessToken, meta);
+
     return {
       user: {
         id: user._id,
@@ -139,7 +148,7 @@ export class AuthService {
     };
   }
 
-  async googleLogin(credential: string) {
+  async googleLogin(credential: string, meta?: { ip: string; userAgent: string }) {
     try {
       const parts = credential.split('.');
       if (parts.length !== 3) {
@@ -182,6 +191,8 @@ export class AuthService {
       const accessToken = signToken(tokenPayload, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN });
       const refreshToken = signToken(tokenPayload, env.JWT_REFRESH_SECRET, { expiresIn: env.JWT_REFRESH_EXPIRES_IN });
       
+      await this.createSession(user!._id, accessToken, meta);
+      
       return {
         user: {
           id: user!._id,
@@ -199,6 +210,25 @@ export class AuthService {
         throw error;
       }
       throw new BadRequestException('Google authentication failed');
+    }
+  }
+
+  private async createSession(userId: any, accessToken: string, meta?: { ip: string; userAgent: string }) {
+    try {
+      const ip = meta?.ip || 'unknown';
+      const userAgent = meta?.userAgent || 'unknown';
+      const { browser, os } = parseUserAgent(userAgent);
+      
+      const tokenHash = crypto.createHash('sha256').update(accessToken).digest('hex');
+      
+      await Session.create({
+        userId,
+        tokenHash,
+        deviceInfo: { ip, userAgent, browser, os },
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      });
+    } catch (err) {
+      console.error('Failed to create session audit entry:', err);
     }
   }
 }
