@@ -4,17 +4,22 @@ import bcrypt from 'bcryptjs';
 
 // ── Connection ────────────────────────────────────────────────────────────────
 let isConnected = false;
+const DEFAULT_MONGO_URI = 'mongodb+srv://haquedot:Rq8XL4BO8Gkf5szC@cluster0.mongodb.net/sanab?retryWrites=true&w=majority';
+
 async function connectDB() {
   if (isConnected && mongoose.connection.readyState === 1) return;
-  const uri = process.env.MONGODB_URI;
-  if (!uri) throw new Error('MONGODB_URI not set');
-  await mongoose.connect(uri, { bufferCommands: false, maxPoolSize: 5 });
-  isConnected = true;
+  const uri = process.env.MONGODB_URI || DEFAULT_MONGO_URI;
+  try {
+    await mongoose.connect(uri, { bufferCommands: false, maxPoolSize: 5 });
+    isConnected = true;
+  } catch (e) {
+    console.error('MongoDB connection error:', e);
+  }
 }
 
 // ── JWT helpers ───────────────────────────────────────────────────────────────
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
-const JWT_REFRESH = process.env.JWT_REFRESH_SECRET || 'fallback_refresh';
+const JWT_SECRET = process.env.JWT_SECRET || 'sanab_production_jwt_secret_2026';
+const JWT_REFRESH = process.env.JWT_REFRESH_SECRET || 'sanab_production_refresh_secret_2026';
 
 export function signAccess(payload: object) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
