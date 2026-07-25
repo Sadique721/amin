@@ -13,7 +13,7 @@ export async function connectDB() {
     const { default: mongoose } = await import('mongoose');
     mongooseRef = mongoose;
     if (mongoose.connection.readyState !== 1) {
-      await mongoose.connect(uri, { bufferCommands: false, maxPoolSize: 5 });
+      await mongoose.connect(uri, { maxPoolSize: 5, serverSelectionTimeoutMS: 5000 });
     }
     isConnected = true;
     return mongoose;
