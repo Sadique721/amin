@@ -1,46 +1,54 @@
 import mongoose from 'mongoose';
 import { env } from '@/config/env';
-import { seedDefaultAdmin, seedCmsData, seedProductsAndCategories } from './seed';
+
+// Serverless connection caching - prevents new connection on every cold start
+declare global {
+  var __mongooseCache: { conn: typeof mongoose | null; promise: Promise<typeof mongoose> | null } | undefined;
+}
+
+let cached = global.__mongooseCache;
+
+if (!cached) {
+  cached = global.__mongooseCache = { conn: null, promise: null };
+}
 
 export const connectDB = async (): Promise<void> => {
-  if (mongoose.connection.readyState >= 1) {
+  // Already connected
+  if (cached!.conn && mongoose.connection.readyState >= 1) {
     return;
   }
 
+  if (!cached!.promise) {
+    const opts = {
+      bufferCommands: false,
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    };
+
+    cached!.promise = mongoose.connect(env.MONGODB_URI, opts).then((mongooseInstance) => {
+      console.log(`🔌 MongoDB Connected: ${mongooseInstance.connection.host}`);
+      return mongooseInstance;
+    });
+  }
+
   try {
-    const conn = await mongoose.connect(env.MONGODB_URI);
-    console.log(`🔌 MongoDB Connected: ${conn.connection.host}`);
-    
-    // Initial data seeding
-    await seedDefaultAdmin();
-    await seedCmsData();
-    await seedProductsAndCategories();
+    cached!.conn = await cached!.promise;
   } catch (error) {
-    console.error(`❌ Local MongoDB connection error: ${(error as Error).message}`);
-    console.warn('⚠️ Starting backend server with in-memory MongoDB fallback...');
-    try {
-      const { MongoMemoryServer } = await import('mongodb-memory-server');
-      const mongoServer = await MongoMemoryServer.create();
-      const mongoUri = mongoServer.getUri();
-      const conn = await mongoose.connect(mongoUri);
-      console.log(`🔌 MongoDB In-Memory Connected: ${conn.connection.host}`);
-      
-      // Seed default admin, customer, cms, and product catalogue data
-      await seedDefaultAdmin();
-      await seedCmsData();
-      await seedProductsAndCategories();
-    } catch (memError) {
-      console.error(`❌ Failed to start in-memory MongoDB fallback: ${(memError as Error).message}`);
-      throw error;
-    }
+    cached!.promise = null;
+    console.error(`❌ MongoDB connection failed: ${(error as Error).message}`);
+    throw error;
   }
 };
 
 mongoose.connection.on('disconnected', () => {
-  console.warn('⚠️ MongoDB disconnected! Attempting to reconnect...');
+  if (cached) {
+    cached.conn = null;
+    cached.promise = null;
+  }
+  console.warn('⚠️ MongoDB disconnected!');
 });
 
 mongoose.connection.on('error', (err) => {
-  console.error(`❌ MongoDB connection pool error: ${err.message}`);
+  console.error(`❌ MongoDB connection error: ${err.message}`);
 });
-
