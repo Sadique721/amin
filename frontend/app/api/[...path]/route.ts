@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDB, User, Category, Product, Order, signAccess, signRefresh, verifyAccess, bcrypt } from '@/lib/db';
-import mongoose from 'mongoose';
+import { connectDB, getModels, signAccess, signRefresh, verifyAccess, bcrypt } from '@/lib/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -12,7 +11,6 @@ function err(msg: string, status = 400) {
   return NextResponse.json({ success: false, message: msg }, { status });
 }
 
-// ── Auth helper ───────────────────────────────────────────────────────────────
 function getUser(req: NextRequest) {
   try {
     const auth = req.headers.get('authorization');
@@ -21,7 +19,6 @@ function getUser(req: NextRequest) {
   } catch { return null; }
 }
 
-// ── Main handler ──────────────────────────────────────────────────────────────
 async function handler(req: NextRequest, pathInput: string[] | undefined) {
   const pathArr = Array.isArray(pathInput) ? pathInput : [];
   const route = pathArr.join('/');
@@ -31,18 +28,19 @@ async function handler(req: NextRequest, pathInput: string[] | undefined) {
     try { body = await req.json(); } catch {}
   }
 
-  await connectDB();
-
   // ── HEALTH ────────────────────────────────────────────────────────────────
   if ((route === 'health' || route === '') && method === 'GET') {
     return ok({
       message: '🚀 Sanab API is running',
       env: process.env.NODE_ENV,
-      db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-      mongodb: 'configured',
       timestamp: new Date().toISOString(),
     });
   }
+
+  await connectDB();
+  const models = await getModels();
+  if (!models) return err('Database connection error', 500);
+  const { User, Category, Product, Order } = models;
 
   // ── PUBLIC AUTH ───────────────────────────────────────────────────────────
   if (route === 'public/auth/login' && method === 'POST') {
@@ -51,7 +49,6 @@ async function handler(req: NextRequest, pathInput: string[] | undefined) {
     
     let user = await User.findOne({ email: email.toLowerCase() }).select('+password');
     
-    // Auto-seed admin if trying to login with default admin credentials and user not found
     const adminEmail = (process.env.ADMIN_EMAIL || 'mdsadiqueamin721786@gmail.com').toLowerCase();
     const adminPass = process.env.ADMIN_PASSWORD || 'Sadique@123';
     
@@ -150,7 +147,7 @@ async function handler(req: NextRequest, pathInput: string[] | undefined) {
   if (route === 'admin/products' && method === 'POST') {
     if (!isAdmin) return err('Unauthorized Admin Access', 401);
     const { name, description, price, sku, stock, category, images, salePrice, isFeatured, tags, attributes, shortDescription } = body;
-    if (!name || !description || !price || !sku || !category) return err('Missing required product fields: name, description, price, sku, category');
+    if (!name || !description || !price || !sku || !category) return err('Missing required product fields');
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now();
     const product = await Product.create({
       name, slug, description, shortDescription, price, salePrice, sku,
@@ -207,7 +204,6 @@ async function handler(req: NextRequest, pathInput: string[] | undefined) {
   return err(`Route not found: ${method} /api/${route}`, 404);
 }
 
-// ── Export Next.js HTTP Verbs safely ──────────────────────────────────────────
 async function processRequest(req: NextRequest, ctx: any) {
   try {
     const rawParams = ctx?.params ? await ctx.params : {};
