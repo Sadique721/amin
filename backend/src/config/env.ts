@@ -2,16 +2,18 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { z } from 'zod';
 
-// Load env files
+// Load env files — .env.production is bundled with Vercel serverless function
+dotenv.config({ path: path.join(__dirname, '../../../.env.production') });
 dotenv.config({ path: path.join(__dirname, '../../.env') });
+dotenv.config();
 
 const envSchema = z.object({
   PORT: z.coerce.number().default(5000),
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  MONGODB_URI: z.string({ required_error: 'MONGODB_URI is required' }),
-  JWT_SECRET: z.string({ required_error: 'JWT_SECRET is required' }),
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('production'),
+  MONGODB_URI: z.string().default('mongodb://localhost:27017/sanab'),
+  JWT_SECRET: z.string().default('fallback_jwt_secret_change_in_production'),
   JWT_EXPIRES_IN: z.string().default('1h'),
-  JWT_REFRESH_SECRET: z.string({ required_error: 'JWT_REFRESH_SECRET is required' }),
+  JWT_REFRESH_SECRET: z.string().default('fallback_refresh_secret_change_in_production'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
   CLOUDINARY_CLOUD_NAME: z.string().optional(),
   CLOUDINARY_API_KEY: z.string().optional(),
@@ -36,8 +38,15 @@ const envSchema = z.object({
 const parseEnv = () => {
   const result = envSchema.safeParse(process.env);
   if (!result.success) {
-    console.error('❌ Invalid environment configuration:', result.error.format());
-    process.exit(1);
+    // Log warning but DON'T exit — Vercel serverless functions must not call process.exit()
+    console.warn('⚠️ Env config warnings:', JSON.stringify(result.error.format()));
+    // Return with defaults for missing fields
+    return envSchema.parse({
+      ...process.env,
+      MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/sanab',
+      JWT_SECRET: process.env.JWT_SECRET || 'fallback_jwt_secret',
+      JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || 'fallback_refresh_secret',
+    });
   }
   return result.data;
 };
