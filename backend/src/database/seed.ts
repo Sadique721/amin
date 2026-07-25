@@ -5,7 +5,7 @@ import { Category } from '@/modules/categories/models/category.model';
 import { Product } from '@/modules/products/models/product.model';
 import { env } from '@/config/env';
 import crypto from 'crypto';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 import { hashPassword as bcryptHashPassword } from '@/shared/auth/password';
 
