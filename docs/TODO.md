@@ -28,33 +28,33 @@ This document lists the tasks required to implement the Jewellery & Cosmetics E-
 ---
 
 ## Phase 3: Catalog, Categories & Faceted Search
-- [ ] **Task 3.1**: Create Mongoose schemas for Products (supporting variant definitions) and Categories.
-- [ ] **Task 3.2**: Configure compound text search indexes and pipeline query search filters in repositories.
-- [ ] **Task 3.3**: Construct Next.js catalog lists, filters sidebars, variant select components, and zoom photo galleries.
+- [x] **Task 3.1**: Create Mongoose schemas for Products (supporting variant definitions) and Categories.
+- [x] **Task 3.2**: Configure compound text search indexes and pipeline query search filters in repositories.
+- [x] **Task 3.3**: Construct Next.js catalog lists, filters sidebars, variant select components, and zoom photo galleries.
 
 ---
 
 ## Phase 4: Shopping Cart & Dynamic Coupons
-- [ ] **Task 4.1**: Build backend Coupon schemas and validate-cart-discount endpoints.
-- [ ] **Task 4.2**: Configure frontend cart Redux store slices with local storage persistence and dynamic coupon entry validation.
+- [x] **Task 4.1**: Build backend Coupon schemas and validate-cart-discount endpoints.
+- [x] **Task 4.2**: Configure frontend cart Redux store slices with local storage persistence and dynamic coupon entry validation.
 
 ---
 
 ## Phase 5: Checkout & Payment Gateway Integration
-- [ ] **Task 5.1**: Define Mongoose Order schemas and set up payment validations (Stripe and Razorpay verification signatures).
-- [ ] **Task 5.2**: Embed Stripe Elements forms, Razorpay SDK buttons, and complete checkout success views.
+- [x] **Task 5.1**: Define Mongoose Order schemas and set up payment validations (Stripe and Razorpay verification signatures).
+- [x] **Task 5.2**: Embed Stripe Elements forms, Razorpay SDK buttons, and complete checkout success views.
 
 ---
 
 ## Phase 6: Admin Dashboard & Inventory Controls
-- [ ] **Task 6.1**: Implement admin analytics endpoints and security checkers.
-- [ ] **Task 6.2**: Design admin portal layout with charts, products/categories inventory management tables, and order fulfillment status update controls.
+- [x] **Task 6.1**: Implement admin analytics endpoints and security checkers.
+- [x] **Task 6.2**: Design admin portal layout with charts, products/categories inventory management tables, and order fulfillment status update controls.
 
 ---
 
 ## Phase 7: CMS / Banners & SEO Integrations
-- [ ] **Task 7.1**: Implement CMS schemas and uploader services mapped to Cloudinary.
-- [ ] **Task 7.2**: Design homepage layouts composed of widgets and inject dynamic SEO rich-snippets schemas.
+- [x] **Task 7.1**: Implement CMS schemas and uploader services mapped to Cloudinary.
+- [x] **Task 7.2**: Design homepage layouts composed of widgets and inject dynamic SEO rich-snippets schemas.
 
 ---
 

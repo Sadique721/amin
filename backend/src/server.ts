@@ -5,6 +5,7 @@ import { logger } from './shared/logger';
 import { initQueueSystem } from './queues/queue.helper';
 import './queues/email.queue';
 import './queues/notification.queue';
+import { startScheduler } from './jobs/scheduler';
 
 const startServer = async () => {
   // Connect to Database
@@ -12,6 +13,9 @@ const startServer = async () => {
 
   // Initialize Queue System
   await initQueueSystem();
+
+  // Start Background Scheduler
+  startScheduler();
 
   const server = app.listen(env.PORT, () => {
     logger.info(`🚀 Server running in ${env.NODE_ENV} mode on port ${env.PORT}`);

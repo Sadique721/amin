@@ -42,7 +42,7 @@ export default function ProfilePage() {
 
   React.useEffect(() => {
     if (!user) {
-      router.push('/login');
+      router.push('/auth/login?redirect=/account/profile');
       return;
     }
 

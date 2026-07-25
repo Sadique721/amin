@@ -1,0 +1,30 @@
+[
+  {
+    "_id": "6a649ad8d445c8d82b5dfbf6",
+    "name": "Md Sadique Amin",
+    "email": "mdsadiqueamin721786@gmail.com",
+    "phone": "9318302850",
+    "role": "admin",
+    "isActive": true,
+    "isEmailVerified": true,
+    "password": "$2b$10$1h.LtqCeMEigJwe06xQ7pug4QF8R4xSU8mjvVUb24aN9rbL5NBeNG",
+    "addresses": [],
+    "createdAt": "2026-07-25T11:15:36.190Z",
+    "updatedAt": "2026-07-25T11:15:36.190Z",
+    "__v": 0
+  },
+  {
+    "_id": "6a649ad8d445c8d82b5dfc07",
+    "name": "Md Sadique Amin",
+    "email": "mdsadiqueamin721721@gmail.com",
+    "phone": "9318302850",
+    "role": "customer",
+    "isActive": true,
+    "isEmailVerified": true,
+    "password": "$2b$10$DJaTS2KQuFhEXiLBxDYyluMX3K/F3XG3wt1UB0CG9jInFbsHkmC.2",
+    "addresses": [],
+    "createdAt": "2026-07-25T11:15:36.388Z",
+    "updatedAt": "2026-07-25T11:15:36.388Z",
+    "__v": 0
+  }
+]

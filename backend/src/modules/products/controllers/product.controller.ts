@@ -52,15 +52,35 @@ export class ProductController {
 
   searchProducts = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      const cleanString = (val: any): string | undefined => {
+        if (!val || val === 'undefined' || val === 'null' || val === '') return undefined;
+        return val as string;
+      };
+
+      const cleanNumber = (val: any): number | undefined => {
+        if (!val || val === 'undefined' || val === 'null' || val === '') return undefined;
+        const num = Number(val);
+        return isNaN(num) ? undefined : num;
+      };
+
+      const cleanBrand = (val: any): string[] | undefined => {
+        if (!val || val === 'undefined' || val === 'null' || val === '') return undefined;
+        const list = (val as string)
+          .split(',')
+          .map((s) => s.trim())
+          .filter((s) => s && s !== 'undefined' && s !== 'null');
+        return list.length > 0 ? list : undefined;
+      };
+
       const filterParams = {
-        search: req.query.search as string,
-        category: req.query.category as string,
-        brand: req.query.brand ? (req.query.brand as string).split(',') : undefined,
-        minPrice: req.query.minPrice ? Number(req.query.minPrice) : undefined,
-        maxPrice: req.query.maxPrice ? Number(req.query.maxPrice) : undefined,
-        type: req.query.type as 'jewellery' | 'cosmetics',
-        rating: req.query.rating ? Number(req.query.rating) : undefined,
-        sortBy: req.query.sortBy as string,
+        search: cleanString(req.query.search),
+        category: cleanString(req.query.category),
+        brand: cleanBrand(req.query.brand),
+        minPrice: cleanNumber(req.query.minPrice),
+        maxPrice: cleanNumber(req.query.maxPrice),
+        type: cleanString(req.query.type) as 'jewellery' | 'cosmetics' | undefined,
+        rating: cleanNumber(req.query.rating),
+        sortBy: cleanString(req.query.sortBy),
         page: req.query.page ? Number(req.query.page) : 1,
         limit: req.query.limit ? Number(req.query.limit) : 12,
       };

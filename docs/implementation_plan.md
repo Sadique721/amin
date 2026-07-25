@@ -1,193 +1,142 @@
-# Phase-Wise Project Implementation Plan
-## Project: Jewellery & Cosmetics E-commerce Web App (Sanab)
+# Security Audit & Vulnerability Remediation Plan
 
-This document provides a highly detailed, step-by-step, phase-wise implementation plan for both the frontend (Next.js, TypeScript, Redux Toolkit, Tailwind) and backend (Node.js, Express, TypeScript, MongoDB) based on the SRS, PRD, and folder architecture designs.
-
----
-
-## Phase 1: Environment Setup, Tooling & Core Infrastructure
-
-### 1.1 Backend Initial Infrastructure
-1.  **TypeScript & Project Scaffold**:
-    *   Initialize `backend/package.json` with scripts: `dev` (ts-node-dev), `build` (tsc), `start` (node dist/server.js), `lint`, `format`.
-    *   Configure `backend/tsconfig.json` with strict typing and paths aliases mapping `@/*` to `src/*`.
-    *   Set up `.env` and `src/config/env.ts` verifying environments (port, db connection URI, JWT secrets, payment API keys, SMS/Email SMTP keys) using Zod.
-2.  **Database Connection & Core Plugins**:
-    *   Create Mongoose initializer (`src/database/connection.ts`) with retry connection logic.
-    *   Write database pagination plugin (`src/database/plugins/paginate.plugin.ts`) to intercept schema queries.
-    *   Write auto-slug generator plugin (`src/database/plugins/slug.plugin.ts`) utilizing `slugify`.
-3.  **Global Middlewares & Exceptions**:
-    *   Create Winston logger configuration (`src/shared/logger/index.ts`).
-    *   Implement global Express error handler middleware (`src/middlewares/error.middleware.ts`) formatting exceptions into a standard `ApiError` envelope.
-    *   Implement route not found handler (`src/middlewares/not-found.middleware.ts`).
-    *   Write generic validator middleware (`src/middlewares/validation.middleware.ts`) parsing request inputs against Zod schemas.
-4.  **Routing Aggregator**:
-    *   Build `src/app.ts` importing `express`, `cors`, `helmet`, `morgan` and registering the base API router `src/routes/index.ts`.
-    *   Initialize `src/server.ts` binding the database and launching the HTTP server.
-
-### 1.2 Frontend Scaffolding & Shared Shells
-1.  **Tooling & Linters**:
-    *   Install shadcn/ui components (`button`, `input`, `dialog`, `dropdown-menu`, `card`, `select`).
-    *   Configure TypeScript path mappings (`@/*` to `*`).
-    *   Set up Prettier and ESLint matching strict codebase rules.
-2.  **Providers & Styles Configuration**:
-    *   Implement `<ThemeProvider>` (`providers/ThemeProvider.tsx`) wrapping system palettes.
-    *   Implement `<ReduxProvider>` (`providers/ReduxProvider.tsx`) configuring the Redux store with hooks (`store/hooks.ts`).
-    *   Implement `<AppProvider>` (`providers/AppProvider.tsx`) aggregating Redux, Theme, and Toast alerts.
-    *   Populate `styles/animations.css`, `styles/variables.css`, and `styles/utilities.css` for micro-interactions and transitions.
-3.  **Layout Templates (Navbar & Footer)**:
-    *   Build layout container grid (`components/common/container.tsx`).
-    *   Build `components/layout/header.tsx` with dynamic search inputs, wishlist/cart item counts, and account session navigators.
-    *   Build `components/layout/footer.tsx` with category index listings, legal policies link mappings, and newsletter newsletter inputs.
+This document outlines the security vulnerabilities identified during the security audit of the Sanab codebase and provides a step-by-step plan to implement robust fixes for each of them.
 
 ---
 
-## Phase 2: Authentication & Profile Management
+## 1. Identified Vulnerabilities & Proposed Fixes
 
-### 2.1 Backend Implementation
-1.  **User Model & DTOs**:
-    *   Define `User` Mongoose schema (`src/modules/users/models/user.model.ts`) with email, names, mobile, role enum (`customer`, `admin`), addresses sub-array, and wishlist references.
-    *   Create request DTOs (`create-user.dto.ts`, `update-user.dto.ts`) and Zod validations (`auth.validation.ts`).
-2.  **OTP & Auth Services**:
-    *   Implement `AuthService` (`src/modules/auth/services/auth.service.ts`) handling OTP creation, validation status, and token lifecycle management.
-    *   Write email/SMS transporter services (`src/shared/email/` & `src/shared/sms/`) sending 6-digit OTP codes.
-3.  **Controllers & Routing**:
-    *   Implement `AuthController` calling OTP generation and OTP verification.
-    *   Bypass authentication checks on Google OAuth verify callback redirect.
-    *   Create security middleware (`src/middlewares/auth.middleware.ts`) verifying JWT header signatures and mapping payload context to `req.user`.
+### 1.1 Broken Object Level Authorization (BOLA/IDOR) in Order Retrieval
 
-### 2.2 Frontend Implementation
-1.  **Redux Auth Slice**:
-    *   Build `features/auth/store/auth-slice.ts` tracking `user`, `token`, loading states, and active logins.
-2.  **UI Pages & OTP Components**:
-    *   Create dynamic login form (`app/(auth)/login/page.tsx`) triggering OTP dispatch to email.
-    *   Implement numeric OTP Dialog code entry popup component (`features/auth/components/otp-form.tsx`).
-    *   Design user sign-up page (`app/(auth)/register/page.tsx`) collecting basic profile profiles (names, mobile).
-3.  **Profile & Address Book Management**:
-    *   Implement customer dashboard layouts (`app/(customer)/account/layout.tsx`).
-    *   Create profile editing view (`app/(customer)/account/profile/page.tsx`) permitting details updates and management of multiple shipping addresses via Address Card components (`components/forms/address-form.tsx`).
+*   **Vulnerability**: The `getOrderById` endpoint (`GET /api/public/orders/:id`) retrieves order details using the provided order ID without verifying if the authenticated user is the owner of that order or an administrator.
+*   **Impact**: Any authenticated user can view the details, shipping address, items, and payment info of any other user's order by guessing or obtaining the order's MongoDB ID.
+*   **Proposed Fix**:
+    Modify the order controller/service to check if the authenticated user's ID matches the owner of the order, or if the user is an admin.
 
----
+### 1.2 Broken Object Level Authorization (BOLA/IDOR) in Payment Verification
 
-## Phase 3: Catalog, Categories & Faceted Search
+*   **Vulnerability**: The payment verification endpoints (`POST /api/public/orders/verify/cod` and `POST /api/public/orders/verify/razorpay`) process order fulfillment without checking if the user requesting the verification is the owner of the order.
+*   **Impact**: A malicious authenticated user can mark any pending COD order as "processing" or bypass/fudge mock payment validations for any order.
+*   **Proposed Fix**:
+    Require the authenticated user's ID as a parameter to the service methods and enforce that the order belongs to the requesting user before performing the verification.
 
-### 3.1 Backend Implementation
-1.  **Schemas & Database Models**:
-    *   Define Category schema (`src/modules/categories/models/category.model.ts`) with parent/child relations.
-    *   Define Product schema (`src/modules/products/models/product.model.ts`) supporting variants (SKU, price, compareAtPrice, stock, and attributes: metal karat/cosmetic shade).
-2.  **Search & Facet Aggregations**:
-    *   Configure MongoDB compound text indexes across product title, brand, and tags.
-    *   Build advanced pipeline query filters inside `ProductRepository` returning category matches, price ranges, brands, rating averages, and dynamic availability sorting.
-3.  **Controllers & Operations Routing**:
-    *   Expose paginated public listings routes (`/api/products` & `/api/products/:slug`).
-    *   Create admin product creation routes supporting variant mapping configurations and validation.
+### 1.3 Admin Session User ID Check Bug (Undefined User in Orders)
 
-### 3.2 Frontend Implementation
-1.  **Redux Catalog Slice**:
-    *   Build `store/productsSlice.ts` and `store/categoriesSlice.ts` to manage search terms, selected facets, and paginated product collections.
-2.  **Components & Widgets**:
-    *   Build presentational catalog page (`app/(public)/shop/page.tsx`).
-    *   Implement Filter Sidebar component (`features/products/components/filter-sidebar.tsx`) parsing price sliders, categories, and brands.
-    *   Build Product Detail page (`app/(public)/shop/[slug]/page.tsx`) wrapping image Zoom Gallery (`components/ui/zoom-gallery.tsx`) and swatches selectors (`features/products/components/variant-selector.tsx`).
+*   **Bug / Vulnerability**: In `order.controller.ts`, the user's ID is read as `(req as any).user.sub`. However, the authentication middleware (`auth.middleware.ts`) populates `req.user` with `{ id, role }`.
+*   **Impact**: The `userId` variable is evaluated as `undefined` for order creation and order listing. In MongoDB, this saves the order with `user: null` or `user: undefined`. Consequently, querying for user orders with a value of `undefined` leaks orders associated with a null/undefined user to other users.
+*   **Proposed Fix**:
+    Replace `(req as any).user.sub` with `(req as AuthenticatedRequest).user!.id` in `order.controller.ts`.
 
----
+### 1.4 Path Traversal in Uploaded File Deletion (Local Storage)
 
-## Phase 4: Shopping Cart & Dynamic Coupons
+*   **Vulnerability**: In `backend/src/shared/cloudinary/index.ts`, when using local storage, the local asset delete routine converts the `publicId` directly into a filename by removing the `local-` prefix:
+    ```typescript
+    const fileName = publicId.replace('local-', '');
+    const filePath = path.join(process.cwd(), 'storage/uploads', fileName);
+    ```
+*   **Impact**: An admin can pass a payload like `local-../../package.json` to the delete asset endpoint, causing the server to delete sensitive configuration or source code files outside of the `storage/uploads` directory.
+*   **Proposed Fix**:
+    Sanitize the file name using `path.basename(fileName)` and validate that the resolved path stays within the `storage/uploads` directory before performing `fs.unlinkSync`.
 
-### 4.1 Backend Implementation
-1.  **Coupons Model & Validations**:
-    *   Build Coupon schema (`src/modules/coupons/models/coupon.model.ts`) tracking codes, discount values (percent/absolute), validity dates, thresholds, and limits.
-    *   Implement validations endpoints `/api/coupons/validate` returning discount rates.
-2.  **Cart Database Persistence**:
-    *   Although cart state is primarily maintained client-side, implement API endpoint `/api/cart/sync` permitting customers to persist cart details to their user profile upon authentication.
+### 1.5 Weak Password Hashing in Admin Seeding
 
-### 4.2 Frontend Implementation
-1.  **Redux Cart Slice**:
-    *   Create `features/cart/store/cart-slice.ts` managing client operations: addition, quantity limit validation checks, updates, and coupon state.
-    *   Add Redux middleware synchronizing active cart states with browser `localStorage`.
-2.  **Cart Drawer & Summary UI**:
-    *   Build dynamic slide-over Cart Drawer (`features/cart/components/cart-drawer.tsx`).
-    *   Build full cart review summary page (`app/(public)/cart/page.tsx`) showcasing checkout checkout items, subtotals, and coupon apply boxes (`features/cart/components/coupon-code.tsx`).
+*   **Vulnerability**: In `backend/src/database/seed.ts`, the local `hashPassword` function hashes the environment-based admin passwords using SHA-256 without a salt:
+    ```typescript
+    function hashPassword(password: string): string {
+      return crypto.createHash('sha256').update(password).digest('hex');
+    }
+    ```
+    However, the authentication service compares passwords using `bcrypt.compare`.
+*   **Impact**: The seeded admin cannot log in because the stored SHA-256 hash is incompatible with `bcrypt.compare`. Furthermore, storing unsalted SHA-256 hashes is a weak security practice.
+*   **Proposed Fix**:
+    Replace the local `hashPassword` function with the shared bcrypt hashing helper imported from `@/shared/auth/password`.
 
----
+### 1.6 JWT Timing Attack Vulnerability
 
-## Phase 5: Checkout & Payment Gateway Integration
+*   **Vulnerability**: In `backend/src/shared/auth/jwt.ts`, the signature check in `verifyToken` uses a standard string comparison:
+    ```typescript
+    if (encodedSignature !== expectedSignature) {
+    ```
+*   **Impact**: Attackers can potentially measure response times to guess the signature character-by-character (timing attack).
+*   **Proposed Fix**:
+    Convert the signatures to buffers and compare them using `crypto.timingSafeEqual`.
 
-### 5.1 Backend Implementation
-1.  **Order Model**:
-    *   Define Order schema (`src/modules/orders/models/order.model.ts`) mapping items, shipping addresses, payment details, subtotal, tax, discounts, final totals, tracking statuses, and reference numbers.
-2.  **Payment Integrations**:
-    *   Initialize SDK integrations in `src/config/stripe.ts` and `src/config/razorpay.ts`.
-    *   Build checkout endpoint `/api/orders/create` locking catalog inventory.
-    *   Build verification endpoint `/api/orders/verify` validating webhook signatures to prevent fraud.
-    *   Integrate Cash on Delivery (COD) checks based on shipping ZIP code constraints.
+### 1.7 Lack of Rate Limiting on Authentication/OTP Endpoints
 
-### 5.2 Frontend Implementation
-1.  **Checkout Interface**:
-    *   Build checkout page (`app/(public)/checkout/page.tsx`).
-    *   Design multi-step layouts: Shipping Address Selector $\rightarrow$ Order Summary review $\rightarrow$ Payment Gateways Selection (Stripe vs Razorpay vs COD).
-2.  **Payment Components Integration**:
-    *   Write Stripe Elements wrapper forms (`features/checkout/components/stripe-form.tsx`).
-    *   Implement Razorpay SDK load scripts (`features/checkout/components/razorpay-button.tsx`).
-    *   Build order success page (`app/(customer)/account/orders/[orderId]/page.tsx`) mapping tracking details.
+*   **Vulnerability**: The rate limiter is currently a no-op placeholder.
+*   **Impact**: Attackers can brute-force the 6-digit OTP codes or flood the system with OTP SMS/Email requests (DDoS / financial draining).
+*   **Proposed Fix**:
+    Implement the `rateLimitMiddleware` in `backend/src/middlewares/rate-limit.middleware.ts` using the `express-rate-limit` library (already present in `package.json`). Apply a strict limit (e.g. 5 requests per 15 minutes) on the OTP send and verify routes, and a general limit on other API endpoints.
+
+### 1.8 Multer File Type Restrictions on Uploads
+
+*   **Vulnerability**: The file upload endpoint in `backend/src/modules/upload/routes/upload.routes.ts` does not restrict the mime-type of uploaded files.
+*   **Impact**: Even though restricted to admin access, an attacker who obtains admin credentials could upload malicious files (e.g. `.html` with XSS payloads or executable scripts).
+*   **Proposed Fix**:
+    Add a `fileFilter` to the Multer configuration to allow only common image mime-types (`image/png`, `image/jpeg`, `image/jpg`, `image/webp`, `image/gif`).
+
+### 1.9 Permissive CORS Configuration
+
+*   **Vulnerability**: CORS is configured in `app.ts` as `app.use(cors())`, allowing all origins (`*`) by default.
+*   **Impact**: Unrestricted cross-origin access.
+*   **Proposed Fix**:
+    Update `app.ts` to read allowed origins from the environment configuration (`ALLOWED_ORIGINS`) and default to localhost/restricted domains in non-development environments.
 
 ---
 
-## Phase 6: Admin Dashboard & Inventory Controls
+## 2. Proposed Changes by File
 
-### 6.1 Backend Implementation
-1.  **Dashboard Analytics aggregations**:
-    *   Build endpoint `/api/admin/dashboard/stats` compiling sales metrics (GMV, order rates, average cart sizes) and inventory alerts.
-2.  **Admin CRUD Controls**:
-    *   Implement security check middleware (`src/middlewares/admin.middleware.ts`) enforcing `role === 'admin'`.
-    *   Add admin routes for editing categories, products, inventory records, and coupons.
-    *   Expose orders dashboard endpoints allowing managers to update fulfillment statuses (Pending, Processing, Shipped, Delivered, Cancelled) and input tracking information.
+### 2.1 [MODIFY] [app.ts](file:///d:/New%20folder/Node%20and%20Next/New%20folder/sanab/backend/src/app.ts)
+*   Configure CORS with an origin list from `env.ALLOWED_ORIGINS` (or default to `'*'`).
+*   Apply the general rate limiter (e.g., 100 requests per 15 minutes) as global middleware.
 
-### 6.2 Frontend Implementation
-1.  **Admin Portal Layout**:
-    *   Build admin routing shell layouts (`app/admin/layout.tsx`) mapping sidebar menu controls.
-    *   Create analytics home panel (`app/admin/page.tsx`) mapping visual charts.
-2.  **Admin Forms & CRUD Lists**:
-    *   Build list tables supporting search, filters, and status modification dialog forms.
-    *   Create new product and category creation forms (`app/admin/products/new/page.tsx`) featuring file upload dropzones.
+### 2.2 [MODIFY] [env.ts](file:///d:/New%20folder/Node%20and%20Next/New%20folder/sanab/backend/src/config/env.ts)
+*   Add an optional `ALLOWED_ORIGINS` field to the Zod schema configuration.
+
+### 2.3 [MODIFY] [rate-limit.middleware.ts](file:///d:/New%20folder/Node%20and%20Next/New%20folder/sanab/backend/src/middlewares/rate-limit.middleware.ts)
+*   Implement `rateLimitMiddleware` using `express-rate-limit`.
+
+### 2.4 [MODIFY] [jwt.ts](file:///d:/New%20folder/Node%20and%20Next/New%20folder/sanab/backend/src/shared/auth/jwt.ts)
+*   Implement `crypto.timingSafeEqual` in `verifyToken` for comparing the calculated signature with the incoming token signature.
+
+### 2.5 [MODIFY] [cloudinary/index.ts](file:///d:/New%20folder/Node%20and%20Next/New%20folder/sanab/backend/src/shared/cloudinary/index.ts)
+*   Sanitize the filename in `deleteAsset` using `path.basename` and verify that the target path does not escape the `storage/uploads` directory.
+
+### 2.6 [MODIFY] [seed.ts](file:///d:/New%20folder/Node%20and%20Next/New%20folder/sanab/backend/src/database/seed.ts)
+*   Import and use the bcrypt-based `hashPassword` function from `@/shared/auth/password` instead of the local SHA-256 version.
+
+### 2.7 [MODIFY] [auth.routes.ts](file:///d:/New%20folder/Node%20and%20Next/New%20folder/sanab/backend/src/modules/auth/routes/auth.routes.ts)
+*   Apply the strict rate limiter (`rateLimitMiddleware(5, 15 * 60 * 1000)`) to `/otp/send` and `/otp/verify` endpoints.
+
+### 2.8 [MODIFY] [upload.routes.ts](file:///d:/New%20folder/Node%20and%20Next/New%20folder/sanab/backend/src/modules/upload/routes/upload.routes.ts)
+*   Add a `fileFilter` function to the Multer options to validate the file MIME types (only allowing common images).
+
+### 2.9 [MODIFY] [order.controller.ts](file:///d:/New%20folder/Node%20and%20Next/New%20folder/sanab/backend/src/modules/orders/controllers/order.controller.ts)
+*   Change `(req as any).user.sub` to `(req as AuthenticatedRequest).user!.id` in `createOrder` and `listUserOrders`.
+*   Ensure that `getOrderById` verifies the requesting user's identity against the order's owner (or allows if they are an admin).
+*   Add similar ownership checks in `verifyCodPayment` and `verifyRazorpayPayment`.
+
+### 2.10 [MODIFY] [order.service.ts](file:///d:/New%20folder/Node%20and%20Next/New%20folder/sanab/backend/src/modules/orders/services/order.service.ts)
+*   Update `verifyCodPayment` and `verifyRazorpayPayment` method signatures to accept the requesting `userId` and `userRole`. Enforce that the user is either the owner of the order or an admin.
+*   Enforce that in production (`env.NODE_ENV === 'production'`), `verifyRazorpayPayment` throws an error if `env.RAZORPAY_KEY_SECRET` is missing (instead of falling back to mock mode).
+
+### 2.11 [MODIFY] [product.repository.ts](file:///d:/New%20folder/Node%20and%20Next/New%20folder/sanab/backend/src/modules/products/repositories/product.repository.ts)
+*   Sanitize the `category` search parameter before constructing the regular expression, preventing RegEx Injection (ReDoS).
 
 ---
 
-## Phase 7: CMS / Banners, SEO, & Marketing Integrations
+## 3. Verification Plan
 
-### 7.1 Backend Implementation
-1.  **CMS Configuration Models**:
-    *   Define CMS schemas (`src/modules/cms/models/cms.model.ts`) storing carousel banner configs, FAQs, and brand stories.
-2.  **Media Upload Engine**:
-    *   Configure `multer` and `cloudinary` wrappers (`src/config/multer.config.ts`, `src/config/cloudinary.config.ts`).
-    *   Create `/api/upload` endpoint routing file streams to Cloudinary folder destinations (`storage/products`, `storage/categories`).
+### Automated Tests
+*   Run the existing Jest test suite:
+    `npm run test`
+*   Verify that no typescript compilation errors occur:
+    `npm run build`
 
-### 7.2 Frontend Implementation
-1.  **Dynamic Homepage Composition (Widgets)**:
-    *   Build Homepage (`app/(public)/page.tsx`) rendering components from `/widgets/`.
-    *   Implement dynamic sliders inside `HeroWidget` (`widgets/Hero/index.tsx`) matching CMS DB banner entries.
-    *   Implement category sliders inside `FeaturedCategoriesWidget`.
-2.  **SEO & Analytics Integration**:
-    *   Implement JSON-LD structured schemas (`components/common/seo.tsx`) generating Google rich product snippets.
-    *   Add Google Analytics and Meta Pixel track scripts.
-    *   Inject dynamic metadata keys into product details layout files.
-
----
-
-## Phase 8: Testing, Logs, & Production Deployments
-
-### 8.1 Backend Infrastructure Hardening
-1.  **Background Workers & Queues**:
-    *   Configure BullMQ/Redis connections (`src/config/redis.config.ts`) running queues for notifications.
-    *   Write database backup routines (`src/scripts/backup-db.ts`) and file cache cleanup tasks (`src/jobs/clean-temp.job.ts`).
-2.  **API Hardening**:
-    *   Configure `helmet` headers, CORS origins, and request limits rules.
-    *   Write Jest unit test suites for products services and mock integration tests (`tests/integration/`).
-
-### 8.2 Frontend & Launch Preparations
-1.  **Lighthouse Audit Fixes**:
-    *   Convert assets to WebP format, configure responsive sizes, and use correct Next.js image loading properties.
-    *   Verify WCAG 2.1 compliance.
-2.  **Git & Deployment Configs**:
-    *   Set up Git hooks using Husky and lint-staged on staging.
-    *   Deploy backend to AWS Elastic Beanstalk (with MongoDB Atlas) and frontend app to Vercel CDN.
+### Manual Verification
+*   **Security Tests**:
+    1.  Create an order with User A, and attempt to fetch the order details using User B's token. Verify the response is a `403 Forbidden` or `404 Not Found`.
+    2.  Try to delete an asset using a path traversal payload such as `local-../../package.json`. Ensure the request fails and the file is not deleted.
+    3.  Verify that OTP requests get rate-limited after 5 requests within the window.
+    4.  Verify that trying to upload a non-image file (e.g. `.txt`, `.html`) to the upload endpoint is rejected.
+    5.  Check that the newly seeded default admin account (using bcrypt) can log in successfully.

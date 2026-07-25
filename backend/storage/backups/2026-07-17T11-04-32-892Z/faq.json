@@ -1,0 +1,32 @@
+[
+  {
+    "_id": "6a5a0c3b37d5d6ae366a6393",
+    "question": "What is your shipping and return policy?",
+    "answer": "We offer free insured delivery across all domestic locations. For returns, we have a hassle-free 14-day replacement/refund policy on unused products with original tags intact.",
+    "order": 2,
+    "isActive": true,
+    "createdAt": "2026-07-17T11:04:27.769Z",
+    "updatedAt": "2026-07-17T11:04:27.769Z",
+    "__v": 0
+  },
+  {
+    "_id": "6a5a0c3b37d5d6ae366a6392",
+    "question": "Are your gold and diamond jewellery items certified?",
+    "answer": "Yes! All our fine jewellery items are 100% BIS Hallmarked and diamonds are certified by reputed international labs like IGI and GIA, ensuring supreme quality and trust.",
+    "order": 1,
+    "isActive": true,
+    "createdAt": "2026-07-17T11:04:27.769Z",
+    "updatedAt": "2026-07-17T11:04:27.769Z",
+    "__v": 0
+  },
+  {
+    "_id": "6a5a0c3b37d5d6ae366a6394",
+    "question": "Are your cosmetics cruelty-free and dermatologically tested?",
+    "answer": "Absolutely. All our skincare and makeup products are 100% cruelty-free, dermatologically evaluated, hypoallergenic, and free from parabens or harsh synthetics.",
+    "order": 3,
+    "isActive": true,
+    "createdAt": "2026-07-17T11:04:27.769Z",
+    "updatedAt": "2026-07-17T11:04:27.769Z",
+    "__v": 0
+  }
+]

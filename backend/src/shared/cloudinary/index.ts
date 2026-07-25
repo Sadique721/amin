@@ -56,10 +56,15 @@ export const cloudinaryUploader = {
 
     // Local delete
     if (publicId.startsWith('local-')) {
-      const fileName = publicId.replace('local-', '');
-      const filePath = path.join(process.cwd(), 'storage/uploads', fileName);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+      const fileName = path.basename(publicId.replace('local-', ''));
+      const uploadsDir = path.join(process.cwd(), 'storage/uploads');
+      const filePath = path.join(uploadsDir, fileName);
+      const resolvedPath = path.resolve(filePath);
+      
+      if (resolvedPath.startsWith(path.resolve(uploadsDir))) {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
       }
     }
   }

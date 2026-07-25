@@ -98,12 +98,13 @@ const productsSlice = createSlice({
       })
       .addCase(fetchProducts.fulfilled, (state, action) => {
         state.loading = false;
-        state.items = action.payload.docs || [];
+        // Backend returns 'results' array (not 'docs') and 'totalResults' (not 'totalDocs')
+        state.items = action.payload?.results || action.payload?.docs || [];
         state.pagination = {
-          page: action.payload.page || 1,
-          limit: action.payload.limit || 12,
-          totalPages: action.payload.totalPages || 1,
-          totalDocs: action.payload.totalDocs || 0,
+          page: action.payload?.page || 1,
+          limit: action.payload?.limit || 12,
+          totalPages: action.payload?.totalPages || 1,
+          totalDocs: action.payload?.totalResults || action.payload?.totalDocs || 0,
         };
       })
       .addCase(fetchProducts.rejected, (state, action) => {

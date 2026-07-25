@@ -33,3 +33,24 @@ export async function fetchCategoriesApi() {
   const response = await api.get('/categories');
   return response.data;
 }
+
+export async function fetchProductByIdApi(id: string) {
+  const response = await api.get(`/products/${id}`);
+  return response.data;
+}
+
+export async function createProductApi(data: any) {
+  const response = await api.post('/products', data);
+  return response.data;
+}
+
+export async function updateProductApi(id: string, data: any) {
+  const response = await api.patch(`/products/${id}`, data);
+  return response.data;
+}
+
+export async function deleteProductApi(id: string) {
+  const response = await api.delete(`/products/${id}`);
+  return response.data;
+}
+

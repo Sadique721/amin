@@ -152,6 +152,9 @@ ProductSchema.index(
   }
 );
 
+ProductSchema.index({ category: 1, isActive: 1, type: 1 });
+ProductSchema.index({ slug: 1 }, { unique: true });
+
 ProductSchema.plugin(slugPlugin, { sourceField: 'name', slugField: 'slug' });
 ProductSchema.plugin(paginatePlugin);
 

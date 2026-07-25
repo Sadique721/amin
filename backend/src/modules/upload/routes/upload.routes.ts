@@ -13,9 +13,20 @@ const upload = multer({
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
+  fileFilter: (req, file, callback) => {
+    const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (allowedMimes.includes(file.mimetype)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Invalid file type. Only JPEG, PNG, GIF, and WEBP images are allowed.'));
+    }
+  },
 });
 
-router.post('/single', authMiddleware, adminMiddleware, upload.single('file'), controller.uploadSingle);
+router.post('/single', authMiddleware, adminMiddleware, upload.single('file'), (req, res, next) => {
+  // Capture multer error specifically if needed, otherwise defer to global handler
+  next();
+}, controller.uploadSingle);
 router.post('/delete', authMiddleware, adminMiddleware, controller.deleteAsset);
 
 export default router;

@@ -1,0 +1,66 @@
+[
+  {
+    "_id": "6a6490ea3cc7bf95817697b7",
+    "title": "Timeless Elegance & Bespoke Diamonds",
+    "subtitle": "Pure 18k & 22k Gold Fine Jewellery",
+    "desktopImage": {
+      "url": "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=1200&auto=format&fit=crop",
+      "publicId": "seed-hero-jewellery"
+    },
+    "linkUrl": "/shop?category=jewellery",
+    "order": 1,
+    "isActive": true,
+    "type": "hero",
+    "createdAt": "2026-07-25T10:33:14.463Z",
+    "updatedAt": "2026-07-25T10:33:14.463Z",
+    "__v": 0
+  },
+  {
+    "_id": "6a6490ea3cc7bf95817697b9",
+    "title": "Premium Festive Gold Collection",
+    "subtitle": "Get up to 20% off on Bridal Sets",
+    "desktopImage": {
+      "url": "https://images.unsplash.com/photo-1601121141461-9d6647bca1ed?q=80&w=800&auto=format&fit=crop",
+      "publicId": "seed-promo-bridal"
+    },
+    "linkUrl": "/shop?category=bridal",
+    "order": 1,
+    "isActive": true,
+    "type": "promotional",
+    "createdAt": "2026-07-25T10:33:14.463Z",
+    "updatedAt": "2026-07-25T10:33:14.463Z",
+    "__v": 0
+  },
+  {
+    "_id": "6a6490ea3cc7bf95817697b8",
+    "title": "Clinically Formulated Skincare & Glosses",
+    "subtitle": "Premium Cosmetics & Botanical Extracts",
+    "desktopImage": {
+      "url": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=1200&auto=format&fit=crop",
+      "publicId": "seed-hero-cosmetics"
+    },
+    "linkUrl": "/shop?category=cosmetics",
+    "order": 2,
+    "isActive": true,
+    "type": "hero",
+    "createdAt": "2026-07-25T10:33:14.463Z",
+    "updatedAt": "2026-07-25T10:33:14.463Z",
+    "__v": 0
+  },
+  {
+    "_id": "6a6490ea3cc7bf95817697ba",
+    "title": "Luxury Lip & Glow Sets",
+    "subtitle": "Organic formulations, cruelty-free certification",
+    "desktopImage": {
+      "url": "https://images.unsplash.com/photo-1596462502278-27bfdc403348?q=80&w=800&auto=format&fit=crop",
+      "publicId": "seed-promo-glow"
+    },
+    "linkUrl": "/shop?category=lip-glow",
+    "order": 2,
+    "isActive": true,
+    "type": "promotional",
+    "createdAt": "2026-07-25T10:33:14.463Z",
+    "updatedAt": "2026-07-25T10:33:14.463Z",
+    "__v": 0
+  }
+]

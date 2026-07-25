@@ -25,8 +25,11 @@ export default function ShopPage() {
   React.useEffect(() => {
     const typeParam = searchParams.get('type');
     const categoryParam = searchParams.get('category');
+    const searchParam = searchParams.get('search');
     
-    const initialFilters: any = {};
+    const initialFilters: any = {
+      search: searchParam || '',
+    };
     if (typeParam === 'jewellery' || typeParam === 'cosmetics') {
       initialFilters.type = typeParam;
     }

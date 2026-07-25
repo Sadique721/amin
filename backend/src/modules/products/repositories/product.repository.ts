@@ -1,4 +1,6 @@
+import mongoose from 'mongoose';
 import { Product, IProduct } from '../models/product.model';
+import { Category } from '../../categories/models/category.model';
 
 export interface ProductFilterParams {
   search?: string;
@@ -55,7 +57,22 @@ export class ProductRepository {
     }
 
     if (category) {
-      filter.category = category;
+      if (!mongoose.Types.ObjectId.isValid(category)) {
+        const catDoc = await Category.findOne({ slug: category });
+        if (catDoc) {
+          filter.category = catDoc._id;
+        } else {
+          const escapedCategory = category.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const catDocByName = await Category.findOne({ name: { $regex: new RegExp(`^${escapedCategory}$`, 'i') } });
+          if (catDocByName) {
+            filter.category = catDocByName._id;
+          } else {
+            filter.category = new mongoose.Types.ObjectId();
+          }
+        }
+      } else {
+        filter.category = category;
+      }
     }
 
     if (brand) {

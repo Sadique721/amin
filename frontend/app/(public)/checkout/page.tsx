@@ -45,7 +45,7 @@ export default function CheckoutPage() {
   React.useEffect(() => {
     if (!accessToken) {
       toast.error('Please log in to proceed with checkout.');
-      router.push(`/login?redirect=/checkout`);
+      router.push(`/auth/login?redirect=/checkout`);
     } else if (items.length === 0) {
       toast.warning('Your shopping bag is empty.');
       router.push('/cart');

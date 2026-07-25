@@ -294,8 +294,8 @@ export default function HomePage() {
       </section>
 
       {/* Categories Grid Showcase */}
-      <section className="py-16 bg-background">
-        <Container className="space-y-10">
+      <section className="py-12 bg-background">
+        <Container className="space-y-8">
           <div className="text-center space-y-2">
             <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-foreground">
               Shop by Category
@@ -305,42 +305,35 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="flex flex-wrap gap-3 justify-center">
             {loading ? (
-              Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="flex flex-col items-center space-y-4">
-                  <div className="h-28 w-28 rounded-full bg-muted/20 animate-pulse" />
-                  <div className="h-4 w-20 bg-muted/20 animate-pulse rounded" />
-                </div>
+              Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="h-9 w-32 rounded-full bg-muted/20 animate-pulse" />
               ))
             ) : categories.length > 0 ? (
               categories.map((category) => (
                 <Link
                   key={category._id}
                   href={`/shop?category=${category.slug}`}
-                  className="flex flex-col items-center space-y-4 group select-none"
+                  className="flex items-center gap-2 px-4 py-2 rounded-full border border-border bg-muted/10 hover:border-amber-500 hover:bg-amber-500/10 hover:text-amber-500 transition-all duration-200 group select-none"
                 >
-                  <div className="relative h-28 w-28 rounded-full overflow-hidden border-2 border-border group-hover:border-amber-500 transition-all duration-300 shadow-md">
-                    {category.image?.url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={category.image.url}
-                        alt={category.name}
-                        className="object-cover h-full w-full group-hover:scale-110 transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="h-full w-full bg-muted/10 flex items-center justify-center text-muted-foreground">
-                        <ShoppingBag className="h-8 w-8" />
-                      </div>
-                    )}
-                  </div>
-                  <span className="font-semibold text-sm group-hover:text-amber-500 transition-colors">
+                  {category.image?.url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={category.image.url}
+                      alt={category.name}
+                      className="h-5 w-5 rounded-full object-cover"
+                    />
+                  ) : (
+                    <ShoppingBag className="h-3.5 w-3.5 text-muted-foreground group-hover:text-amber-500 transition-colors" />
+                  )}
+                  <span className="text-xs font-semibold tracking-wide whitespace-nowrap">
                     {category.name}
                   </span>
                 </Link>
               ))
             ) : (
-              <div className="col-span-full text-center text-sm text-muted-foreground">
+              <div className="text-center text-sm text-muted-foreground">
                 No collections available.
               </div>
             )}

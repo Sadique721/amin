@@ -1,9 +1,10 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/public';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:10001/api/public';
 
 export const api = axios.create({
   baseURL: API_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -36,7 +37,7 @@ api.interceptors.response.use(
         localStorage.removeItem('sanab_user');
         localStorage.removeItem('sanab_accessToken');
         localStorage.removeItem('sanab_refreshToken');
-        // Optionally redirect to login in case page requires auth
+        document.cookie = 'sanab_accessToken=; Max-Age=0; path=/;';
       }
     }
     return Promise.reject(error);

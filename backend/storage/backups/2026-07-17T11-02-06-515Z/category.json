@@ -1,0 +1,90 @@
+[
+  {
+    "_id": "6a5a0ba9cc44ef23b07cc533",
+    "name": "Gold Rings",
+    "description": "Fine 18k and 22k gold rings",
+    "parent": null,
+    "isActive": true,
+    "slug": "gold-rings",
+    "createdAt": "2026-07-17T11:02:01.406Z",
+    "updatedAt": "2026-07-17T11:02:01.406Z",
+    "__v": 0
+  },
+  {
+    "_id": "6a5a0ba9cc44ef23b07cc534",
+    "name": "Diamond Necklaces",
+    "description": "Ethically sourced diamond pendants and necklaces",
+    "parent": null,
+    "isActive": true,
+    "slug": "diamond-necklaces",
+    "createdAt": "2026-07-17T11:02:01.406Z",
+    "updatedAt": "2026-07-17T11:02:01.406Z",
+    "__v": 0
+  },
+  {
+    "_id": "6a5a0ba9cc44ef23b07cc535",
+    "name": "Luxury Earrings",
+    "description": "Elegant studs, drops, and hoops",
+    "parent": null,
+    "isActive": true,
+    "slug": "luxury-earrings",
+    "createdAt": "2026-07-17T11:02:01.406Z",
+    "updatedAt": "2026-07-17T11:02:01.406Z",
+    "__v": 0
+  },
+  {
+    "_id": "6a5a0ba9cc44ef23b07cc536",
+    "name": "Fine Bracelets",
+    "description": "Gold and diamond wristwear",
+    "parent": null,
+    "isActive": true,
+    "slug": "fine-bracelets",
+    "createdAt": "2026-07-17T11:02:01.406Z",
+    "updatedAt": "2026-07-17T11:02:01.406Z",
+    "__v": 0
+  },
+  {
+    "_id": "6a5a0ba9cc44ef23b07cc537",
+    "name": "Matte Lipsticks",
+    "description": "Highly pigmented luxury lip cosmetics",
+    "parent": null,
+    "isActive": true,
+    "slug": "matte-lipsticks",
+    "createdAt": "2026-07-17T11:02:01.406Z",
+    "updatedAt": "2026-07-17T11:02:01.406Z",
+    "__v": 0
+  },
+  {
+    "_id": "6a5a0ba9cc44ef23b07cc538",
+    "name": "Liquid Foundations",
+    "description": "Dermatologically safe natural coverage",
+    "parent": null,
+    "isActive": true,
+    "slug": "liquid-foundations",
+    "createdAt": "2026-07-17T11:02:01.406Z",
+    "updatedAt": "2026-07-17T11:02:01.406Z",
+    "__v": 0
+  },
+  {
+    "_id": "6a5a0ba9cc44ef23b07cc539",
+    "name": "Natural Skin Creams",
+    "description": "Premium botanical face and skin formulations",
+    "parent": null,
+    "isActive": true,
+    "slug": "natural-skin-creams",
+    "createdAt": "2026-07-17T11:02:01.406Z",
+    "updatedAt": "2026-07-17T11:02:01.406Z",
+    "__v": 0
+  },
+  {
+    "_id": "6a5a0ba9cc44ef23b07cc53a",
+    "name": "Eye Shadow Palettes",
+    "description": "Vibrant organic eye shadows",
+    "parent": null,
+    "isActive": true,
+    "slug": "eye-shadow-palettes",
+    "createdAt": "2026-07-17T11:02:01.406Z",
+    "updatedAt": "2026-07-17T11:02:01.406Z",
+    "__v": 0
+  }
+]

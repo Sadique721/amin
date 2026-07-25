@@ -25,7 +25,7 @@ export default function AdminOrdersPage() {
   React.useEffect(() => {
     if (!accessToken || user?.role !== 'admin') {
       toast.error('Access denied. Admin privileges required.');
-      router.push('/login?redirect=/admin/orders');
+      router.push('/auth/login?redirect=/admin/orders');
       return;
     }
 
@@ -34,7 +34,7 @@ export default function AdminOrdersPage() {
         setLoading(true);
         const res = await fetchAdminOrdersApi(page, 10, statusFilter);
         const data = res.data;
-        setOrders(data.docs || []);
+        setOrders(data.results || data.docs || []);
         setTotalPages(data.totalPages || 1);
       } catch (err: any) {
         toast.error(err.response?.data?.message || 'Failed to load store orders.');

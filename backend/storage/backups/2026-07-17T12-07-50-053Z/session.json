@@ -1,0 +1,18 @@
+[
+  {
+    "_id": "6a5a1b13a7b5149010fa23aa",
+    "userId": "6a5a1b10a7b5149010fa231b",
+    "tokenHash": "bd52eaf8e7dddc1a9fb429eee6615f1a46d17b8400d7ea1d87c0b3abc72f9761",
+    "deviceInfo": {
+      "ip": "::ffff:127.0.0.1",
+      "userAgent": "Mozilla/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell/5.1.26100.8737",
+      "os": "Windows",
+      "browser": "Unknown Browser"
+    },
+    "isActive": true,
+    "expiresAt": "2026-07-24T12:07:47.887Z",
+    "createdAt": "2026-07-17T12:07:47.889Z",
+    "updatedAt": "2026-07-17T12:07:47.889Z",
+    "__v": 0
+  }
+]

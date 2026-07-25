@@ -31,7 +31,7 @@ interface ProductItem {
 
 export default function WishlistPage() {
   const dispatch = useAppDispatch();
-  const { user } = useAppSelector((state) => state.auth);
+  const { user, accessToken } = useAppSelector((state) => state.auth);
   
   const [products, setProducts] = React.useState<ProductItem[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -39,7 +39,7 @@ export default function WishlistPage() {
 
   // Fetch Wishlist items
   const fetchWishlist = React.useCallback(async () => {
-    if (!user) {
+    if (!user || !accessToken) {
       setLoading(false);
       return;
     }
@@ -48,12 +48,15 @@ export default function WishlistPage() {
       const wishlistData = response.data.data || response.data;
       setProducts(wishlistData.products || []);
     } catch (err: any) {
-      console.error('Failed to load wishlist:', err);
-      toast.error('Failed to load wishlist items.');
+      // Only show error if truly unexpected (not 401 = not logged in)
+      if (err.response?.status !== 401) {
+        console.error('Failed to load wishlist:', err);
+        toast.error('Failed to load wishlist items.');
+      }
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, accessToken]);
 
   React.useEffect(() => {
     fetchWishlist();

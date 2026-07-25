@@ -2,7 +2,7 @@ import { OrderRepository } from '../repositories/order.repository';
 import { IOrder, IOrderItem } from '../models/order.model';
 import { Product } from '@/modules/products/models/product.model';
 import { CouponService } from '@/modules/coupons/services/coupon.service';
-import { BadRequestException, NotFoundException } from '@/shared/exceptions';
+import { BadRequestException, NotFoundException, ForbiddenException, InternalServerException } from '@/shared/exceptions';
 import { env } from '@/config/env';
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
@@ -109,6 +109,8 @@ export class OrderService {
   }
 
   async verifyRazorpayPayment(
+    userId: string,
+    userRole: string,
     razorpayOrderId: string,
     razorpayPaymentId: string,
     razorpaySignature: string
@@ -116,6 +118,10 @@ export class OrderService {
     const order = await this.repository.findByRazorpayOrderId(razorpayOrderId);
     if (!order) {
       throw new NotFoundException('Order not found with this Razorpay order ID');
+    }
+
+    if (userRole !== 'admin' && order.user.toString() !== userId) {
+      throw new ForbiddenException('You are not authorized to access this order');
     }
 
     if (order.paymentDetails.status === 'paid') {
@@ -134,6 +140,9 @@ export class OrderService {
         throw new BadRequestException('Invalid payment signature');
       }
     } else {
+      if (env.NODE_ENV === 'production') {
+        throw new InternalServerException('Razorpay credentials missing in production environment');
+      }
       logger.warn('Razorpay credentials missing. Bypassing signature verification (Mock Mode).');
     }
 
@@ -155,10 +164,15 @@ export class OrderService {
     return order;
   }
 
-  async verifyCodPayment(orderId: string): Promise<IOrder> {
+  async verifyCodPayment(userId: string, userRole: string, orderId: string): Promise<IOrder> {
     const order = await this.repository.findById(orderId);
     if (!order) {
       throw new NotFoundException('Order not found');
+    }
+
+    const orderUserId = (order.user as any)?._id ? (order.user as any)._id.toString() : order.user.toString();
+    if (userRole !== 'admin' && orderUserId !== userId.toString()) {
+      throw new ForbiddenException('You are not authorized to access this order');
     }
 
     if (order.paymentDetails.method !== 'cod') {
@@ -181,9 +195,14 @@ export class OrderService {
     return order;
   }
 
-  async getOrderById(id: string): Promise<IOrder> {
+  async getOrderById(id: string, userId: string, userRole: string): Promise<IOrder> {
     const order = await this.repository.findById(id);
     if (!order) throw new NotFoundException('Order not found');
+
+    if (userRole !== 'admin' && order.user.toString() !== userId) {
+      throw new ForbiddenException('You are not authorized to access this order');
+    }
+
     return order;
   }
 

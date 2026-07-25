@@ -24,7 +24,7 @@ export default function OrdersPage() {
   React.useEffect(() => {
     if (!accessToken) {
       toast.error('Please log in to view your orders.');
-      router.push('/login?redirect=/account/orders');
+      router.push('/auth/login?redirect=/account/orders');
       return;
     }
 
@@ -33,8 +33,8 @@ export default function OrdersPage() {
         setLoading(true);
         const res = await fetchUserOrdersApi(page, 10);
         const data = res.data;
-        setOrders(data.docs || []);
-        setTotalOrders(data.totalDocs || 0);
+        setOrders(data.results || data.docs || []);
+        setTotalOrders(data.totalResults || data.totalDocs || 0);
         setTotalPages(data.totalPages || 1);
       } catch (err: any) {
         toast.error(err.response?.data?.message || 'Failed to load order history.');

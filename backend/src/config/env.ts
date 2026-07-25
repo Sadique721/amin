@@ -30,6 +30,7 @@ const envSchema = z.object({
   REDIS_URL: z.string().default('redis://localhost:6379'),
   ADMIN_EMAIL: z.string().optional(),
   ADMIN_PASSWORD: z.string().optional(),
+  ALLOWED_ORIGINS: z.string().optional(),
 });
 
 const parseEnv = () => {

@@ -141,6 +141,11 @@ const OrderSchema = new Schema<IOrder>(
   }
 );
 
+OrderSchema.index({ user: 1, createdAt: -1 });
+OrderSchema.index({ status: 1, createdAt: -1 });
+OrderSchema.index({ 'paymentDetails.razorpayOrderId': 1 }, { unique: true, sparse: true });
+OrderSchema.index({ 'paymentDetails.paymentIntentId': 1 }, { unique: true, sparse: true });
+
 OrderSchema.plugin(paginatePlugin);
 
 export const Order = mongoose.model<IOrder, IOrderModel>('Order', OrderSchema);
