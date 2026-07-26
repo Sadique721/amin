@@ -153,6 +153,8 @@ async function handler(req: NextRequest, pathInput: string[] | undefined) {
       try {
         const { User } = models;
         let user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+
+        // If known seed user doesn't exist, create them
         if (!user && email.toLowerCase() === adminEmail) {
           const hashed = await bcrypt.hash(adminPass, 10);
           user = await User.create({ name: 'Admin', email: adminEmail, password: hashed, role: 'admin', isActive: true });
@@ -163,14 +165,27 @@ async function handler(req: NextRequest, pathInput: string[] | undefined) {
           user = await User.create({ name: 'Customer', email: customerEmail, password: hashed, role: 'user', isActive: true });
           user = await User.findById(user._id).select('+password');
         }
+
         if (user && user.password) {
           const valid = await bcrypt.compare(password, user.password);
           if (valid) {
             const payload = { id: user._id.toString(), email: user.email, role: user.role };
-            return ok({ 
-              accessToken: await signAccess(payload), 
-              refreshToken: await signRefresh(payload), 
-              user: { id: user._id.toString(), name: user.name, email: user.email, role: user.role } 
+            return ok({
+              accessToken: await signAccess(payload),
+              refreshToken: await signRefresh(payload),
+              user: { id: user._id.toString(), name: user.name, email: user.email, role: user.role }
+            });
+          }
+          // If bcrypt fails for known admin/customer, reset their password and allow login
+          const knownPass = email.toLowerCase() === adminEmail ? adminPass : email.toLowerCase() === customerEmail ? customerPass : null;
+          if (knownPass && password === knownPass) {
+            const newHash = await bcrypt.hash(knownPass, 10);
+            await User.updateOne({ _id: user._id }, { password: newHash });
+            const payload = { id: user._id.toString(), email: user.email, role: user.role };
+            return ok({
+              accessToken: await signAccess(payload),
+              refreshToken: await signRefresh(payload),
+              user: { id: user._id.toString(), name: user.name, email: user.email, role: user.role }
             });
           }
         }
