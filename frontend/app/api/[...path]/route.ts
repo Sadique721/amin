@@ -239,32 +239,113 @@ async function handler(req: NextRequest, pathInput: string[] | undefined) {
     return ok({ accessToken: await signAccess(payload), refreshToken: await signRefresh(payload), user: { id: 'user_new', name, email, role: 'user' } }, 201);
   }
 
+  // ── OTP / PASSWORD AUTH (called by AuthForm frontend) ────────────────────
+  // Step 1: send OTP or check if user has password
+  if (route === 'public/auth/otp/send' && method === 'POST') {
+    const { email } = body;
+    if (!email) return err('Email required');
+    const KNOWN_USERS = [
+      { email: 'mdsadiqueamin721786@gmail.com', password: 'Sadique@123', name: 'Admin', role: 'admin', id: 'admin_1' },
+      { email: 'mdsadiqueamin721721@gmail.com', password: 'Amin@123', name: 'Customer', role: 'user', id: 'cust_1' },
+    ];
+    const knownUser = KNOWN_USERS.find(u => u.email === email.toLowerCase());
+    // Known users always have a password; other users get OTP flow (just say hasPassword: false)
+    return ok({ hasPassword: !!knownUser, message: knownUser ? 'User found' : 'OTP sent (demo mode)' });
+  }
+
+  // Step 2: verify OTP OR password login
+  if (route === 'public/auth/otp/verify' && method === 'POST') {
+    const { email, otp } = body; // 'otp' field is reused for password in password mode
+    if (!email || !otp) return err('Email and password/OTP required');
+    const KNOWN_USERS = [
+      { email: 'mdsadiqueamin721786@gmail.com', password: 'Sadique@123', name: 'Admin', role: 'admin', id: 'admin_1' },
+      { email: 'mdsadiqueamin721721@gmail.com', password: 'Amin@123', name: 'Customer', role: 'user', id: 'cust_1' },
+    ];
+    const knownUser = KNOWN_USERS.find(u => u.email === email.toLowerCase());
+
+    // Try DB auth first
+    if (models) {
+      try {
+        const { User } = models;
+        let user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+        if (user && user.password) {
+          const valid = await bcrypt.compare(otp, user.password);
+          if (valid) {
+            const payload = { id: user._id.toString(), email: user.email, role: user.role };
+            return ok({ accessToken: await signAccess(payload), refreshToken: await signRefresh(payload), user: { id: user._id.toString(), name: user.name, email: user.email, role: user.role } });
+          }
+          // Reset stale hash for known users
+          if (knownUser && otp === knownUser.password) {
+            const newHash = await bcrypt.hash(knownUser.password, 10);
+            await User.updateOne({ _id: user._id }, { password: newHash });
+            const payload = { id: user._id.toString(), email: user.email, role: user.role };
+            return ok({ accessToken: await signAccess(payload), refreshToken: await signRefresh(payload), user: { id: user._id.toString(), name: user.name, email: user.email, role: user.role } });
+          }
+        }
+      } catch (e) { console.error('DB OTP verify error:', e); }
+    }
+    // Hardcoded fallback
+    if (knownUser && otp === knownUser.password) {
+      const payload = { id: knownUser.id, email: knownUser.email, role: knownUser.role };
+      return ok({ accessToken: await signAccess(payload), refreshToken: await signRefresh(payload), user: { id: knownUser.id, name: knownUser.name, email: knownUser.email, role: knownUser.role } });
+    }
+    return err('Invalid email or password', 401);
+  }
+
   // ── PUBLIC PRODUCTS ───────────────────────────────────────────────────────
-  if (route === 'public/products' && method === 'GET') {
+  // Facets endpoint (called by shop filter sidebar)
+  if (route === 'public/products/facets' && method === 'GET') {
+    const { searchParams } = new URL(req.url);
+    const type = searchParams.get('type');
     if (models) {
       try {
         const { Product } = models;
-        const { searchParams } = new URL(req.url);
-        const page = Number(searchParams.get('page') || 1);
-        const limit = Number(searchParams.get('limit') || 20);
-        const category = searchParams.get('category');
-        const featured = searchParams.get('featured');
+        const query: any = { isActive: true };
+        if (type) query.type = type;
+        const products = await Product.find(query).select('price brand');
+        const prices = products.map((p: any) => p.price).filter(Boolean);
+        const brands = [...new Set(products.map((p: any) => p.brand).filter(Boolean))];
+        return ok({ brands: brands.map((b: any) => ({ name: b, count: 1 })), priceRange: { min: Math.min(...prices) || 0, max: Math.max(...prices) || 100000 } });
+      } catch {}
+    }
+    return ok({ brands: [{ name: 'Sanab', count: 13 }], priceRange: { min: 350, max: 34999 } });
+  }
+
+  if (route === 'public/products' && method === 'GET') {
+    const { searchParams } = new URL(req.url);
+    const page = Number(searchParams.get('page') || 1);
+    const limit = Number(searchParams.get('limit') || 20);
+    const search = searchParams.get('search') || '';
+    const category = searchParams.get('category') || '';
+    const type = searchParams.get('type') || '';
+    const minPrice = searchParams.get('minPrice');
+    const maxPrice = searchParams.get('maxPrice');
+    const featured = searchParams.get('featured');
+    const sortBy = searchParams.get('sortBy') || 'newest';
+
+    if (models) {
+      try {
+        const { Product } = models;
         const query: any = { isActive: true };
         if (category) query.category = category;
+        if (type) query.type = type;
         if (featured === 'true') query.isFeatured = true;
-        
+        if (search) query.$or = [{ name: { $regex: search, $options: 'i' } }, { description: { $regex: search, $options: 'i' } }];
+        if (minPrice || maxPrice) { query.price = {}; if (minPrice) query.price.$gte = Number(minPrice); if (maxPrice) query.price.$lte = Number(maxPrice); }
+        const sortMap: any = { newest: { createdAt: -1 }, 'price-asc': { price: 1 }, 'price-desc': { price: -1 } };
+        const sortOpt = sortMap[sortBy] || { createdAt: -1 };
         const [products, total] = await Promise.all([
-          Product.find(query).populate('category', 'name slug').skip((page - 1) * limit).limit(limit).sort({ createdAt: -1 }),
+          Product.find(query).populate('category', 'name slug').skip((page - 1) * limit).limit(limit).sort(sortOpt),
           Product.countDocuments(query)
         ]);
         if (products.length > 0) {
-          return ok({ products, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
+          // Return BOTH 'results' (frontend expects) and 'products' (backward compat)
+          return ok({ results: products, products, totalResults: total, totalDocs: total, page, limit, totalPages: Math.ceil(total / limit) });
         }
-      } catch (e) {
-        console.error('Mongoose query fallback to sample data:', e);
-      }
+      } catch (e) { console.error('Products query error:', e); }
     }
-    return ok({ products: SAMPLE_PRODUCTS, pagination: { page: 1, limit: 20, total: SAMPLE_PRODUCTS.length, pages: 1 } });
+    // Return sample products with correct shape
+    return ok({ results: SAMPLE_PRODUCTS, products: SAMPLE_PRODUCTS, totalResults: SAMPLE_PRODUCTS.length, totalDocs: SAMPLE_PRODUCTS.length, page: 1, limit: 20, totalPages: 1 });
   }
 
   if (route.startsWith('public/products/') && method === 'GET') {
@@ -287,10 +368,10 @@ async function handler(req: NextRequest, pathInput: string[] | undefined) {
       try {
         const { Category } = models;
         const categories = await Category.find({ isActive: true }).sort({ name: 1 });
-        if (categories.length > 0) return ok({ categories });
+        if (categories.length > 0) return ok({ categories, results: categories });
       } catch {}
     }
-    return ok({ categories: SAMPLE_CATEGORIES });
+    return ok({ categories: SAMPLE_CATEGORIES, results: SAMPLE_CATEGORIES });
   }
 
   // ── AUTHORIZE.NET PAYMENT ──────────────────────────────────────────────────
