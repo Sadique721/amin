@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDB, getModels, signAccess, signRefresh, verifyAccess, bcrypt } from '@/lib/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+// Lazy-load db helpers to avoid module-level crash if bcrypt/mongoose fails
+let _dbModule: any = null;
+async function getDb() {
+  if (!_dbModule) {
+    _dbModule = await import('@/lib/db');
+  }
+  return _dbModule;
+}
+
 
 // ── Authorize.net Sandbox Credentials ────────────────────────────────────────
 // Using official Authorize.net sandbox test credentials
@@ -41,10 +50,11 @@ function err(msg: string, status = 400) {
   return NextResponse.json({ success: false, message: msg }, { status });
 }
 
-function getUser(req: NextRequest) {
+async function getUser(req: NextRequest) {
   try {
     const auth = req.headers.get('authorization');
     if (!auth?.startsWith('Bearer ')) return null;
+    const { verifyAccess } = await getDb();
     return verifyAccess(auth.slice(7));
   } catch { return null; }
 }
@@ -121,6 +131,7 @@ async function handler(req: NextRequest, pathInput: string[] | undefined) {
     });
   }
 
+  const { connectDB, getModels, signAccess, signRefresh, bcrypt } = await getDb();
   const dbConn = await connectDB();
   const models = dbConn ? await getModels() : null;
 
@@ -249,7 +260,7 @@ async function handler(req: NextRequest, pathInput: string[] | undefined) {
 
   // ── AUTHORIZE.NET PAYMENT ──────────────────────────────────────────────────
   if (route === 'payments/authorize/charge' && method === 'POST') {
-    const tokenUser = getUser(req);
+    const tokenUser = await getUser(req);
     if (!tokenUser) return err('Unauthorized. Please login to proceed.', 401);
 
     const { amount, cardNumber, expirationDate, cardCode, firstName, lastName, email, orderId, description } = body;
@@ -335,7 +346,7 @@ async function handler(req: NextRequest, pathInput: string[] | undefined) {
   }
 
   // ── ORDERS (USER) ─────────────────────────────────────────────────────────
-  const tokenUser = getUser(req);
+  const tokenUser = await getUser(req);
 
   if (route === 'orders' && method === 'POST') {
     if (!tokenUser) return err('Unauthorized', 401);
@@ -631,6 +642,7 @@ async function handler(req: NextRequest, pathInput: string[] | undefined) {
 
   // ── USER PROFILE ──────────────────────────────────────────────────────────
   if (route === 'user/profile' && method === 'GET') {
+    const tokenUser = await getUser(req);
     if (!tokenUser) return err('Unauthorized', 401);
     return ok({ user: { id: tokenUser.id, email: tokenUser.email, role: tokenUser.role } });
   }
