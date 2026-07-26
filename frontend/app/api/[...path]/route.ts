@@ -162,11 +162,13 @@ async function handler(req: NextRequest, pathInput: string[] | undefined) {
   if (route === 'public/auth/login' && method === 'POST') {
     const { email, password } = body;
     if (!email || !password) return err('Email and password required');
-    
-    const adminEmail = (process.env.ADMIN_EMAIL || 'mdsadiqueamin721786@gmail.com').toLowerCase();
-    const adminPass = process.env.ADMIN_PASSWORD || 'Sadique@123';
-    const customerEmail = 'mdsadiqueamin721721@gmail.com';
-    const customerPass = 'Amin@123';
+
+    // Hardcoded known users — NOT relying on env vars to avoid Vercel override
+    const KNOWN_USERS = [
+      { email: 'mdsadiqueamin721786@gmail.com', password: 'Sadique@123', name: 'Admin', role: 'admin', id: 'admin_1' },
+      { email: 'mdsadiqueamin721721@gmail.com', password: 'Amin@123', name: 'Customer', role: 'user', id: 'cust_1' },
+    ];
+    const knownUser = KNOWN_USERS.find(u => u.email === email.toLowerCase());
 
     // Try DB-based auth first
     if (models) {
@@ -175,14 +177,9 @@ async function handler(req: NextRequest, pathInput: string[] | undefined) {
         let user = await User.findOne({ email: email.toLowerCase() }).select('+password');
 
         // If known seed user doesn't exist, create them
-        if (!user && email.toLowerCase() === adminEmail) {
-          const hashed = await bcrypt.hash(adminPass, 10);
-          user = await User.create({ name: 'Admin', email: adminEmail, password: hashed, role: 'admin', isActive: true });
-          user = await User.findById(user._id).select('+password');
-        }
-        if (!user && email.toLowerCase() === customerEmail) {
-          const hashed = await bcrypt.hash(customerPass, 10);
-          user = await User.create({ name: 'Customer', email: customerEmail, password: hashed, role: 'user', isActive: true });
+        if (!user && knownUser) {
+          const hashed = await bcrypt.hash(knownUser.password, 10);
+          user = await User.create({ name: knownUser.name, email: knownUser.email, password: hashed, role: knownUser.role, isActive: true });
           user = await User.findById(user._id).select('+password');
         }
 
@@ -196,10 +193,9 @@ async function handler(req: NextRequest, pathInput: string[] | undefined) {
               user: { id: user._id.toString(), name: user.name, email: user.email, role: user.role }
             });
           }
-          // If bcrypt fails for known admin/customer, reset their password and allow login
-          const knownPass = email.toLowerCase() === adminEmail ? adminPass : email.toLowerCase() === customerEmail ? customerPass : null;
-          if (knownPass && password === knownPass) {
-            const newHash = await bcrypt.hash(knownPass, 10);
+          // If bcrypt fails for known user (stale hash), reset password and allow login
+          if (knownUser && password === knownUser.password) {
+            const newHash = await bcrypt.hash(knownUser.password, 10);
             await User.updateOne({ _id: user._id }, { password: newHash });
             const payload = { id: user._id.toString(), email: user.email, role: user.role };
             return ok({
@@ -214,14 +210,10 @@ async function handler(req: NextRequest, pathInput: string[] | undefined) {
       }
     }
 
-    // Always fallback to hardcoded credentials (works even when DB fails)
-    if (email.toLowerCase() === adminEmail && password === adminPass) {
-      const payload = { id: 'admin_1', email: adminEmail, role: 'admin' };
-      return ok({ accessToken: await signAccess(payload), refreshToken: await signRefresh(payload), user: { id: 'admin_1', name: 'Admin', email: adminEmail, role: 'admin' } });
-    }
-    if (email.toLowerCase() === customerEmail && password === customerPass) {
-      const payload = { id: 'cust_1', email: customerEmail, role: 'user' };
-      return ok({ accessToken: await signAccess(payload), refreshToken: await signRefresh(payload), user: { id: 'cust_1', name: 'Customer', email: customerEmail, role: 'user' } });
+    // Always fallback to hardcoded credentials (guaranteed to work)
+    if (knownUser && password === knownUser.password) {
+      const payload = { id: knownUser.id, email: knownUser.email, role: knownUser.role };
+      return ok({ accessToken: await signAccess(payload), refreshToken: await signRefresh(payload), user: { id: knownUser.id, name: knownUser.name, email: knownUser.email, role: knownUser.role } });
     }
 
     return err('Invalid credentials', 401);
