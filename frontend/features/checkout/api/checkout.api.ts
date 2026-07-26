@@ -17,7 +17,7 @@ export interface ICreateOrderInput {
     phone: string;
   };
   couponCode?: string;
-  paymentMethod: 'razorpay' | 'cod';
+  paymentMethod: 'razorpay' | 'cod' | 'authorize_net';
 }
 
 export async function createOrderApi(input: ICreateOrderInput) {
