@@ -148,33 +148,38 @@ async function handler(req: NextRequest, pathInput: string[] | undefined) {
     const customerEmail = 'mdsadiqueamin721721@gmail.com';
     const customerPass = 'Amin@123';
 
+    // Try DB-based auth first
     if (models) {
-      const { User } = models;
-      let user = await User.findOne({ email: email.toLowerCase() }).select('+password');
-      if (!user && email.toLowerCase() === adminEmail) {
-        const hashed = await bcrypt.hash(adminPass, 10);
-        user = await User.create({ name: 'Admin', email: adminEmail, password: hashed, role: 'admin', isActive: true });
-        user = await User.findById(user._id).select('+password');
-      }
-      if (!user && email.toLowerCase() === customerEmail) {
-        const hashed = await bcrypt.hash(customerPass, 10);
-        user = await User.create({ name: 'Customer', email: customerEmail, password: hashed, role: 'user', isActive: true });
-        user = await User.findById(user._id).select('+password');
-      }
-      if (user) {
-        const valid = await bcrypt.compare(password, user.password);
-        if (valid) {
-          const payload = { id: user._id.toString(), email: user.email, role: user.role };
-          return ok({ 
-            accessToken: await signAccess(payload), 
-            refreshToken: await signRefresh(payload), 
-            user: { id: user._id.toString(), name: user.name, email: user.email, role: user.role } 
-          });
+      try {
+        const { User } = models;
+        let user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+        if (!user && email.toLowerCase() === adminEmail) {
+          const hashed = await bcrypt.hash(adminPass, 10);
+          user = await User.create({ name: 'Admin', email: adminEmail, password: hashed, role: 'admin', isActive: true });
+          user = await User.findById(user._id).select('+password');
         }
+        if (!user && email.toLowerCase() === customerEmail) {
+          const hashed = await bcrypt.hash(customerPass, 10);
+          user = await User.create({ name: 'Customer', email: customerEmail, password: hashed, role: 'user', isActive: true });
+          user = await User.findById(user._id).select('+password');
+        }
+        if (user && user.password) {
+          const valid = await bcrypt.compare(password, user.password);
+          if (valid) {
+            const payload = { id: user._id.toString(), email: user.email, role: user.role };
+            return ok({ 
+              accessToken: await signAccess(payload), 
+              refreshToken: await signRefresh(payload), 
+              user: { id: user._id.toString(), name: user.name, email: user.email, role: user.role } 
+            });
+          }
+        }
+      } catch (dbErr: any) {
+        console.error('DB login error:', dbErr);
       }
     }
 
-    // Fallback direct login for admin / user if DB is connecting
+    // Always fallback to hardcoded credentials (works even when DB fails)
     if (email.toLowerCase() === adminEmail && password === adminPass) {
       const payload = { id: 'admin_1', email: adminEmail, role: 'admin' };
       return ok({ accessToken: await signAccess(payload), refreshToken: await signRefresh(payload), user: { id: 'admin_1', name: 'Admin', email: adminEmail, role: 'admin' } });
