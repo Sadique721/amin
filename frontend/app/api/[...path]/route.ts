@@ -55,7 +55,7 @@ async function getUser(req: NextRequest) {
     const auth = req.headers.get('authorization');
     if (!auth?.startsWith('Bearer ')) return null;
     const { verifyAccess } = await getDb();
-    return verifyAccess(auth.slice(7));
+    return await verifyAccess(auth.slice(7));
   } catch { return null; }
 }
 
@@ -166,8 +166,8 @@ async function handler(req: NextRequest, pathInput: string[] | undefined) {
         if (valid) {
           const payload = { id: user._id.toString(), email: user.email, role: user.role };
           return ok({ 
-            accessToken: signAccess(payload), 
-            refreshToken: signRefresh(payload), 
+            accessToken: await signAccess(payload), 
+            refreshToken: await signRefresh(payload), 
             user: { id: user._id.toString(), name: user.name, email: user.email, role: user.role } 
           });
         }
@@ -177,11 +177,11 @@ async function handler(req: NextRequest, pathInput: string[] | undefined) {
     // Fallback direct login for admin / user if DB is connecting
     if (email.toLowerCase() === adminEmail && password === adminPass) {
       const payload = { id: 'admin_1', email: adminEmail, role: 'admin' };
-      return ok({ accessToken: signAccess(payload), refreshToken: signRefresh(payload), user: { id: 'admin_1', name: 'Admin', email: adminEmail, role: 'admin' } });
+      return ok({ accessToken: await signAccess(payload), refreshToken: await signRefresh(payload), user: { id: 'admin_1', name: 'Admin', email: adminEmail, role: 'admin' } });
     }
     if (email.toLowerCase() === customerEmail && password === customerPass) {
       const payload = { id: 'cust_1', email: customerEmail, role: 'user' };
-      return ok({ accessToken: signAccess(payload), refreshToken: signRefresh(payload), user: { id: 'cust_1', name: 'Customer', email: customerEmail, role: 'user' } });
+      return ok({ accessToken: await signAccess(payload), refreshToken: await signRefresh(payload), user: { id: 'cust_1', name: 'Customer', email: customerEmail, role: 'user' } });
     }
 
     return err('Invalid credentials', 401);
@@ -198,13 +198,13 @@ async function handler(req: NextRequest, pathInput: string[] | undefined) {
       const user = await User.create({ name, email: email.toLowerCase(), password: hashed, phone });
       const payload = { id: user._id.toString(), email: user.email, role: user.role };
       return ok({ 
-        accessToken: signAccess(payload), 
-        refreshToken: signRefresh(payload), 
+        accessToken: await signAccess(payload), 
+        refreshToken: await signRefresh(payload), 
         user: { id: user._id.toString(), name: user.name, email: user.email, role: user.role } 
       }, 201);
     }
     const payload = { id: 'user_new', email, role: 'user' };
-    return ok({ accessToken: signAccess(payload), refreshToken: signRefresh(payload), user: { id: 'user_new', name, email, role: 'user' } }, 201);
+    return ok({ accessToken: await signAccess(payload), refreshToken: await signRefresh(payload), user: { id: 'user_new', name, email, role: 'user' } }, 201);
   }
 
   // ── PUBLIC PRODUCTS ───────────────────────────────────────────────────────

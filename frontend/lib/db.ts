@@ -1,6 +1,3 @@
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-
 // ── Lazy Mongoose connection ──────────────────────────────────────────────────
 let isConnected = false;
 let mongooseRef: any = null;
@@ -23,21 +20,40 @@ export async function connectDB() {
   }
 }
 
-// ── JWT helpers ───────────────────────────────────────────────────────────────
+// ── JWT helpers (lazy) ────────────────────────────────────────────────────────
 const JWT_SECRET = process.env.JWT_SECRET || 'sanab_production_jwt_secret_2026';
 const JWT_REFRESH = process.env.JWT_REFRESH_SECRET || 'sanab_production_refresh_secret_2026';
 
-export function signAccess(payload: object) {
+let _jwt: any = null;
+async function getJwt() {
+  if (!_jwt) _jwt = (await import('jsonwebtoken')).default;
+  return _jwt;
+}
+
+export async function signAccess(payload: object) {
+  const jwt = await getJwt();
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
 }
-export function signRefresh(payload: object) {
+export async function signRefresh(payload: object) {
+  const jwt = await getJwt();
   return jwt.sign(payload, JWT_REFRESH, { expiresIn: '7d' });
 }
-export function verifyAccess(token: string) {
+export async function verifyAccess(token: string) {
+  const jwt = await getJwt();
   return jwt.verify(token, JWT_SECRET) as any;
 }
 
-export { bcrypt };
+// ── bcrypt (lazy) ─────────────────────────────────────────────────────────────
+let _bcrypt: any = null;
+async function getBcrypt() {
+  if (!_bcrypt) _bcrypt = (await import('bcryptjs')).default;
+  return _bcrypt;
+}
+export const bcrypt = {
+  hash: async (data: string, salt: number) => (await getBcrypt()).hash(data, salt),
+  compare: async (data: string, hash: string) => (await getBcrypt()).compare(data, hash),
+  genSalt: async (rounds?: number) => (await getBcrypt()).genSalt(rounds),
+};
 
 // Helper to get Mongoose models lazily
 export async function getModels() {
@@ -94,10 +110,10 @@ export async function getModels() {
     ratings: { average: { type: Number, default: 0 }, count: { type: Number, default: 0 } },
   }, { timestamps: true });
 
-  // Extended order schema - orderNumber auto-generated, no longer required from caller
+  // Extended order schema - orderNumber auto-generated
   const orderSchema = new Schema({
     user: { type: Schema.Types.ObjectId, ref: 'User' },
-    userId: String, // fallback string user ID
+    userId: String,
     orderNumber: { type: String, default: () => 'ORD-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase() },
     items: [{
       product: { type: Schema.Types.ObjectId, ref: 'Product' },
