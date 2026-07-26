@@ -131,6 +131,26 @@ async function handler(req: NextRequest, pathInput: string[] | undefined) {
       env: process.env.NODE_ENV,
       timestamp: new Date().toISOString(),
       paymentGateways: ['authorize.net', 'cod'],
+      version: '5450c6f',
+    });
+  }
+
+  // ── DEBUG: Login test (no DB) ─────────────────────────────────────────────
+  if (route === 'debug/login-test' && method === 'POST') {
+    const { email, password } = body;
+    const adminEmail = (process.env.ADMIN_EMAIL || 'mdsadiqueamin721786@gmail.com').toLowerCase();
+    const adminPass = process.env.ADMIN_PASSWORD || 'Sadique@123';
+    const customerEmail = 'mdsadiqueamin721721@gmail.com';
+    const customerPass = 'Amin@123';
+    return ok({
+      receivedEmail: email,
+      receivedPassword: password,
+      adminEmail,
+      adminPass,
+      emailMatch: email?.toLowerCase() === adminEmail,
+      passMatch: password === adminPass,
+      customerEmailMatch: email?.toLowerCase() === customerEmail,
+      customerPassMatch: password === customerPass,
     });
   }
 
