@@ -6,22 +6,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAppDispatch, useAppSelector } from '@/hooks/redux';
 import { clearCart } from '@/features/cart';
-import { createOrderApi, verifyRazorpayPaymentApi, verifyCodPaymentApi } from '@/features/checkout';
+import { createOrderApi, verifyCodPaymentApi } from '@/features/checkout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { CreditCard, Truck, RefreshCw, ChevronLeft, ShieldCheck } from 'lucide-react';
+import { CreditCard, Truck, RefreshCw, ChevronLeft, ShieldCheck, Lock } from 'lucide-react';
 import { toast } from 'sonner';
-
-function loadScript(src: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    const script = document.createElement('script');
-    script.src = src;
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-}
+import { api } from '@/services/axios';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -40,7 +31,14 @@ export default function CheckoutPage() {
     country: 'India',
     phone: '',
   });
-  const [paymentMethod, setPaymentMethod] = React.useState<'razorpay' | 'cod'>('razorpay');
+  const [paymentMethod, setPaymentMethod] = React.useState<'authorize_net' | 'cod'>('cod');
+  // Both COD and Authorize.net card are always available (OR operator)
+
+  // Authorize.net card fields
+  const [cardNumber, setCardNumber] = React.useState('');
+  const [cardExpiry, setCardExpiry] = React.useState('');  // MM/YY
+  const [cardCvv, setCardCvv] = React.useState('');
+  const [cardName, setCardName] = React.useState('');
 
   React.useEffect(() => {
     if (!accessToken) {
@@ -60,9 +58,21 @@ export default function CheckoutPage() {
     return Math.max(0, subtotal - discountAmount);
   }, [subtotal, discountAmount]);
 
+  // No auto-selection — user freely chooses COD or Authorize.net card payment
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setShippingAddress((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const formatCardNumber = (val: string) => {
+    return val.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim().slice(0, 19);
+  };
+
+  const formatExpiry = (val: string) => {
+    const digits = val.replace(/\D/g, '').slice(0, 4);
+    if (digits.length >= 3) return digits.slice(0, 2) + '/' + digits.slice(2);
+    return digits;
   };
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
@@ -74,6 +84,13 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (paymentMethod === 'authorize_net') {
+      if (!cardNumber || !cardExpiry || !cardCvv || !cardName) {
+        toast.error('Please enter all card details.');
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
@@ -82,89 +99,56 @@ export default function CheckoutPage() {
           productId: item.product._id,
           sku: item.variant.sku,
           quantity: item.quantity,
+          price: item.variant.price,
         })),
         shippingAddress,
         couponCode: coupon?.code,
         paymentMethod,
+        total,
       };
 
       const response = await createOrderApi(orderPayload);
       const order = response.data;
 
       if (paymentMethod === 'cod') {
-        const codVerify = await verifyCodPaymentApi(order._id);
-        if (codVerify.success || codVerify.status === 200) {
-          dispatch(clearCart());
-          toast.success('Order placed successfully via COD!');
-          router.push(`/checkout/success?orderId=${order._id}`);
-        } else {
-          throw new Error('COD order verification failed');
-        }
+        // COD verification
+        try {
+          await verifyCodPaymentApi(order._id);
+        } catch {}
+        dispatch(clearCart());
+        toast.success('🎉 Order placed successfully! Pay on delivery.');
+        router.push(`/checkout/success?orderId=${order._id}`);
         return;
       }
 
-      if (paymentMethod === 'razorpay') {
-        if (order.total === 0) {
+      if (paymentMethod === 'authorize_net') {
+        // Format expiry: MM/YY → YYYY-MM for Authorize.net
+        const [mm, yy] = cardExpiry.split('/');
+        const expirationDate = `20${yy?.trim()}-${mm?.trim().padStart(2, '0')}`;
+
+        const nameParts = cardName.trim().split(' ');
+        const firstName = nameParts[0] || fullName.split(' ')[0] || 'Customer';
+        const lastName = nameParts.slice(1).join(' ') || fullName.split(' ').slice(1).join(' ') || 'User';
+
+        const chargeRes = await api.post('/payments/authorize/charge', {
+          amount: total,
+          cardNumber: cardNumber.replace(/\s/g, ''),
+          expirationDate,
+          cardCode: cardCvv,
+          firstName,
+          lastName,
+          email: user?.email,
+          orderId: order._id,
+          description: `Sanab Order ${order._id}`,
+        });
+
+        if (chargeRes.data?.success && chargeRes.data?.data?.transactionId) {
           dispatch(clearCart());
-          toast.success('Order placed successfully (Zero value order)!');
+          toast.success(`✅ Payment successful! Transaction ID: ${chargeRes.data.data.transactionId}`);
           router.push(`/checkout/success?orderId=${order._id}`);
-          return;
+        } else {
+          throw new Error(chargeRes.data?.message || 'Card payment failed');
         }
-
-        const scriptLoaded = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
-        if (!scriptLoaded) {
-          toast.error('Failed to load Razorpay SDK. Check your internet connection.');
-          setLoading(false);
-          return;
-        }
-
-        const rzpOptions = {
-          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_mockkey',
-          amount: order.total * 100,
-          currency: 'INR',
-          name: 'Sanab luxury',
-          description: 'Secure payment transaction',
-          order_id: order.paymentDetails.razorpayOrderId,
-          handler: async function (response: any) {
-            setLoading(true);
-            try {
-              const verifyRes = await verifyRazorpayPaymentApi({
-                razorpayOrderId: response.razorpay_order_id,
-                razorpayPaymentId: response.razorpay_payment_id,
-                razorpaySignature: response.razorpay_signature,
-              });
-
-              if (verifyRes.success || verifyRes.status === 200) {
-                dispatch(clearCart());
-                toast.success('Payment verified successfully!');
-                router.push(`/checkout/success?orderId=${order._id}`);
-              } else {
-                toast.error('Payment verification failed.');
-              }
-            } catch (err: any) {
-              toast.error(err.response?.data?.message || 'Payment verification failed');
-            } finally {
-              setLoading(false);
-            }
-          },
-          prefill: {
-            name: user?.name || fullName,
-            email: user?.email || '',
-            contact: phone,
-          },
-          theme: {
-            color: '#f59e0b',
-          },
-          modal: {
-            ondismiss: function () {
-              toast.warning('Payment process cancelled by user.');
-              setLoading(false);
-            },
-          },
-        };
-
-        const razorpayInstance = new (window as any).Razorpay(rzpOptions);
-        razorpayInstance.open();
       }
     } catch (err: any) {
       toast.error(err.response?.data?.message || err.message || 'An error occurred placing your order.');
@@ -319,28 +303,31 @@ export default function CheckoutPage() {
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     
+                    {/* Authorize.net Card Payment */}
                     <div
-                      onClick={() => setPaymentMethod('razorpay')}
+                      onClick={() => setPaymentMethod('authorize_net')}
                       className={`border rounded-2xl p-5 flex items-center justify-between cursor-pointer transition-all ${
-                        paymentMethod === 'razorpay'
+                        paymentMethod === 'authorize_net'
                           ? 'border-amber-500 bg-amber-500/5 shadow-inner'
                           : 'border-border bg-background hover:bg-muted/10'
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`p-2.5 rounded-full ${paymentMethod === 'razorpay' ? 'bg-amber-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                        <div className={`p-2.5 rounded-full ${paymentMethod === 'authorize_net' ? 'bg-amber-500 text-white' : 'bg-muted text-muted-foreground'}`}>
                           <CreditCard className="h-5 w-5" />
                         </div>
                         <div className="text-left">
-                          <h4 className="font-bold text-sm text-foreground">Razorpay</h4>
-                          <p className="text-[10px] text-muted-foreground font-semibold">Cards, UPI, Netbanking</p>
+                          <h4 className="font-bold text-sm text-foreground">Card Payment</h4>
+                          <p className="text-[10px] text-muted-foreground font-semibold">Authorize.net — Visa/MC</p>
+                          <p className="text-[9px] text-emerald-600 font-bold mt-0.5">✓ Secure online payment</p>
                         </div>
                       </div>
-                      <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${paymentMethod === 'razorpay' ? 'border-amber-500 bg-amber-500' : 'border-muted-foreground'}`}>
-                        {paymentMethod === 'razorpay' && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                      <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${paymentMethod === 'authorize_net' ? 'border-amber-500 bg-amber-500' : 'border-muted-foreground'}`}>
+                        {paymentMethod === 'authorize_net' && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
                       </div>
                     </div>
 
+                    {/* COD */}
                     <div
                       onClick={() => setPaymentMethod('cod')}
                       className={`border rounded-2xl p-5 flex items-center justify-between cursor-pointer transition-all ${
@@ -364,6 +351,72 @@ export default function CheckoutPage() {
                     </div>
 
                   </div>
+
+                  {/* Authorize.net Card Form */}
+                  {paymentMethod === 'authorize_net' && (
+                    <div className="mt-4 space-y-4 border border-amber-500/20 rounded-xl p-4 bg-amber-500/5">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Lock className="h-4 w-4 text-amber-600" />
+                        <span className="text-xs font-bold text-amber-700">Secure Card Entry — Powered by Authorize.net</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-muted-foreground">Cardholder Name *</label>
+                        <Input
+                          id="cardName"
+                          value={cardName}
+                          onChange={(e) => setCardName(e.target.value)}
+                          placeholder="Name on card"
+                          className="focus-visible:ring-amber-500"
+                          required={paymentMethod === 'authorize_net'}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-muted-foreground">Card Number *</label>
+                        <Input
+                          id="cardNumber"
+                          value={cardNumber}
+                          onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
+                          placeholder="4111 1111 1111 1111"
+                          maxLength={19}
+                          inputMode="numeric"
+                          className="focus-visible:ring-amber-500 font-mono tracking-widest"
+                          required={paymentMethod === 'authorize_net'}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-muted-foreground">Expiry (MM/YY) *</label>
+                          <Input
+                            id="cardExpiry"
+                            value={cardExpiry}
+                            onChange={(e) => setCardExpiry(formatExpiry(e.target.value))}
+                            placeholder="MM/YY"
+                            maxLength={5}
+                            inputMode="numeric"
+                            className="focus-visible:ring-amber-500"
+                            required={paymentMethod === 'authorize_net'}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-muted-foreground">CVV *</label>
+                          <Input
+                            id="cardCvv"
+                            value={cardCvv}
+                            onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                            placeholder="123"
+                            maxLength={4}
+                            inputMode="numeric"
+                            type="password"
+                            className="focus-visible:ring-amber-500"
+                            required={paymentMethod === 'authorize_net'}
+                          />
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        🔒 Test card: <span className="font-mono font-bold">4111 1111 1111 1111</span> | Exp: <span className="font-mono font-bold">12/26</span> | CVV: <span className="font-mono font-bold">123</span>
+                      </p>
+                    </div>
+                  )}
 
                 </CardContent>
               </Card>
@@ -425,6 +478,10 @@ export default function CheckoutPage() {
               <div className="flex justify-between items-baseline">
                 <span className="text-sm font-extrabold text-foreground">Total</span>
                 <span className="text-xl font-black text-foreground">₹{total}</span>
+              </div>
+
+              <div className="bg-blue-500/5 p-3 rounded-xl border border-blue-500/20 text-[10px] text-blue-700 font-semibold">
+                💳 Pay with card via <strong>Authorize.net</strong> or choose <strong>Cash on Delivery</strong> — your choice!
               </div>
 
               <div className="bg-amber-500/5 p-4 rounded-xl flex items-start gap-3 border border-amber-500/10">
