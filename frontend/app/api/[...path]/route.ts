@@ -113,7 +113,10 @@ async function chargeAuthorizeNet(opts: {
 }
 
 async function handler(req: NextRequest, pathInput: string[] | undefined) {
-  const pathArr = Array.isArray(pathInput) ? pathInput : [];
+  let pathArr = Array.isArray(pathInput) && pathInput.length > 0 ? pathInput : [];
+  if (pathArr.length === 0 && req.nextUrl?.pathname) {
+    pathArr = req.nextUrl.pathname.replace(/^\/api\/?/, '').split('/').filter(Boolean);
+  }
   const route = pathArr.join('/');
   const method = req.method;
   let body: any = {};
