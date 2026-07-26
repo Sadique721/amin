@@ -61,33 +61,82 @@ export async function getModels() {
     isActive: { type: Boolean, default: true },
   }, { timestamps: true });
 
+  // Extended product schema supporting variants, brand, type, specifications
+  const variantSchema = new Schema({
+    sku: { type: String, required: true },
+    price: { type: Number, required: true },
+    compareAtPrice: Number,
+    stock: { type: Number, default: 0 },
+    isActive: { type: Boolean, default: true },
+    attributes: { type: Schema.Types.Mixed, default: {} },
+    images: [String],
+  }, { _id: false });
+
   const productSchema = new Schema({
     name: { type: String, required: true },
     slug: { type: String, required: true, unique: true },
     description: { type: String, required: true },
     shortDescription: String,
+    brand: { type: String, default: 'Sanab' },
+    type: { type: String, enum: ['jewellery', 'cosmetics', 'other'], default: 'jewellery' },
     price: { type: Number, required: true },
     salePrice: Number,
     sku: { type: String, required: true },
     stock: { type: Number, default: 0 },
     images: [String],
-    category: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
+    category: { type: Schema.Types.ObjectId, ref: 'Category' },
     tags: [String],
     isActive: { type: Boolean, default: true },
     isFeatured: { type: Boolean, default: false },
+    specifications: { type: Schema.Types.Mixed, default: {} },
     attributes: [{ name: String, value: String }],
+    variants: [variantSchema],
     ratings: { average: { type: Number, default: 0 }, count: { type: Number, default: 0 } },
   }, { timestamps: true });
 
+  // Extended order schema - orderNumber auto-generated, no longer required from caller
   const orderSchema = new Schema({
-    user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    orderNumber: { type: String, required: true, unique: true },
-    items: [{ product: { type: Schema.Types.ObjectId, ref: 'Product' }, name: String, price: Number, quantity: Number, image: String }],
-    total: Number, subtotal: Number, tax: Number, shipping: Number,
+    user: { type: Schema.Types.ObjectId, ref: 'User' },
+    userId: String, // fallback string user ID
+    orderNumber: { type: String, default: () => 'ORD-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase() },
+    items: [{
+      product: { type: Schema.Types.ObjectId, ref: 'Product' },
+      productId: String,
+      sku: String,
+      name: String,
+      price: Number,
+      quantity: Number,
+      image: String,
+    }],
+    total: { type: Number, default: 0 },
+    subtotal: Number,
+    tax: Number,
+    shipping: Number,
     status: { type: String, default: 'pending' },
     paymentStatus: { type: String, default: 'pending' },
     paymentMethod: { type: String, default: 'cod' },
-    shippingAddress: { name: String, phone: String, address: String, city: String, state: String, pincode: String, country: String },
+    paymentDetails: {
+      method: String,
+      status: { type: String, default: 'pending' },
+      transactionId: String,
+      authCode: String,
+      razorpayOrderId: String,
+      razorpayPaymentId: String,
+    },
+    shippingAddress: {
+      fullName: String,
+      name: String,
+      phone: String,
+      addressLine1: String,
+      addressLine2: String,
+      address: String,
+      city: String,
+      state: String,
+      postalCode: String,
+      pincode: String,
+      country: String,
+    },
+    couponCode: String,
   }, { timestamps: true });
 
   const User = models.User || model('User', userSchema);
