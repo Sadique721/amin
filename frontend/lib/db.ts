@@ -373,13 +373,18 @@ export async function getModels() {
     },
     create: async (data: any) => {
       const slug = data.slug || data.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') + '-' + Date.now();
+      let catId = data.categoryId || data.category || null;
+      if (catId && typeof catId === 'string' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(catId)) {
+        const catRes = await p.query('SELECT id FROM categories WHERE slug = $1 OR name ILIKE $1', [catId]);
+        catId = catRes.rows[0]?.id || null;
+      }
       const r = await p.query(`
         INSERT INTO products (name,slug,description,short_description,brand,type,price,sale_price,sku,stock,images,category_id,tags,is_active,is_featured,specifications,attributes,variants)
         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *
       `, [
         data.name, slug, data.description, data.shortDescription||null, data.brand||'Sanab', data.type||'jewellery',
         data.price||0, data.salePrice||null, data.sku||`SKU-${Date.now()}`, data.stock||0,
-        JSON.stringify(data.images||[]), data.categoryId||data.category||null,
+        JSON.stringify(data.images||[]), catId,
         JSON.stringify(data.tags||[]), data.isActive!==false, data.isFeatured||false,
         JSON.stringify(data.specifications||{}), JSON.stringify(data.attributes||[]),
         JSON.stringify(data.variants||[])
@@ -403,7 +408,14 @@ export async function getModels() {
       if (data.variants !== undefined) { fields.push(`variants=$${i++}`); vals.push(JSON.stringify(data.variants)); }
       if (data.specifications !== undefined) { fields.push(`specifications=$${i++}`); vals.push(JSON.stringify(data.specifications)); }
       if (data.attributes !== undefined) { fields.push(`attributes=$${i++}`); vals.push(JSON.stringify(data.attributes)); }
-      if (data.categoryId || data.category) { fields.push(`category_id=$${i++}`); vals.push(data.categoryId||data.category); }
+      if (data.categoryId || data.category) {
+        let catId = data.categoryId || data.category;
+        if (catId && typeof catId === 'string' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(catId)) {
+          const catRes = await p.query('SELECT id FROM categories WHERE slug = $1 OR name ILIKE $1', [catId]);
+          catId = catRes.rows[0]?.id || null;
+        }
+        fields.push(`category_id=$${i++}`); vals.push(catId);
+      }
       if (!fields.length) return Product.findById(id);
       fields.push(`updated_at=NOW()`);
       vals.push(id);

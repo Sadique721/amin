@@ -47,7 +47,7 @@ async function chargeAuthorizeNet(opts: {
         amount: opts.amount.toFixed(2),
         payment: { creditCard: { cardNumber: opts.cardNumber, expirationDate: opts.expirationDate, cardCode: opts.cardCode } },
         order: { description: opts.description || 'Sanab luxury purchase' },
-        billTo: { firstName: opts.firstName, lastName: opts.lastName, email: opts.email || '', country: 'IN' },
+        billTo: { firstName: opts.firstName, lastName: opts.lastName },
       },
     },
   };
