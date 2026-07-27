@@ -10,13 +10,31 @@ let dbInitialized = false;
 
 export function getPool(): Pool {
   if (!pool) {
-    pool = new Pool({
-      connectionString: DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
-      max: 5,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000,
-    });
+    const dbUrl = process.env.DATABASE_URL || DEFAULT_DB_URL;
+    let config: any = {};
+    try {
+      const parsed = new URL(dbUrl);
+      config = {
+        user: parsed.username,
+        password: decodeURIComponent(parsed.password),
+        host: parsed.hostname,
+        port: parseInt(parsed.port || '5432'),
+        database: parsed.pathname.replace(/^\//, '') || 'defaultdb',
+        ssl: { rejectUnauthorized: false },
+        max: 5,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000,
+      };
+    } catch {
+      config = {
+        connectionString: dbUrl.split('?')[0],
+        ssl: { rejectUnauthorized: false },
+        max: 5,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000,
+      };
+    }
+    pool = new Pool(config);
   }
   return pool;
 }
