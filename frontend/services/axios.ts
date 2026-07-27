@@ -1,6 +1,11 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:10001/api/public';
+// In browser: use relative URL so it always hits the same origin (works on any deployment)
+// In SSR/server: fall back to env var or localhost
+const API_URL =
+  typeof window !== 'undefined'
+    ? '/api/public'
+    : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:10001/api/public');
 
 export const api = axios.create({
   baseURL: API_URL,
