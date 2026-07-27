@@ -148,8 +148,11 @@ export default function AdminDashboardPage() {
                 <Link href="/admin/orders" className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground transition-colors">
                   Orders
                 </Link>
+                <Link href="/admin/users" className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground transition-colors">
+                  Users
+                </Link>
                 <Link href="/admin/cms" className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground transition-colors">
-                  CMS Layouts
+                  CMS
                 </Link>
               </div>
             </div>
@@ -273,7 +276,7 @@ export default function AdminDashboardPage() {
             <CardContent className="p-6 flex items-center justify-between">
               <div className="space-y-1">
                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Active Store Users</span>
-                <h3 className="text-2xl font-black text-foreground">12</h3>
+                <h3 className="text-2xl font-black text-foreground">{stats?.totalUsers ?? '—'}</h3>
               </div>
               <div className="bg-purple-500/10 p-3 rounded-2xl text-purple-600">
                 <Users className="h-6 w-6" />
@@ -411,6 +414,11 @@ export default function AdminDashboardPage() {
               <Link href="/admin/orders">
                 <Button variant="outline" className="border-border rounded-xl font-bold text-xs py-5 px-6 hover:bg-muted/15 cursor-pointer">
                   Manage Orders <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </Link>
+              <Link href="/admin/users">
+                <Button variant="outline" className="border-border rounded-xl font-bold text-xs py-5 px-6 hover:bg-muted/15 cursor-pointer">
+                  Manage Users <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               </Link>
               <Link href="/admin/cms">
