@@ -263,7 +263,7 @@ export async function getModels() {
   const User = {
     findByEmail: async (email: string) => {
       const r = await p.query('SELECT * FROM users WHERE email = $1', [email.toLowerCase()]);
-      return r.rows[0] || null;
+      return r.rows[0] ? mapUser(r.rows[0]) : null;
     },
     findById: async (id: string) => {
       const r = await p.query('SELECT id,name,email,phone,role,is_active,created_at FROM users WHERE id=$1', [id]);
