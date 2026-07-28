@@ -31,7 +31,15 @@ export default function AdminCategoriesPage() {
     try {
       setLoading(true);
       const res = await api.get('/api/public/categories');
-      setCategories(res.data?.results || res.data?.docs || res.data || []);
+      const dataObj = res.data?.data || res.data;
+      const list = Array.isArray(dataObj?.results)
+        ? dataObj.results
+        : Array.isArray(dataObj?.docs)
+        ? dataObj.docs
+        : Array.isArray(dataObj)
+        ? dataObj
+        : [];
+      setCategories(list);
     } catch (e: any) {
       toast.error('Failed to load categories');
     } finally {

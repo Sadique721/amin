@@ -74,10 +74,14 @@ export default function AdminCmsPage() {
       setLoading(true);
       if (activeTab === 'banners') {
         const res = await fetchBannersAllApi();
-        setBanners(res.data || []);
+        const dataObj = res.data?.data || res.data;
+        const list = Array.isArray(dataObj?.results) ? dataObj.results : Array.isArray(dataObj) ? dataObj : [];
+        setBanners(list);
       } else {
         const res = await fetchFaqsAllApi();
-        setFaqs(res.data || []);
+        const dataObj = res.data?.data || res.data;
+        const list = Array.isArray(dataObj?.results) ? dataObj.results : Array.isArray(dataObj) ? dataObj : [];
+        setFaqs(list);
       }
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to load CMS records.');
