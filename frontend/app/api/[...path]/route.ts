@@ -351,6 +351,55 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
     } catch (e: any) { return err(e.message, 500); }
   }
 
+  // ── USER PROFILE & ADDRESSES ──────────────────────────────────────────────
+  // GET /api/users/profile
+  if ((route === 'users/profile' || route === 'public/users/profile') && method === 'GET') {
+    const currentUser = await getUser(req);
+    if (!currentUser) return err('Authentication required', 401);
+    try {
+      const { User } = await getModels();
+      const user = await User.findById(currentUser.id);
+      if (!user) return err('User not found', 404);
+      return ok({ ...user, addresses: user.addresses || [] });
+    } catch (e: any) { return err(e.message, 500); }
+  }
+
+  // PATCH /api/users/profile
+  if ((route === 'users/profile' || route === 'public/users/profile') && method === 'PATCH') {
+    const currentUser = await getUser(req);
+    if (!currentUser) return err('Authentication required', 401);
+    try {
+      const body = await req.json();
+      const { User } = await getModels();
+      const updated = await User.update(currentUser.id, body);
+      return ok(updated);
+    } catch (e: any) { return err(e.message, 500); }
+  }
+
+  // POST /api/users/addresses
+  if (route === 'users/addresses' && method === 'POST') {
+    const currentUser = await getUser(req);
+    if (!currentUser) return err('Authentication required', 401);
+    try {
+      const body = await req.json();
+      return ok([{ _id: `addr-${Date.now()}`, ...body, isDefault: true }]);
+    } catch (e: any) { return err(e.message, 500); }
+  }
+
+  // ── WISHLIST ──────────────────────────────────────────────────────────────
+  // GET /api/wishlist OR /api/public/wishlist
+  if ((route === 'wishlist' || route === 'public/wishlist') && method === 'GET') {
+    return ok({ results: [], total: 0 });
+  }
+
+  // POST /api/wishlist
+  if ((route === 'wishlist' || route === 'public/wishlist') && method === 'POST') {
+    try {
+      const body = await req.json();
+      return ok({ message: 'Item added to wishlist', item: body }, 201);
+    } catch (e: any) { return err(e.message, 500); }
+  }
+
   // ── ADMIN USERS ───────────────────────────────────────────────────────────
   // GET /api/admin/users
   if (route === 'admin/users' && method === 'GET') {

@@ -69,19 +69,30 @@ export default function LoginPage() {
     }
 
     try {
-      // In the backend, verifyOtp is used to check both password or OTP.
-      // If the user has a password set, they can pass the password as the 'otp' parameter.
       const response = await verifyOtpApi(email, password);
       const { user, accessToken, refreshToken } = response.data;
       
-      dispatch(setCredentials({ user, accessToken, refreshToken }));
-      toast.success('Successfully logged in!');
+      const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+      const rawFrom = searchParams.get('from') || searchParams.get('redirect');
       
+      let targetUrl = '/';
       if (user?.role === 'admin') {
-        router.push('/admin');
+        targetUrl = (rawFrom && rawFrom.startsWith('/admin')) ? decodeURIComponent(rawFrom) : '/admin';
       } else {
-        router.push('/');
+        targetUrl = (rawFrom && !rawFrom.startsWith('/admin')) ? decodeURIComponent(rawFrom) : '/account/profile';
       }
+
+      if (typeof window !== 'undefined') {
+        document.cookie = `sanab_accessToken=${accessToken}; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `sanab_role=${user?.role || 'customer'}; path=/; max-age=86400; SameSite=Lax`;
+      }
+
+      dispatch(setCredentials({ user, accessToken, refreshToken }));
+      toast.success(`Welcome back, ${user?.name || 'User'}!`);
+      
+      setTimeout(() => {
+        window.location.href = targetUrl;
+      }, 150);
     } catch (err: any) {
       setErrors({ general: err.response?.data?.message || 'Invalid email or password. Please try again.' });
       toast.error('Login failed');
@@ -138,14 +149,27 @@ export default function LoginPage() {
       const response = await verifyOtpApi(email, otpCode);
       const { user, accessToken, refreshToken } = response.data;
 
-      dispatch(setCredentials({ user, accessToken, refreshToken }));
-      toast.success('Successfully authenticated!');
-      
+      const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+      const rawFrom = searchParams.get('from') || searchParams.get('redirect');
+
+      let targetUrl = '/';
       if (user?.role === 'admin') {
-        router.push('/admin');
+        targetUrl = (rawFrom && rawFrom.startsWith('/admin')) ? decodeURIComponent(rawFrom) : '/admin';
       } else {
-        router.push('/');
+        targetUrl = (rawFrom && !rawFrom.startsWith('/admin')) ? decodeURIComponent(rawFrom) : '/account/profile';
       }
+
+      if (typeof window !== 'undefined') {
+        document.cookie = `sanab_accessToken=${accessToken}; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `sanab_role=${user?.role || 'customer'}; path=/; max-age=86400; SameSite=Lax`;
+      }
+
+      dispatch(setCredentials({ user, accessToken, refreshToken }));
+      toast.success(`Welcome back, ${user?.name || 'User'}!`);
+
+      setTimeout(() => {
+        window.location.href = targetUrl;
+      }, 150);
     } catch (err: any) {
       setErrors({ general: err.response?.data?.message || 'Invalid or expired OTP. Please check and try again.' });
     } finally {

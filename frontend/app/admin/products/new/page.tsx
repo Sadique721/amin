@@ -75,10 +75,29 @@ export default function AdminProductFormPage() {
   const [uploadingImage, setUploadingImage] = React.useState(false);
 
   // Load categories and initial product details if editing
+  const [mounted, setMounted] = React.useState(false);
+
   React.useEffect(() => {
-    if (!accessToken || user?.role !== 'admin') {
+    setMounted(true);
+  }, []);
+
+  React.useEffect(() => {
+    if (!mounted) return;
+
+    let currentToken = accessToken;
+    let currentUser = user;
+    if (typeof window !== 'undefined' && (!currentToken || !currentUser)) {
+      try {
+        const storedUser = localStorage.getItem('sanab_user');
+        const storedToken = localStorage.getItem('sanab_accessToken');
+        if (storedUser) currentUser = JSON.parse(storedUser);
+        if (storedToken) currentToken = storedToken;
+      } catch (e) {}
+    }
+
+    if (!currentToken || currentUser?.role !== 'admin') {
       toast.error('Access denied. Admin privileges required.');
-      router.push('/auth/login?redirect=/admin/products/new');
+      router.push('/auth/login?from=' + encodeURIComponent('/admin/products/new'));
       return;
     }
 

@@ -6,13 +6,18 @@ import { initQueueSystem } from './queues/queue.helper';
 import './queues/email.queue';
 import './queues/notification.queue';
 import { startScheduler } from './jobs/scheduler';
+import { initKafkaTopics, initKafkaProducer, disconnectKafkaProducer, disconnectAllConsumers } from './kafka';
 
 const startServer = async () => {
-  // Connect to Database
+  // Connect to PostgreSQL / Database
   await connectDB();
 
-  // Initialize Queue System
+  // Initialize Queue System (BullMQ / Redis)
   await initQueueSystem();
+
+  // Initialize Kafka Topics and Producer
+  await initKafkaTopics();
+  await initKafkaProducer();
 
   // Start Background Scheduler
   startScheduler();
@@ -20,6 +25,20 @@ const startServer = async () => {
   const server = app.listen(env.PORT, () => {
     logger.info(`🚀 Server running in ${env.NODE_ENV} mode on port ${env.PORT}`);
   });
+
+  // Graceful Shutdown Handler
+  const shutdown = async (signal: string) => {
+    logger.info(`Received ${signal}. Shutting down gracefully...`);
+    server.close(async () => {
+      await disconnectKafkaProducer();
+      await disconnectAllConsumers();
+      logger.info('Server closed. Process terminating.');
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 
   // Handle Unhandled Rejections
   process.on('unhandledRejection', (err: Error) => {

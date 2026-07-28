@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import mongoose from 'mongoose';
+import { getPgPool } from '@/database/connection';
 import { logger } from '@/shared/logger';
 
 export const dbBackupJob = async (): Promise<void> => {
@@ -13,16 +13,25 @@ export const dbBackupJob = async (): Promise<void> => {
   const sessionBackupDir = path.join(backupsDir, timestamp);
   fs.mkdirSync(sessionBackupDir, { recursive: true });
 
-  try {
-    const modelNames = mongoose.modelNames();
-    logger.info(`[DB-BACKUP JOB] Starting database backup for models: ${modelNames.join(', ')}`);
+  const pool = getPgPool();
+  if (!pool) {
+    logger.warn('[DB-BACKUP JOB] PostgreSQL pool not initialized — skipping backup.');
+    return;
+  }
+  const tables = ['users', 'categories', 'products', 'orders', 'banners', 'faqs', 'wishlist'];
 
-    for (const modelName of modelNames) {
-      const Model = mongoose.model(modelName);
-      const data = await Model.find({}).lean();
-      const filePath = path.join(sessionBackupDir, `${modelName.toLowerCase()}.json`);
-      await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
-      logger.info(`[DB-BACKUP JOB] Backed up model ${modelName} (${data.length} records)`);
+  try {
+    logger.info(`[DB-BACKUP JOB] Starting PostgreSQL database backup for tables: ${tables.join(', ')}`);
+
+    for (const table of tables) {
+      try {
+        const res = await pool.query(`SELECT * FROM ${table}`);
+        const filePath = path.join(sessionBackupDir, `${table}.json`);
+        await fs.promises.writeFile(filePath, JSON.stringify(res.rows, null, 2), 'utf-8');
+        logger.info(`[DB-BACKUP JOB] Backed up table ${table} (${res.rows.length} records)`);
+      } catch (err: any) {
+        logger.warn(`[DB-BACKUP JOB] Table ${table} skip/warning: ${err.message}`);
+      }
     }
 
     // Keep only the last 7 backups to save disk space

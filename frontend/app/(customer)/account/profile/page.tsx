@@ -164,6 +164,46 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        {/* User Hero Banner */}
+        <Card className="border-border bg-gradient-to-r from-amber-500/10 via-rose-500/5 to-purple-500/10 p-6 backdrop-blur-md shadow-xl">
+          <div className="flex flex-col sm:flex-row items-center gap-6 justify-between">
+            <div className="flex items-center gap-5">
+              <div className="relative">
+                <div className="h-20 w-20 rounded-full bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-2xl font-black text-white shadow-lg ring-4 ring-background">
+                  {(user.name || 'U').split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase()}
+                </div>
+                <span className="absolute bottom-0 right-0 h-5 w-5 rounded-full bg-emerald-500 ring-2 ring-background flex items-center justify-center">
+                  <CheckCircle2 className="h-3 w-3 text-white" />
+                </span>
+              </div>
+              <div className="space-y-1 text-center sm:text-left">
+                <div className="flex items-center gap-2 justify-center sm:justify-start">
+                  <h2 className="text-2xl font-bold text-foreground">{user.name}</h2>
+                  {user.role === 'admin' ? (
+                    <span className="rounded-full bg-amber-500/20 border border-amber-500/30 px-3 py-0.5 text-xs font-extrabold text-amber-500 uppercase tracking-wider">
+                      👑 Admin Console Access
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-rose-500/10 border border-rose-500/20 px-3 py-0.5 text-xs font-bold text-rose-500 uppercase tracking-wider">
+                      💎 Sanab VIP Member
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">{user.email}</p>
+              </div>
+            </div>
+
+            {user.role === 'admin' && (
+              <Button
+                onClick={() => router.push('/admin')}
+                className="bg-gradient-to-r from-amber-500 to-rose-500 hover:opacity-95 text-white font-bold px-6 py-2.5 rounded-lg shadow-lg gap-2"
+              >
+                <Shield className="h-4 w-4" /> Open Admin Console
+              </Button>
+            )}
+          </div>
+        </Card>
+
         {message && (
           <div
             className={`rounded-lg border p-4 text-sm font-medium transition-all ${

@@ -86,14 +86,33 @@ export default function AdminCmsPage() {
     }
   }, [activeTab]);
 
+  const [mounted, setMounted] = React.useState(false);
+
   React.useEffect(() => {
-    if (!accessToken || user?.role !== 'admin') {
+    setMounted(true);
+  }, []);
+
+  React.useEffect(() => {
+    if (!mounted) return;
+
+    let currentToken = accessToken;
+    let currentUser = user;
+    if (typeof window !== 'undefined' && (!currentToken || !currentUser)) {
+      try {
+        const storedUser = localStorage.getItem('sanab_user');
+        const storedToken = localStorage.getItem('sanab_accessToken');
+        if (storedUser) currentUser = JSON.parse(storedUser);
+        if (storedToken) currentToken = storedToken;
+      } catch (e) {}
+    }
+
+    if (!currentToken || currentUser?.role !== 'admin') {
       toast.error('Access denied. Admin privileges required.');
-      router.push('/auth/login?redirect=/admin/cms');
+      router.push('/auth/login?from=' + encodeURIComponent('/admin/cms'));
       return;
     }
     loadCmsData();
-  }, [accessToken, user, activeTab, loadCmsData, router]);
+  }, [mounted, accessToken, user, activeTab, loadCmsData, router]);
 
   // Image Upload for Banner
   const handleBannerImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'desktop' | 'mobile') => {

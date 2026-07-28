@@ -63,6 +63,10 @@ const authSlice = createSlice({
         localStorage.setItem('sanab_user', JSON.stringify(user));
         localStorage.setItem('sanab_accessToken', accessToken);
         localStorage.setItem('sanab_refreshToken', refreshToken);
+
+        // Sync cookies for Next.js proxy middleware server-side protection
+        document.cookie = `sanab_accessToken=${accessToken}; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `sanab_role=${user.role}; path=/; max-age=86400; SameSite=Lax`;
       }
     },
     logout(state) {
@@ -75,6 +79,9 @@ const authSlice = createSlice({
         localStorage.removeItem('sanab_user');
         localStorage.removeItem('sanab_accessToken');
         localStorage.removeItem('sanab_refreshToken');
+
+        document.cookie = 'sanab_accessToken=; path=/; max-age=0; SameSite=Lax';
+        document.cookie = 'sanab_role=; path=/; max-age=0; SameSite=Lax';
       }
     },
     setLoading(state, action: PayloadAction<boolean>) {

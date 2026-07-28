@@ -11,6 +11,8 @@ let dbInitialized = false;
 export function getPool(): Pool {
   if (!pool) {
     const dbUrl = process.env.DATABASE_URL || DEFAULT_DB_URL;
+    const useSsl = dbUrl.includes('sslmode=require') || dbUrl.includes('ssl=true') || dbUrl.includes('aivencloud.com');
+    const ssl = useSsl ? { rejectUnauthorized: false } : false;
     let config: any = {};
     try {
       const parsed = new URL(dbUrl);
@@ -20,7 +22,7 @@ export function getPool(): Pool {
         host: parsed.hostname,
         port: parseInt(parsed.port || '5432'),
         database: parsed.pathname.replace(/^\//, '') || 'defaultdb',
-        ssl: { rejectUnauthorized: false },
+        ssl,
         max: 5,
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 10000,
@@ -28,7 +30,7 @@ export function getPool(): Pool {
     } catch {
       config = {
         connectionString: dbUrl.split('?')[0],
-        ssl: { rejectUnauthorized: false },
+        ssl,
         max: 5,
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 10000,
@@ -426,13 +428,15 @@ export async function getModels() {
       await p.query('DELETE FROM products WHERE id=$1', [id]);
     },
     facets: async (type?: string) => {
-      const where = type ? `WHERE type=$1` : '';
-      const vals = type ? [type] : [];
+      const conditions: string[] = ['is_active=true'];
+      const vals: any[] = [];
+      if (type) { conditions.push(`type=$1`); vals.push(type); }
+      const where = `WHERE ${conditions.join(' AND ')}`;
       const [brands, priceRange] = await Promise.all([
-        p.query(`SELECT DISTINCT brand FROM products ${where} AND is_active=true ORDER BY brand`.replace('AND','WHERE').replace('WHERE WHERE','WHERE'), vals),
-        p.query(`SELECT MIN(price) as min, MAX(price) as max FROM products ${where}`.replace('WHERE AND','WHERE').replace('WHERE WHERE','WHERE'), vals)
+        p.query(`SELECT DISTINCT brand FROM products ${where} ORDER BY brand`, vals),
+        p.query(`SELECT MIN(price) as min, MAX(price) as max FROM products ${where}`, vals)
       ]);
-      return { brands: brands.rows.map((r:any)=>r.brand), minPrice: priceRange.rows[0]?.min||0, maxPrice: priceRange.rows[0]?.max||50000 };
+      return { brands: brands.rows.map((r: any) => r.brand), minPrice: priceRange.rows[0]?.min || 0, maxPrice: priceRange.rows[0]?.max || 50000 };
     },
     count: async () => {
       const r = await p.query('SELECT COUNT(*) FROM products WHERE is_active=true');

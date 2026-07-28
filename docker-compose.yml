@@ -1,81 +1,136 @@
 version: '3.8'
 
 services:
-  mongodb:
-    image: mongo:7.0
-    container_name: sanab_mongo
-    ports:
-      - "27017:27017"
+  # 1. PostgreSQL Database (Internal & External Port: 2543)
+  postgres:
+    image: postgres:17-alpine
+    container_name: sanab_postgres
+    command: ["postgres", "-p", "2543"]
     environment:
-      - MONGO_INITDB_DATABASE=sanab_production
+      POSTGRES_DB: defaultdb
+      POSTGRES_USER: sanab_admin
+      POSTGRES_PASSWORD: sanab_password_123
+    ports:
+      - "2543:2543"
     volumes:
-      - mongo_data:/data/db
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: ["CMD-SHELL", "pg_isready -U sanab_admin -d defaultdb -p 2543"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: always
 
+  # 2. Redis Cache & Job Queue (Internal & External Port: 2637)
   redis:
     image: redis:7-alpine
     container_name: sanab_redis
+    command: ["redis-server", "--port", "2637"]
     ports:
-      - "6379:6379"
+      - "2637:2637"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-p", "2637", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: always
 
+  # 3. Apache Kafka Broker (Official Apache Image - KRaft Mode) (Internal & External Port: 2909)
+  kafka:
+    image: apache/kafka:latest
+    container_name: sanab_kafka
+    ports:
+      - "2909:2909"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:2909,CONTROLLER://:2903
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:2909
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:2903
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 1
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:2909"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    restart: always
+
+  # 4. Kafka UI Web Management Dashboard (Internal & External Port: 2808)
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: sanab_kafka_ui
+    ports:
+      - "2808:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: sanab-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:2909
+    depends_on:
+      - kafka
+    restart: always
+
+  # 5. SANAB Express Backend Server (Internal & External Port: 2800)
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: sanab_backend
     ports:
-      - "10001:10001"
+      - "2800:2800"
     environment:
-      - PORT=10001
+      - PORT=2800
       - NODE_ENV=production
-      - MONGODB_URI=mongodb://mongodb:27017/sanab_production
-      - JWT_SECRET=${JWT_SECRET:-sanab_prod_jwt_secret_change_me_in_env}
-      - JWT_EXPIRES_IN=1h
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-sanab_prod_refresh_secret_change_me_in_env}
-      - JWT_REFRESH_EXPIRES_IN=7d
+      - DATABASE_URL=postgres://sanab_admin:sanab_password_123@postgres:2543/defaultdb
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=2543
+      - POSTGRES_USER=sanab_admin
+      - POSTGRES_PASSWORD=sanab_password_123
+      - POSTGRES_DB=defaultdb
       - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_URL=redis://redis:6379
+      - REDIS_PORT=2637
+      - REDIS_URL=redis://redis:2637
+      - KAFKA_BROKERS=kafka:2909
+      - KAFKA_CLIENT_ID=sanab-backend
+      - KAFKA_GROUP_ID=sanab-consumers
+      - JWT_SECRET=sanab_enterprise_jwt_secret_2026_xK9mP2qR
+      - JWT_REFRESH_SECRET=sanab_enterprise_refresh_2026_xL8nQ3rT
     depends_on:
-      mongodb:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:10001/api/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:2800/api/health"]
       interval: 15s
       timeout: 5s
       retries: 3
     restart: always
 
+  # 6. SANAB Next.js Storefront UI (Internal & External Port: 3000)
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: sanab_frontend
     ports:
-      - "10002:10002"
+      - "3000:3000"
     environment:
-      - PORT=10002
-      - NEXT_PUBLIC_API_URL=http://localhost:10001/api/public
+      - PORT=3000
+      - DATABASE_URL=postgres://sanab_admin:sanab_password_123@postgres:2543/defaultdb
+      - NEXT_PUBLIC_API_URL=http://localhost:2800/api/public
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
     restart: always
 
 volumes:
-  mongo_data:
+  postgres_data:
   redis_data:

@@ -144,9 +144,17 @@ export const Header: React.FC = () => {
               <DropdownMenuContent align="end" className="w-48">
                 {user ? (
                   <>
-                    <DropdownMenuItem disabled className="font-semibold text-xs text-muted-foreground border-b border-border pb-1">
-                      Hi, {user.name}
+                    <DropdownMenuItem disabled className="font-semibold text-xs text-muted-foreground border-b border-border pb-1 flex items-center justify-between">
+                      <span>Hi, {user.name}</span>
+                      {user.role === 'admin' && (
+                        <span className="bg-amber-500/20 text-amber-500 text-[10px] font-extrabold px-1.5 py-0.5 rounded uppercase">Admin</span>
+                      )}
                     </DropdownMenuItem>
+                    {user.role === 'admin' && (
+                      <DropdownMenuItem render={<Link href="/admin" className="font-bold text-amber-500 flex items-center gap-2 cursor-pointer hover:bg-amber-500/10" />}>
+                        👑 Admin Console
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem render={<Link href="/account/profile" />}>
                       My Profile
                     </DropdownMenuItem>

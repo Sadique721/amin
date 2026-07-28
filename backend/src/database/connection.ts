@@ -1,54 +1,50 @@
 import mongoose from 'mongoose';
+import { Pool } from 'pg';
 import { env } from '@/config/env';
+import { logger } from '@/shared/logger';
 
-// Serverless connection caching - prevents new connection on every cold start
-declare global {
-  var __mongooseCache: { conn: typeof mongoose | null; promise: Promise<typeof mongoose> | null } | undefined;
-}
+let pgPool: Pool | null = null;
 
-let cached = global.__mongooseCache;
-
-if (!cached) {
-  cached = global.__mongooseCache = { conn: null, promise: null };
-}
+export const getPgPool = (): Pool | null => pgPool;
 
 export const connectDB = async (): Promise<void> => {
-  // Already connected
-  if (cached!.conn && mongoose.connection.readyState >= 1) {
-    return;
+  // 1. Initialize PostgreSQL Connection if DATABASE_URL or POSTGRES_HOST is provided
+  const dbUrl = env.DATABASE_URL || process.env.DATABASE_URL;
+  if (dbUrl || env.POSTGRES_HOST) {
+    try {
+      pgPool = new Pool(
+        dbUrl
+          ? { connectionString: dbUrl, ssl: dbUrl.includes('sslmode=require') ? { rejectUnauthorized: false } : false }
+          : {
+              host: env.POSTGRES_HOST || 'postgres',
+              port: env.POSTGRES_PORT || 2543,
+              user: env.POSTGRES_USER || 'sanab_admin',
+              password: env.POSTGRES_PASSWORD || 'sanab_password_123',
+              database: env.POSTGRES_DB || 'defaultdb',
+            }
+      );
+      const client = await pgPool.connect();
+      logger.info('🐘 PostgreSQL Database Connected successfully.');
+      client.release();
+    } catch (pgErr) {
+      logger.error(`❌ PostgreSQL Connection Error: ${(pgErr as Error).message}`);
+    }
   }
 
-  if (!cached!.promise) {
-    const opts = {
-      bufferCommands: false,
-      maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-    };
+  // 2. Connect to MongoDB if MONGODB_URI is provided
+  if (env.MONGODB_URI) {
+    try {
+      const opts = {
+        bufferCommands: true,
+        maxPoolSize: 10,
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
+      };
 
-    cached!.promise = mongoose.connect(env.MONGODB_URI, opts).then((mongooseInstance) => {
-      console.log(`🔌 MongoDB Connected: ${mongooseInstance.connection.host}`);
-      return mongooseInstance;
-    });
-  }
-
-  try {
-    cached!.conn = await cached!.promise;
-  } catch (error) {
-    cached!.promise = null;
-    console.error(`❌ MongoDB connection failed: ${(error as Error).message}`);
-    throw error;
+      const mongooseInstance = await mongoose.connect(env.MONGODB_URI, opts);
+      logger.info(`🔌 MongoDB Connected: ${mongooseInstance.connection.host}`);
+    } catch (error) {
+      logger.warn(`⚠️ MongoDB connection skipped or failed: ${(error as Error).message}`);
+    }
   }
 };
-
-mongoose.connection.on('disconnected', () => {
-  if (cached) {
-    cached.conn = null;
-    cached.promise = null;
-  }
-  console.warn('⚠️ MongoDB disconnected!');
-});
-
-mongoose.connection.on('error', (err) => {
-  console.error(`❌ MongoDB connection error: ${err.message}`);
-});

@@ -8,12 +8,12 @@ RUN npm install
 
 COPY . .
 
-# Set API URL for static generation bundle
-ENV NEXT_PUBLIC_API_URL=http://localhost:10001/api/public
+# Set API URL for Next.js API routes (PostgreSQL backend)
+ENV NEXT_PUBLIC_API_URL=http://localhost:3000/api
 
 RUN npm run build
 
-EXPOSE 10002
+EXPOSE 3000
 
-# Start Next.js on port 10002
-CMD ["npm", "run", "start", "--", "-p", "10002"]
+# Start Next.js on port 3000
+CMD ["npm", "run", "start", "--", "-p", "3000"]

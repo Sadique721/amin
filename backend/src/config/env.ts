@@ -8,9 +8,15 @@ dotenv.config({ path: path.join(__dirname, '../../.env') });
 dotenv.config();
 
 const envSchema = z.object({
-  PORT: z.coerce.number().default(5000),
+  PORT: z.coerce.number().default(2800),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('production'),
-  MONGODB_URI: z.string().default('mongodb://localhost:27017/sanab'),
+  DATABASE_URL: z.string().optional(),
+  POSTGRES_HOST: z.string().optional(),
+  POSTGRES_PORT: z.coerce.number().optional(),
+  POSTGRES_USER: z.string().optional(),
+  POSTGRES_PASSWORD: z.string().optional(),
+  POSTGRES_DB: z.string().optional(),
+  MONGODB_URI: z.string().optional(),
   JWT_SECRET: z.string().default('fallback_jwt_secret_change_in_production'),
   JWT_EXPIRES_IN: z.string().default('1h'),
   JWT_REFRESH_SECRET: z.string().default('fallback_refresh_secret_change_in_production'),
@@ -29,7 +35,12 @@ const envSchema = z.object({
   TWILIO_ACCOUNT_SID: z.string().optional(),
   TWILIO_AUTH_TOKEN: z.string().optional(),
   TWILIO_PHONE_NUMBER: z.string().optional(),
-  REDIS_URL: z.string().default('redis://localhost:6379'),
+  REDIS_URL: z.string().default('redis://localhost:2637'),
+  REDIS_HOST: z.string().default('localhost'),
+  REDIS_PORT: z.coerce.number().default(2637),
+  KAFKA_BROKERS: z.string().default('localhost:2909'),
+  KAFKA_CLIENT_ID: z.string().default('sanab-backend'),
+  KAFKA_GROUP_ID: z.string().default('sanab-consumers'),
   ADMIN_EMAIL: z.string().optional(),
   ADMIN_PASSWORD: z.string().optional(),
   ALLOWED_ORIGINS: z.string().optional(),
@@ -38,12 +49,9 @@ const envSchema = z.object({
 const parseEnv = () => {
   const result = envSchema.safeParse(process.env);
   if (!result.success) {
-    // Log warning but DON'T exit — Vercel serverless functions must not call process.exit()
     console.warn('⚠️ Env config warnings:', JSON.stringify(result.error.format()));
-    // Return with defaults for missing fields
     return envSchema.parse({
       ...process.env,
-      MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/sanab',
       JWT_SECRET: process.env.JWT_SECRET || 'fallback_jwt_secret',
       JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || 'fallback_refresh_secret',
     });
