@@ -23,7 +23,8 @@ import {
   PieChart as PieIcon,
   BarChart3,
   Sparkles,
-  Info
+  Info,
+  FolderKanban
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -35,7 +36,7 @@ export default function AdminDashboardPage() {
 
   const [stats, setStats] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
-  const [useDemoData, setUseDemoData] = React.useState(true);
+  const [useDemoData, setUseDemoData] = React.useState(false);
 
   // Demo fallback data if live store has no orders yet
   const demoStats = {
@@ -99,7 +100,7 @@ export default function AdminDashboardPage() {
     }
 
     loadStats();
-  }, [accessToken, user, router]);
+  }, [mounted, accessToken, user, router, pathname]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -205,39 +206,53 @@ export default function AdminDashboardPage() {
       {/* Main Console Content */}
       <div className="mx-auto max-w-7xl py-12 px-4 sm:px-6 lg:px-8 space-y-10">
         
-        {/* Dashboard Title Panel */}
+        {/* Dashboard Title Panel matching Screenshot 1 */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 border-b border-border pb-6">
           <div>
-            <h1 className="text-3xl font-extrabold text-foreground flex items-center gap-2">
-              Dashboard Analytics <Activity className="h-6 w-6 text-amber-500" />
+            <h1 className="text-3xl font-extrabold text-foreground tracking-tight">
+              Admin Console
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Live statistics, transaction distributions, and administrative controls.
+            <p className="text-sm text-muted-foreground mt-1 font-medium">
+              Real-time store stats and administration tools.
             </p>
           </div>
           
-          {/* Live vs Demo Data Toggle */}
-          <div className="flex items-center gap-2.5 bg-background border border-border p-1.5 rounded-xl self-start md:self-auto select-none">
-            <button
-              onClick={() => setUseDemoData(false)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                !useDemoData
-                  ? 'bg-amber-500 text-white shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Live Data
-            </button>
-            <button
-              onClick={() => setUseDemoData(true)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                useDemoData
-                  ? 'bg-amber-500 text-white shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Demo Data
-            </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link href="/admin/cms">
+              <Button variant="outline" size="sm" className="h-10 px-4 rounded-xl border-border font-bold text-xs flex items-center gap-2 hover:bg-amber-500/10">
+                <FolderKanban className="h-4 w-4 text-muted-foreground" /> Manage Categories
+              </Button>
+            </Link>
+            <Link href="/admin/orders">
+              <Button variant="outline" size="sm" className="h-10 px-4 rounded-xl border-border font-bold text-xs flex items-center gap-2 hover:bg-amber-500/10">
+                <ShoppingBag className="h-4 w-4 text-muted-foreground" /> Manage Orders
+              </Button>
+            </Link>
+            <Link href="/admin/products">
+              <Button size="sm" className="h-10 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs flex items-center gap-2 shadow-md">
+                <ShoppingCart className="h-4 w-4" /> Manage Products
+              </Button>
+            </Link>
+            
+            {/* Live vs Demo Toggle */}
+            <div className="flex items-center gap-1.5 bg-muted/40 border border-border p-1 rounded-xl select-none ml-2">
+              <button
+                onClick={() => setUseDemoData(false)}
+                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                  !useDemoData ? 'bg-amber-500 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Live
+              </button>
+              <button
+                onClick={() => setUseDemoData(true)}
+                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                  useDemoData ? 'bg-amber-500 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Demo
+              </button>
+            </div>
           </div>
         </div>
 

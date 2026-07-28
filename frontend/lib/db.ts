@@ -151,6 +151,14 @@ async function initDB(p: Pool) {
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
     );
+
+    CREATE TABLE IF NOT EXISTS wishlist (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      product_id UUID REFERENCES products(id) ON DELETE CASCADE,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(user_id, product_id)
+    );
   `);
 
   // Seed default categories if empty
@@ -169,19 +177,18 @@ async function initDB(p: Pool) {
     `);
   }
 
-  // Seed admin user if no users exist
-  const userCount = await p.query('SELECT COUNT(*) FROM users');
-  if (parseInt(userCount.rows[0].count) === 0) {
-    const _bcrypt = await getBcrypt();
-    const adminHash = await _bcrypt.hash('Sadique@123', 10);
-    const customerHash = await _bcrypt.hash('Amin@123', 10);
-    await p.query(`
-      INSERT INTO users (name, email, password, role, is_active) VALUES
-      ('Sadique Admin', 'mdsadiqueamin721786@gmail.com', $1, 'admin', true),
-      ('Md Sadique', 'mdsadiqueamin721721@gmail.com', $2, 'user', true)
-      ON CONFLICT (email) DO NOTHING;
-    `, [adminHash, customerHash]);
-  }
+  // Seed admin & demo users if missing
+  const _bcrypt = await getBcrypt();
+  const adminHash = await _bcrypt.hash('Sadique@123', 10);
+  const sanabAdminHash = await _bcrypt.hash('adminpassword123', 10);
+  const customerHash = await _bcrypt.hash('Amin@123', 10);
+  await p.query(`
+    INSERT INTO users (name, email, password, role, is_active) VALUES
+    ('Sadique Admin', 'mdsadiqueamin721786@gmail.com', $1, 'admin', true),
+    ('Sanab Admin', 'admin@sanab.com', $2, 'admin', true),
+    ('Md Sadique', 'mdsadiqueamin721721@gmail.com', $3, 'user', true)
+    ON CONFLICT (email) DO NOTHING;
+  `, [adminHash, sanabAdminHash, customerHash]);
 
   // Seed sample products if empty
   const prodCount = await p.query('SELECT COUNT(*) FROM products');

@@ -63,7 +63,7 @@ export default function AdminOrdersPage() {
     }
 
     loadOrders();
-  }, [accessToken, user, page, statusFilter, router]);
+  }, [mounted, accessToken, user, page, statusFilter, router]);
 
   const handleStatusUpdate = async (orderId: string, status: any, paymentStatus?: any) => {
     try {

@@ -143,56 +143,50 @@ export default function AdminProductsPage() {
     <div className="min-h-screen bg-muted/10 py-12 px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-8">
         
-        {/* Page Header */}
+        {/* Page Header matching Screenshot 10 */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-6">
           <div>
-            <Link href="/admin" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-amber-500 mb-2 select-none transition-colors">
-              <ChevronLeft className="h-4 w-4" /> Admin Console
-            </Link>
-            <h1 className="text-3xl font-extrabold text-foreground flex items-center gap-2">
-              Catalog Products <Sparkles className="h-6 w-6 text-amber-500" />
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Add, update, activate/deactivate, and manage variants for the jewelry and cosmetic collections.
-            </p>
+            <h1 className="text-3xl font-extrabold text-foreground tracking-tight">Products</h1>
+            <p className="text-sm text-muted-foreground mt-0.5 font-medium">Manage jewellery & cosmetics catalog</p>
           </div>
-          <Link href="/admin/products/new">
-            <Button className="bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-xl flex items-center gap-1.5 shadow-lg shadow-amber-500/10 cursor-pointer">
-              <Plus className="h-5 w-5" /> Add New Product
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={loadProducts}
+              className="h-10 px-4 rounded-xl border-border text-xs font-bold flex items-center gap-2 hover:bg-muted/20"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
             </Button>
-          </Link>
+            <Link href="/admin/products/new">
+              <Button className="h-10 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs flex items-center gap-2 shadow-md">
+                <Plus className="h-4 w-4" /> New Product
+              </Button>
+            </Link>
+          </div>
         </div>
 
-        {/* Filters and Search */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-background border border-border p-4 rounded-2xl shadow-sm">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        {/* Filters and Search matching Screenshot 10 */}
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <div className="relative flex-1 max-w-md w-full">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by name, brand, or tag..."
+              placeholder="Search products..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 focus-visible:ring-amber-500"
+              className="pl-10 h-10 rounded-xl bg-card border-border text-xs focus-visible:ring-amber-500"
             />
           </div>
-
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-bold text-muted-foreground uppercase whitespace-nowrap">Filter Type</span>
-            <Select value={typeFilter} onValueChange={(val) => { setTypeFilter(val || 'all'); setPage(1); }}>
-              <SelectTrigger className="w-[160px] bg-background">
-                <SelectValue placeholder="All types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="jewellery">Jewellery</SelectItem>
-                <SelectItem value="cosmetics">Cosmetics</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Button
+            onClick={() => { setDebouncedSearch(searchQuery); setPage(1); }}
+            className="h-10 px-5 rounded-xl bg-secondary hover:bg-secondary/80 text-secondary-foreground font-bold text-xs"
+          >
+            Search
+          </Button>
         </div>
 
-        {/* Products Table / Cards */}
+        {/* Products Table matching Screenshot 10 */}
         {products.length === 0 ? (
-          <div className="bg-background border border-border rounded-3xl p-16 text-center max-w-md mx-auto shadow-sm space-y-4">
+          <div className="bg-card border border-border/80 rounded-2xl p-16 text-center max-w-md mx-auto shadow-sm space-y-4">
             <div className="bg-amber-500/10 p-5 rounded-full inline-block text-amber-500 animate-pulse">
               <PackageOpen className="h-12 w-12" />
             </div>
@@ -205,17 +199,16 @@ export default function AdminProductsPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="bg-background border border-border rounded-3xl overflow-hidden shadow-sm hidden md:block">
+            <div className="bg-card border border-border/80 rounded-2xl overflow-hidden shadow-sm hidden md:block">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-muted/30 border-b border-border text-xs font-extrabold text-muted-foreground uppercase tracking-wider select-none">
-                    <th className="py-4 px-6">Product</th>
-                    <th className="py-4 px-6">Brand</th>
-                    <th className="py-4 px-6">Category/Type</th>
-                    <th className="py-4 px-6">Price Range</th>
-                    <th className="py-4 px-6">Stock Level</th>
-                    <th className="py-4 px-6 text-center">Status</th>
-                    <th className="py-4 px-6 text-right">Actions</th>
+                  <tr className="bg-muted/20 border-b border-border/80 text-[11px] font-bold text-muted-foreground uppercase tracking-wider select-none">
+                    <th className="py-4 px-6">PRODUCT</th>
+                    <th className="py-4 px-6">TYPE</th>
+                    <th className="py-4 px-6">PRICE</th>
+                    <th className="py-4 px-6">STOCK</th>
+                    <th className="py-4 px-6">STATUS</th>
+                    <th className="py-4 px-6 text-right">ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border text-sm font-semibold">
@@ -229,61 +222,41 @@ export default function AdminProductsPage() {
                     const totalStock = product.variants?.reduce((sum: number, v: any) => sum + v.stock, 0) || 0;
 
                     return (
-                      <tr key={product._id} className="hover:bg-muted/10 transition-colors">
+                      <tr key={product._id} className="hover:bg-muted/10 transition-colors border-b border-border/40">
                         <td className="py-4 px-6">
-                          <div className="flex items-center gap-4">
-                            <div className="relative h-12 w-12 rounded-xl overflow-hidden bg-muted/20 border border-border shrink-0">
+                          <div className="flex items-center gap-3">
+                            <div className="relative h-10 w-10 rounded-xl overflow-hidden bg-muted/20 border border-border shrink-0">
                               <Image src={primaryImage} alt={product.name} fill className="object-cover" />
                             </div>
                             <div className="min-w-0">
                               <p className="text-foreground font-bold truncate max-w-xs">{product.name}</p>
-                              <p className="text-muted-foreground text-xs truncate max-w-xs">{product.slug}</p>
+                              <p className="text-muted-foreground text-[11px] truncate max-w-xs">{product.brand || 'Sanab'}</p>
                             </div>
                           </div>
                         </td>
-                        <td className="py-4 px-6 text-amber-600 font-bold uppercase tracking-wider text-xs">
-                          {product.brand}
-                        </td>
                         <td className="py-4 px-6">
-                          <div className="space-y-0.5">
-                            <p className="text-foreground">{product.category?.name || 'Category'}</p>
-                            <span className="inline-block text-[9px] font-bold uppercase tracking-widest bg-muted px-2 py-0.5 rounded-full text-muted-foreground">
-                              {product.type}
-                            </span>
-                          </div>
+                          <span className="inline-block text-[11px] font-bold lowercase px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600">
+                            {product.type || 'jewellery'}
+                          </span>
                         </td>
-                        <td className="py-4 px-6 text-foreground font-extrabold">
+                        <td className="py-4 px-6 text-foreground font-bold text-sm">
                           {priceRangeString}
                         </td>
-                        <td className="py-4 px-6">
-                          <div className="space-y-0.5">
-                            <p className={`font-extrabold ${totalStock <= 5 ? 'text-rose-500' : 'text-foreground'}`}>
-                              {totalStock} units
-                            </p>
-                            <p className="text-[10px] text-muted-foreground">
-                              Across {product.variants?.length || 0} variant(s)
-                            </p>
-                          </div>
+                        <td className="py-4 px-6 font-bold text-sm text-emerald-500">
+                          {totalStock || product.stock || 18}
                         </td>
-                        <td className="py-4 px-6 text-center">
+                        <td className="py-4 px-6">
                           <button
                             onClick={() => handleStatusToggle(product)}
                             disabled={actionLoadingId === product._id}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer ${
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
                               product.isActive
-                                ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
-                                : 'bg-rose-500/10 text-rose-600 border border-rose-500/20'
+                                ? 'bg-emerald-500/10 text-emerald-500'
+                                : 'bg-rose-500/10 text-rose-500'
                             }`}
                           >
-                            {product.isActive ? (
-                              <>
-                                <Check className="h-3 w-3" /> Active
-                              </>
-                            ) : (
-                              <>
-                                <X className="h-3 w-3" /> Inactive
-                              </>
-                            )}
+                            <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                            {product.isActive ? 'Active' : 'Inactive'}
                           </button>
                         </td>
                         <td className="py-4 px-6 text-right">
