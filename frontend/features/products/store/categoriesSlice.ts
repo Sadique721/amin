@@ -38,11 +38,23 @@ const categoriesSlice = createSlice({
       })
       .addCase(fetchCategories.fulfilled, (state, action) => {
         state.loading = false;
-        state.items = action.payload || [];
+        const payload = action.payload;
+        if (Array.isArray(payload)) {
+          state.items = payload;
+        } else if (payload && Array.isArray(payload.results)) {
+          state.items = payload.results;
+        } else if (payload && Array.isArray(payload.docs)) {
+          state.items = payload.docs;
+        } else if (payload && Array.isArray(payload.categories)) {
+          state.items = payload.categories;
+        } else {
+          state.items = [];
+        }
       })
       .addCase(fetchCategories.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
+        state.items = [];
       });
   },
 });

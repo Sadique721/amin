@@ -24,7 +24,8 @@ export class OrderService {
     itemsInput: { productId: string; sku: string; quantity: number }[],
     shippingAddress: any,
     couponCode?: string,
-    paymentMethod: 'razorpay' | 'cod' = 'razorpay'
+    paymentMethod: 'razorpay' | 'cod' | 'authorize_net' | 'card' = 'cod',
+    paymentDetailsInput?: any
   ): Promise<IOrder> {
     
     let subtotal = 0;
@@ -68,9 +69,16 @@ export class OrderService {
 
     const total = Math.max(0, subtotal - discount);
     
+    const isCardPayment = paymentMethod === 'authorize_net' || paymentMethod === 'card';
+    const rawCardNum = paymentDetailsInput?.cardNumber || '';
+    const last4 = paymentDetailsInput?.cardLast4 || (rawCardNum ? rawCardNum.slice(-4) : '1111');
+
     const paymentDetails: any = {
       method: paymentMethod,
-      status: 'pending',
+      status: isCardPayment ? 'paid' : 'pending',
+      transactionId: isCardPayment ? `auth_tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}` : undefined,
+      cardholderName: paymentDetailsInput?.cardholderName || shippingAddress?.fullName || 'Cardholder',
+      cardLast4: isCardPayment ? last4 : undefined,
     };
 
     if (paymentMethod === 'razorpay' && total > 0) {
@@ -102,8 +110,17 @@ export class OrderService {
       discount,
       deliveryFee: 0,
       total,
-      status: 'pending',
+      status: isCardPayment ? 'processing' : 'pending',
     });
+
+    if (isCardPayment) {
+      await this.deductInventory(items);
+      if (couponCode) {
+        try {
+          await this.couponService.incrementUsage(couponCode);
+        } catch (e) {}
+      }
+    }
 
     return order;
   }

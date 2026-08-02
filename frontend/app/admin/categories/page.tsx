@@ -30,7 +30,7 @@ export default function AdminCategoriesPage() {
   const loadData = React.useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get('/api/public/categories');
+      const res = await api.get('/categories');
       const dataObj = res.data?.data || res.data;
       const list = Array.isArray(dataObj?.results)
         ? dataObj.results
@@ -79,11 +79,11 @@ export default function AdminCategoriesPage() {
     try {
       setSubmitting(true);
       if (editingId) {
-        await api.put(`/api/categories/${editingId}`, { name, description });
+        await api.patch(`/categories/${editingId}`, { name, description });
         toast.success('Category updated successfully!');
         setEditingId(null);
       } else {
-        await api.post('/api/categories', { name, description });
+        await api.post('/categories', { name, description });
         toast.success('Category created successfully!');
       }
       setName('');
@@ -105,7 +105,7 @@ export default function AdminCategoriesPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this category?')) return;
     try {
-      await api.delete(`/api/categories/${id}`);
+      await api.delete(`/categories/${id}`);
       toast.success('Category deleted successfully!');
       loadData();
     } catch (err: any) {

@@ -3,8 +3,7 @@ import 'tsconfig-paths/register';
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load .env.production (bundled with Vercel function), then .env for local
-dotenv.config({ path: path.join(__dirname, '../../../.env.production') });
+// Load env file for local execution; production uses platform env vars
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 dotenv.config();
 
@@ -24,15 +23,17 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://temp-sanab.verc
 declare global { var __mongoConn: Promise<typeof mongoose> | null; }
 if (!global.__mongoConn) global.__mongoConn = null;
 
+import { logger } from '../shared/logger';
+
 async function connectDB() {
   if (mongoose.connection.readyState >= 1) return;
-  if (!MONGODB_URI) { console.error('❌ MONGODB_URI not configured'); return; }
+  if (!MONGODB_URI) { logger.error('❌ MONGODB_URI not configured'); return; }
   if (!global.__mongoConn) {
     global.__mongoConn = mongoose.connect(MONGODB_URI, {
       bufferCommands: false,
       maxPoolSize: 5,
       serverSelectionTimeoutMS: 8000,
-    }).then(m => { console.log('✅ MongoDB:', m.connection.host); return m; });
+    }).then(m => { logger.info(`✅ MongoDB: ${m.connection.host}`); return m; });
   }
   await global.__mongoConn;
 }

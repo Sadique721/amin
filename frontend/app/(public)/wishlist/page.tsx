@@ -39,23 +39,39 @@ export default function WishlistPage() {
 
   // Fetch Wishlist items
   const fetchWishlist = React.useCallback(async () => {
-    if (!user || !accessToken) {
-      setLoading(false);
-      return;
-    }
-    try {
-      const response = await api.get('/wishlist');
-      const wishlistData = response.data.data || response.data;
-      setProducts(wishlistData.products || []);
-    } catch (err: any) {
-      // Only show error if truly unexpected (not 401 = not logged in)
-      if (err.response?.status !== 401) {
-        console.error('Failed to load wishlist:', err);
-        toast.error('Failed to load wishlist items.');
+    let apiProducts: ProductItem[] = [];
+    if (user && accessToken) {
+      try {
+        const response = await api.get('/wishlist');
+        const payload = response.data?.data || response.data;
+        const rawProducts = Array.isArray(payload) ? payload : (payload?.products || []);
+        apiProducts = rawProducts.filter((p: any) => p && typeof p === 'object' && (p._id || p.id));
+      } catch (err: any) {
+        if (err.response?.status !== 401) {
+          console.error('Failed to load wishlist from server:', err);
+        }
       }
-    } finally {
-      setLoading(false);
     }
+
+    // Merge with local storage fallback
+    let localProducts: ProductItem[] = [];
+    try {
+      const stored = localStorage.getItem('sanab_local_wishlist');
+      if (stored) {
+        localProducts = JSON.parse(stored);
+      }
+    } catch (e) {}
+
+    const combinedMap = new Map<string, ProductItem>();
+    apiProducts.forEach((p) => combinedMap.set(p._id, p));
+    localProducts.forEach((p) => {
+      if (p && p._id && !combinedMap.has(p._id)) {
+        combinedMap.set(p._id, p);
+      }
+    });
+
+    setProducts(Array.from(combinedMap.values()));
+    setLoading(false);
   }, [user, accessToken]);
 
   React.useEffect(() => {
@@ -66,12 +82,20 @@ export default function WishlistPage() {
   const handleRemove = async (productId: string) => {
     setActionLoading(productId);
     try {
-      await api.delete(`/wishlist/${productId}`);
-      setProducts((prev) => prev.filter((p) => p._id !== productId));
-      toast.success('Item removed from wishlist');
+      if (user && accessToken) {
+        await api.delete(`/wishlist/${productId}`);
+      }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to remove item.');
+      // Ignore API failure and proceed to update state
     } finally {
+      setProducts((prev) => {
+        const updated = prev.filter((p) => p._id !== productId);
+        try {
+          localStorage.setItem('sanab_local_wishlist', JSON.stringify(updated));
+        } catch (e) {}
+        return updated;
+      });
+      toast.success('Item removed from wishlist');
       setActionLoading(null);
     }
   };

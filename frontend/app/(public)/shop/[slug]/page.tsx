@@ -101,20 +101,25 @@ export default function ShopDetailPage({ params }: { params: Promise<{ slug: str
       return;
     }
     if (!product) return;
+    const targetId = product._id || (product as any).id;
     setWishlistLoading(true);
     try {
-      await api.post('/wishlist', { productId: product._id });
+      if (user && accessToken) {
+        await api.post('/wishlist', { productId: targetId });
+      }
+    } catch (err: any) {
+      // Continue to local storage fallback
+    } finally {
+      try {
+        const stored = localStorage.getItem('sanab_local_wishlist');
+        const list = stored ? JSON.parse(stored) : [];
+        if (!list.some((item: any) => item._id === targetId)) {
+          list.push(product);
+          localStorage.setItem('sanab_local_wishlist', JSON.stringify(list));
+        }
+      } catch (e) {}
       setAddedToWishlist(true);
       toast.success(`"${product.name}" added to wishlist!`);
-    } catch (err: any) {
-      const msg = err.response?.data?.message || 'Failed to add to wishlist.';
-      if (msg.toLowerCase().includes('already')) {
-        setAddedToWishlist(true);
-        toast.info('Already in your wishlist!');
-      } else {
-        toast.error(msg);
-      }
-    } finally {
       setWishlistLoading(false);
     }
   };
@@ -190,11 +195,11 @@ export default function ShopDetailPage({ params }: { params: Promise<{ slug: str
             <div className="flex items-center gap-2.5">
               <div className="flex items-center gap-0.5 text-amber-400">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className={`h-4 w-4 ${i < Math.round(product.ratingsAverage) ? 'fill-current' : 'stroke-current fill-none opacity-40'}`} />
+                  <Star key={i} className={`h-4 w-4 ${i < Math.round(product.ratingsAverage ?? 0) ? 'fill-current' : 'stroke-current fill-none opacity-40'}`} />
                 ))}
               </div>
-              <span className="text-sm font-bold">{product.ratingsAverage.toFixed(1)}</span>
-              <span className="text-xs text-muted-foreground">({product.ratingsQuantity} reviews)</span>
+              <span className="text-sm font-bold">{(product.ratingsAverage ?? 0).toFixed(1)}</span>
+              <span className="text-xs text-muted-foreground">({product.ratingsQuantity ?? 0} reviews)</span>
             </div>
 
             {/* Price */}

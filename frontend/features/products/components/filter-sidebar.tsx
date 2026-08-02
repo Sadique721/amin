@@ -16,6 +16,10 @@ export function FilterSidebar() {
   const [minPriceVal, setMinPriceVal] = React.useState(filters.minPrice?.toString() || '');
   const [maxPriceVal, setMaxPriceVal] = React.useState(filters.maxPrice?.toString() || '');
 
+  // Defensive array fallback
+  const categoryList = Array.isArray(categories) ? categories : [];
+  const brandList = Array.isArray(facets?.brands) ? facets.brands : [];
+
   React.useEffect(() => {
     setSearchVal(filters.search);
     setMinPriceVal(filters.minPrice?.toString() || '');
@@ -37,10 +41,10 @@ export function FilterSidebar() {
   };
 
   const handleBrandToggle = (brandName: string) => {
-    const isSelected = filters.brand.includes(brandName);
+    const isSelected = (filters.brand || []).includes(brandName);
     const newBrands = isSelected
-      ? filters.brand.filter((b) => b !== brandName)
-      : [...filters.brand, brandName];
+      ? (filters.brand || []).filter((b) => b !== brandName)
+      : [...(filters.brand || []), brandName];
     dispatch(setFilter({ brand: newBrands }));
   };
 
@@ -70,37 +74,40 @@ export function FilterSidebar() {
       <div className="space-y-3">
         <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Categories</h3>
         <div className="space-y-1">
-          {categories.map((cat) => (
-            <button
-              key={cat._id}
-              onClick={() => handleCategorySelect(cat._id)}
-              className={`flex w-full items-center justify-between py-1.5 px-2 rounded-lg text-sm font-medium transition-all ${
-                filters.category === cat._id
-                  ? 'bg-amber-500/10 text-amber-600'
-                  : 'text-foreground hover:bg-muted/50'
-              }`}
-            >
-              <span>{cat.name}</span>
-              <ChevronRight className={`h-4 w-4 transition-transform ${filters.category === cat._id ? 'rotate-90' : ''}`} />
-            </button>
-          ))}
+          {categoryList.length > 0 ? (
+            categoryList.map((cat, idx) => (
+              <button
+                key={cat._id || cat.slug || `category-${idx}`}
+                onClick={() => handleCategorySelect(cat._id)}
+                className={`flex w-full items-center justify-between py-1.5 px-2 rounded-lg text-sm font-medium transition-all ${
+                  filters.category === cat._id
+                    ? 'bg-amber-500/10 text-amber-600'
+                    : 'text-foreground hover:bg-muted/50'
+                }`}
+              >
+                <span>{cat.name || 'Category'}</span>
+                <ChevronRight className={`h-4 w-4 transition-transform ${filters.category === cat._id ? 'rotate-90' : ''}`} />
+              </button>
+            ))
+          ) : (
+            <p className="text-xs text-muted-foreground py-2">No categories available.</p>
+          )}
         </div>
       </div>
 
-      {facets.brands.length > 0 && (
+      {brandList.length > 0 && (
         <div className="space-y-3">
           <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Brands</h3>
           <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
-            {facets.brands.map((b) => (
-              <label key={b.name} className="flex items-center gap-2.5 cursor-pointer text-sm font-medium text-foreground select-none">
+            {brandList.map((b, idx) => (
+              <label key={b.name ? `brand-${b.name}` : `brand-${idx}`} className="flex items-center gap-2.5 cursor-pointer text-sm font-medium text-foreground select-none">
                 <input
                   type="checkbox"
-                  checked={filters.brand.includes(b.name)}
+                  checked={(filters.brand || []).includes(b.name)}
                   onChange={() => handleBrandToggle(b.name)}
                   className="h-4 w-4 rounded border-gray-300 text-amber-500 focus:ring-amber-500"
                 />
-                <span className="flex-1">{b.name}</span>
-                <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">{b.count}</span>
+                <span>{b.name}</span>
               </label>
             ))}
           </div>
@@ -115,33 +122,34 @@ export function FilterSidebar() {
             placeholder="Min"
             value={minPriceVal}
             onChange={(e) => setMinPriceVal(e.target.value)}
-            className="focus-visible:ring-amber-500 text-center"
+            className="h-9 text-xs"
           />
-          <span className="text-muted-foreground">—</span>
+          <span className="text-muted-foreground">-</span>
           <Input
             type="number"
             placeholder="Max"
             value={maxPriceVal}
             onChange={(e) => setMaxPriceVal(e.target.value)}
-            className="focus-visible:ring-amber-500 text-center"
+            className="h-9 text-xs"
           />
         </div>
-        <Button onClick={handlePriceApply} className="w-full bg-muted text-foreground hover:bg-muted/80 font-semibold text-xs py-2">
-          Apply Price Filter
+        <Button onClick={handlePriceApply} size="sm" variant="outline" className="w-full h-8 text-xs font-semibold">
+          Filter Price
         </Button>
       </div>
 
       <Button
-        variant="ghost"
         onClick={() => {
           dispatch(resetFilters());
           setSearchVal('');
           setMinPriceVal('');
           setMaxPriceVal('');
         }}
-        className="w-full text-muted-foreground hover:text-foreground font-semibold flex items-center justify-center gap-2 border border-border"
+        variant="ghost"
+        size="sm"
+        className="w-full text-xs text-muted-foreground hover:text-foreground flex items-center gap-2"
       >
-        <RotateCcw className="h-4 w-4" /> Reset Filters
+        <RotateCcw className="h-3.5 w-3.5" /> Reset All Filters
       </Button>
 
     </div>

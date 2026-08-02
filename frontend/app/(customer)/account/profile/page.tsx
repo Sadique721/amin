@@ -40,7 +40,15 @@ export default function ProfilePage() {
   const [newCountry, setNewCountry] = React.useState('India');
   const [newIsDefault, setNewIsDefault] = React.useState(false);
 
+  const [mounted, setMounted] = React.useState(false);
+
   React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  React.useEffect(() => {
+    if (!mounted) return;
+
     if (!user) {
       router.push('/auth/login?redirect=/account/profile');
       return;
@@ -62,7 +70,7 @@ export default function ProfilePage() {
     };
 
     fetchUserData();
-  }, [user, router]);
+  }, [mounted, user, router]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,7 +152,7 @@ export default function ProfilePage() {
     }
   };
 
-  if (!user) return null;
+  if (!mounted || !user) return null;
 
   return (
     <div className="min-h-screen bg-muted/10 py-12 px-4 sm:px-6 lg:px-8">

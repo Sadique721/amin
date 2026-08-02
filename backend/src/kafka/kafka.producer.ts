@@ -2,6 +2,7 @@ import { Producer, Message } from 'kafkajs';
 import { getKafkaClient } from './kafka.client';
 import { KafkaTopic } from './kafka.topics';
 import { logger } from '@/shared/logger';
+import { appEventBus } from '@/events/event-bus';
 
 let producer: Producer | null = null;
 let producerConnected = false;
@@ -18,7 +19,7 @@ export async function initKafkaProducer(): Promise<void> {
     logger.info('✅ Kafka Producer connected and ready');
   } catch (err) {
     producerConnected = false;
-    logger.warn(`⚠️  Kafka Producer failed to connect — events will be skipped: ${(err as Error).message}`);
+    logger.warn(`⚠️  Kafka Producer failed to connect — falling back to internal event bus: ${(err as Error).message}`);
   }
 }
 
@@ -27,8 +28,11 @@ export async function publishEvent<T extends object>(
   key: string,
   payload: T,
 ): Promise<void> {
+  // Always emit to in-process event bus for local/serverless handling
+  appEventBus.emit(topic, { key, payload, timestamp: new Date().toISOString() });
+
   if (!producerConnected || !producer) {
-    logger.warn(`[Kafka] Producer offline — skipping event on topic: ${topic}`);
+    logger.debug(`[EventBus] Internal event emitted for topic: ${topic} (Kafka offline)`);
     return;
   }
 

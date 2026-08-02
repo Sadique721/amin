@@ -8,14 +8,14 @@ describe('Coupon API Integration Tests', () => {
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
+    mongoServer = await MongoMemoryServer.create({ binary: { checkMD5: false } });
     const uri = mongoServer.getUri();
     await mongoose.connect(uri);
-  });
+  }, 60000);
 
   afterAll(async () => {
     await mongoose.disconnect();
-    await mongoServer.stop();
+    if (mongoServer) await mongoServer.stop();
   });
 
   beforeEach(async () => {

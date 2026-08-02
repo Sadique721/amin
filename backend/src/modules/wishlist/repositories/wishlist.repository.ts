@@ -3,27 +3,36 @@ import mongoose from 'mongoose';
 
 export class WishlistRepository {
   async findByUserId(userId: string): Promise<IWishlist | null> {
-    return Wishlist.findOne({ userId }).populate({
+    const uId = new mongoose.Types.ObjectId(userId);
+    return Wishlist.findOne({ userId: uId }).populate({
       path: 'products',
-      populate: { path: 'category' } // Populate categories inside products if any
+      populate: { path: 'category' }
     });
   }
 
   async addToWishlist(userId: string, productId: string): Promise<IWishlist> {
+    const uId = new mongoose.Types.ObjectId(userId);
     const prodId = new mongoose.Types.ObjectId(productId);
     return Wishlist.findOneAndUpdate(
-      { userId },
+      { userId: uId },
       { $addToSet: { products: prodId } },
       { new: true, upsert: true }
-    ).populate('products');
+    ).populate({
+      path: 'products',
+      populate: { path: 'category' }
+    });
   }
 
   async removeFromWishlist(userId: string, productId: string): Promise<IWishlist | null> {
+    const uId = new mongoose.Types.ObjectId(userId);
     const prodId = new mongoose.Types.ObjectId(productId);
     return Wishlist.findOneAndUpdate(
-      { userId },
+      { userId: uId },
       { $pull: { products: prodId } },
       { new: true }
-    ).populate('products');
+    ).populate({
+      path: 'products',
+      populate: { path: 'category' }
+    });
   }
 }

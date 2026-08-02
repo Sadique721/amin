@@ -8,15 +8,15 @@ describe('CouponService Unit Tests', () => {
   let service: CouponService;
 
   beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
+    mongoServer = await MongoMemoryServer.create({ binary: { checkMD5: false } });
     const uri = mongoServer.getUri();
     await mongoose.connect(uri);
     service = new CouponService();
-  });
+  }, 60000);
 
   afterAll(async () => {
     await mongoose.disconnect();
-    await mongoServer.stop();
+    if (mongoServer) await mongoServer.stop();
   });
 
   beforeEach(async () => {

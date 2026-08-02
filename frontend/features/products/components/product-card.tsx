@@ -57,18 +57,28 @@ export function ProductCard({ product }: ProductCardProps) {
       });
       return;
     }
+    const pId = product._id || (product as any).id;
+    if (!pId) {
+      toast.error('Invalid product item.');
+      return;
+    }
     try {
-      await api.post('/wishlist', { productId: product._id });
+      if (user && accessToken) {
+        await api.post('/wishlist', { productId: pId });
+      }
+    } catch (err: any) {
+      // Continue to local storage fallback
+    } finally {
+      try {
+        const stored = localStorage.getItem('sanab_local_wishlist');
+        const list = stored ? JSON.parse(stored) : [];
+        if (!list.some((item: any) => item._id === pId)) {
+          list.push(product);
+          localStorage.setItem('sanab_local_wishlist', JSON.stringify(list));
+        }
+      } catch (e) {}
       setWishlisted(true);
       toast.success('Saved to wishlist!');
-    } catch (err: any) {
-      const msg = err.response?.data?.message || '';
-      if (msg.toLowerCase().includes('already')) {
-        setWishlisted(true);
-        toast.info('Already in your wishlist!');
-      } else {
-        toast.error('Failed to add to wishlist.');
-      }
     }
   };
 

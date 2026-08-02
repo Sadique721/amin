@@ -20,7 +20,12 @@ export const createOrderSchema = z.object({
       phone: z.string({ required_error: 'Phone number is required' }).trim(),
     }),
     couponCode: z.string().trim().optional(),
-    paymentMethod: z.enum(['razorpay', 'cod']).default('razorpay'),
+    paymentMethod: z.enum(['razorpay', 'cod', 'authorize_net', 'card']).default('cod'),
+    paymentDetails: z.object({
+      cardholderName: z.string().optional(),
+      cardLast4: z.string().optional(),
+      cardNumber: z.string().optional(),
+    }).optional(),
   }),
 });
 

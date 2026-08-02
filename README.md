@@ -1,49 +1,66 @@
-# 🔷 Antigravity — Enterprise Jewellery & Cosmetics Commerce Platform
+# 🔷 Sanab — Enterprise Jewellery & Cosmetics Commerce Platform
 
 <div align="center">
 
-![Antigravity](https://img.shields.io/badge/Antigravity-Enterprise_v1.0-8B5CF6?style=for-the-badge&logo=shopify&logoColor=white)
+![Sanab Platform](https://img.shields.io/badge/Sanab-Enterprise_v1.0-8B5CF6?style=for-the-badge&logo=shopify&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=next.js&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-20_LTS-339933?style=for-the-badge&logo=node.js&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Aiven_Cloud-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-7-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
-![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=for-the-badge&logo=redis&logoColor=white)
-![Kafka](https://img.shields.io/badge/Apache_Kafka-3.7-231F20?style=for-the-badge&logo=apachekafka&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Razorpay](https://img.shields.io/badge/Razorpay-Payments-0C2451?style=for-the-badge&logo=razorpay&logoColor=white)
+![Authorize.net](https://img.shields.io/badge/Authorize.net-Payments-0C2451?style=for-the-badge&logo=visa&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
 
-**A production-grade, event-driven e-commerce platform for Jewellery & Cosmetics**
+**A production-grade, multi-gateway e-commerce platform for Jewellery & Cosmetics with live Admin Analytics**
 
-[🚀 Quick Start](#-quick-start) · [📖 Full Blueprint](docs/ANTIGRAVITY_ENTERPRISE_BLUEPRINT.md) · [🐳 Docker](#-docker-compose) · [📝 API Docs](#-api-documentation)
+[🚀 Quick Start](#-quick-start) · [📖 Full Blueprint](docs/ANTIGRAVITY_ENTERPRISE_BLUEPRINT.md) · [💳 Payments](#-payment-gateways--security) · [📝 API Docs](#-api-documentation)
 
 </div>
+
+---
+
+## 🚀 Recent Platform Updates & Enhancements
+
+### 💳 Authorize.net Credit Card & COD Payment System
+- **Real-Time Credit Card Processing**: Integrated Authorize.net Sandbox API (`authCaptureTransaction`) for direct card authorization & settlement.
+- **Rich Payment Details Persistence**: Every order stores complete payment metadata including `cardholderName`, `cardLast4`, `transactionId` (`auth_tx_...`), payment method (`Card (Authorize.net)` / `COD`), and status (`PAID` / `PENDING`).
+- **Order Details Display**: Complete breakdown on Order Details page (`/account/orders/[orderId]`) with guaranteed Card Number (`•••• •••• •••• 1111`) and Transaction ID rendering.
+
+### 📊 100% Live Admin Panel Integration
+- **Admin Orders (`/admin/orders`)**: Real-time order list with actual order totals (`ord.total`), payment method badges (`Card Authorize.net` / `COD`), status dropdowns, and 1-click **View Details** navigation.
+- **Admin Dashboard (`/admin`)**: Real-time KPIs (Total Revenue, Total Orders, Pending Orders count, Active Users) fetched dynamically from backend database.
+- **Admin Payments (`/admin/payments`)**: Live audit log of online transactions, gateway methods, customer names, and transaction IDs.
+- **Admin Tax Invoices (`/admin/invoices`)**: Compliant GST receipt statements (`INV-5D160AD1`) with 1-click PDF download/print triggers.
+- **Admin Categories (`/admin/categories`)**: Full CRUD management (Create, Read, Edit, Delete) for store categories with real-time Next.js proxy route handling.
+
+### 🛒 Checkout & Customer UX Upgrades
+- **Saved Address Quick-Selector**: Auto-fetches default shipping address on mount and presents 1-click selection pills on the checkout page.
+- **Wishlist Persistence & Real-time Badging**: Real-time wishlist item toggle with local storage sync and MongoDB ObjectId query resolution.
+- **Hydration Safety**: React SSR hydration guards (`mounted` state) added across cart badge, wishlist counts, and admin profile settings.
+
+### 🔐 Security & Validation Fixes
+- **Express Validation Middleware**: Enhanced `validationMiddleware` to preserve Express `req.params`, eliminating parameter casting errors (`could not determine data type of parameter $1`) on status updates.
+- **Dual Database Fallback**: Primary cloud database (Aiven PostgreSQL / MongoDB Atlas) with automatic local DB fallbacks.
 
 ---
 
 ## 🏗️ Architecture Overview
 
 ```
-Client (Browser) → Nginx → Next.js Frontend (:10002)
-                         → Express.js Backend (:10001) → MongoDB / Redis / Kafka
-                                                       → BullMQ Workers
-                                                       → Razorpay Gateway
-                                                       → Cloudinary CDN
+Client (Browser) → Next.js App Router (:3000 / Proxy API)
+                → Express.js Backend (:10001) → PostgreSQL (Aiven Cloud) / MongoDB
+                                              → Authorize.net Sandbox API
+                                              → Razorpay Gateway
+                                              → Cloudinary CDN
 ```
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| **Frontend** | Next.js 16 (App Router) + TypeScript + Tailwind + Shadcn UI | Premium responsive UI |
-| **Backend** | Node.js + Express.js (Clean Architecture) | REST API with domain modules |
-| **Database** | MongoDB 7 (Mongoose ODM) | Primary data store |
-| **Cache** | Redis 7 | Sessions, caching, distributed locks |
-| **Events** | Apache Kafka (KafkaJS) | Domain event streaming |
-| **Jobs** | BullMQ | Background email, image, notification processing |
-| **Payments** | Razorpay | UPI, Cards, EMI, Wallets, QR, Net Banking |
-| **Media** | Cloudinary | Image upload, optimization, CDN delivery |
-| **Auth** | JWT (Access + Refresh) + Google OAuth + OTP | Multi-method authentication |
-| **Monitoring** | Prometheus + Grafana + Loki | Metrics, dashboards, logs |
-
-> 📖 **Full technical documentation:** [Antigravity Enterprise Blueprint](docs/ANTIGRAVITY_ENTERPRISE_BLUEPRINT.md) — 24-section deep-dive into architecture, schemas, events, payments, Docker, security, CI/CD, and more.
+| **Frontend** | Next.js 16 (App Router) + TypeScript + Tailwind + Shadcn UI | Responsive e-commerce UI & Admin Panel |
+| **Backend** | Node.js + Express.js (Clean Architecture) | REST API with modular services & validators |
+| **Databases** | Aiven PostgreSQL & MongoDB 7 (Mongoose ODM) | Primary persistent data stores |
+| **Payments** | Authorize.net + Razorpay + Cash On Delivery (COD) | Credit Cards, UPI, Net Banking, COD |
+| **Media** | Cloudinary CDN | High-resolution image upload & optimization |
+| **Auth** | JWT (Access + Refresh) + Passwordless OTP | Secure customer & admin authentication |
 
 ---
 
@@ -51,14 +68,13 @@ Client (Browser) → Nginx → Next.js Frontend (:10002)
 
 ### Prerequisites
 - **Node.js** v20+ LTS
-- **MongoDB** (local or Atlas — auto-fallback to in-memory if offline)
-- **Redis** (optional — graceful fallback to in-memory queue)
+- **PostgreSQL / MongoDB** (local or Cloud DB)
 
 ### 1. Backend Setup
 ```bash
 cd backend
 npm install
-cp .env.example .env    # Configure your secrets
+cp .env.example .env    # Configure your DB & credentials
 npm run dev             # Starts on http://localhost:10001
 ```
 
@@ -67,197 +83,95 @@ npm run dev             # Starts on http://localhost:10001
 cd frontend
 npm install
 cp .env.example .env.local
-npx next dev -p 10002   # Starts on http://localhost:10002
+npm run dev             # Starts on http://localhost:3000
 ```
 
 ### 3. Open the App
-- 🌐 **Frontend:** http://localhost:10002
-- 🔧 **Backend API:** http://localhost:10001
-- 📡 **API Health:** http://localhost:10001/api/health
-
----
-
-## 🐳 Docker Compose
-
-Launch the full stack with a single command:
-
-```bash
-docker compose up --build -d
-```
-
-### Port Mapping
-
-| Service | Port | URL |
-|---------|------|-----|
-| Next.js Frontend | `10002` | http://localhost:10002 |
-| Express Backend | `10001` | http://localhost:10001 |
-| Nginx Reverse Proxy | `10080` | http://localhost:10080 |
-| MongoDB | `27017` | — |
-| Mongo Express | `10081` | http://localhost:10081 |
-| Redis | `6379` | — |
-| Redis Insight | `10082` | http://localhost:10082 |
-| Kafka | `9092` | — |
-| Kafka UI | `10090` | http://localhost:10090 |
-| Prometheus | `9090` | http://localhost:9090 |
-| Grafana | `10030` | http://localhost:10030 |
-| MailHog | `10025` | http://localhost:10025 |
-
-```bash
-docker compose down     # Stop all services
-docker compose logs -f  # View live logs
-```
+- 🌐 **Frontend:** http://localhost:3000
+- 🔧 **Admin Panel:** http://localhost:3000/admin
+- 📡 **API Health:** http://localhost:3000/api/health
 
 ---
 
 ## 📁 Project Structure
 
 ```
-antigravity/
+sanab/
 ├── frontend/              # Next.js 16 App Router
 │   ├── app/               # Route groups: (auth), (public), (customer), admin
-│   ├── components/        # UI, layout, common, product components
-│   ├── features/          # Redux Toolkit slices (auth, products, cart, wishlist)
-│   ├── hooks/             # Custom React hooks
+│   │   ├── admin/         # Admin Dashboard, Orders, Payments, Invoices, Categories, Products
+│   │   └── api/[...path]/ # Catch-all server proxy router for database operations
+│   ├── components/        # UI elements, Header, Footer, Layout, Product Cards
+│   ├── features/          # Redux Toolkit slices (auth, products, cart, wishlist, checkout)
 │   ├── services/          # Axios API client
-│   ├── store/             # Redux store configuration
-│   └── styles/            # Global CSS, animations, variables
+│   └── lib/               # Database helpers & schema mappings
 │
 ├── backend/               # Express.js Clean Architecture API
 │   └── src/
-│       ├── config/        # Environment, CORS, Swagger
-│       ├── database/      # MongoDB connection, seeding, plugins
-│       ├── modules/       # Domain modules (12 modules)
-│       │   ├── auth/      # Authentication & sessions
-│       │   ├── users/     # User management
-│       │   ├── products/  # Product catalogue
-│       │   ├── categories/# Category hierarchy
-│       │   ├── orders/    # Order lifecycle
-│       │   ├── payments/  # Razorpay integration
-│       │   ├── coupons/   # Discount system
-│       │   ├── wishlist/  # Wishlist management
-│       │   ├── reviews/   # Ratings & reviews
-│       │   ├── cms/       # Banners, FAQs
-│       │   ├── dashboard/ # Admin analytics
-│       │   └── upload/    # Cloudinary media
-│       ├── events/        # Kafka event definitions
-│       ├── queues/        # BullMQ queue definitions
-│       ├── middlewares/   # Auth, validation, error handling
-│       └── shared/        # Logger, ApiError, utilities
+│       ├── config/        # Environment & CORS configuration
+│       ├── database/      # PostgreSQL & MongoDB connection, seeding
+│       ├── modules/       # Domain modules
+│       │   ├── auth/      # OTP & Password login
+│       │   ├── users/     # Customer & admin profile management
+│       │   ├── products/  # Product catalogue & inventory
+│       │   ├── categories/# Category hierarchy & CRUD
+│       │   ├── orders/    # Order lifecycle & admin status updates
+│       │   └── cms/       # Banners & FAQs
+│       └── middlewares/   # Auth, Zod validation, error handling
 │
-├── docs/                  # Full enterprise documentation
-│   ├── ANTIGRAVITY_ENTERPRISE_BLUEPRINT.md  # 📖 Complete blueprint
-│   ├── PRD.md             # Product Requirements Document
-│   ├── SRS.md             # Software Requirements Specification
-│   └── implementation_plan.md
-│
-├── docker-compose.yml     # Full infrastructure orchestration
-└── README.md              # This file
+├── docs/                  # Project documentation & blueprints
+└── README.md              # Project documentation
 ```
 
 ---
 
-## 🗄️ Database (MongoDB)
+## 🗄️ Database Schemas & Models
 
-| Collection | Purpose |
-|------------|---------|
-| `users` | Customer & admin accounts with sessions |
-| `products` | Catalogue with variants, text indexes |
-| `categories` | Hierarchical product categories |
-| `orders` | Purchase orders with status tracking |
-| `payments` | Razorpay transaction records |
-| `coupons` | Discount codes with usage limits |
-| `reviews` | Product ratings & reviews |
-| `wishlists` | User wishlists |
-| `banners` | CMS promotional banners |
-| `faqs` | Frequently asked questions |
-| `inventoryledger` | Stock movement audit trail |
-| `webhooklogs` | Payment webhook idempotency |
-| `otps` | OTP codes with TTL |
+| Model / Table | Key Fields | Purpose |
+|---------------|------------|---------|
+| **`users`** | `id`, `name`, `email`, `phone`, `password`, `role`, `is_active` | Customer & Admin user accounts |
+| **`categories`** | `id`, `name`, `slug`, `description`, `image`, `is_active` | Product category taxonomy |
+| **`products`** | `id`, `name`, `slug`, `sku`, `price`, `stock`, `images`, `category_id`, `attributes` | Inventory items & variants |
+| **`orders`** | `id`, `order_number`, `user_id`, `items`, `total`, `status`, `payment_details` | Customer order transactions |
+| **`banners`** | `id`, `title`, `image`, `link`, `type`, `sort_order` | Promotional CMS banners |
+| **`faqs`** | `id`, `question`, `answer`, `category`, `sort_order` | Store FAQ knowledgebase |
 
 ---
 
-## 💳 Payment Gateway (Razorpay)
+## 💳 Payment Gateways & Security
 
-Supports all major Indian payment methods:
-
-| Method | Examples |
-|--------|---------|
-| **UPI** | Google Pay, PhonePe, Paytm, BHIM |
-| **Cards** | Visa, Mastercard, Amex, RuPay |
-| **Net Banking** | 50+ Indian banks |
-| **Wallets** | Paytm, Amazon Pay, Mobikwik |
-| **EMI** | Card EMI (3/6/9/12/24 months) |
-| **Pay Later** | Simpl, LazyPay, ICICI Pay Later |
-| **UPI QR** | Dynamic QR codes |
+- **Authorize.net Credit Card**: Integrated for online card transactions with direct settlement (`authCaptureTransaction`).
+- **Cash On Delivery (COD)**: Available for domestic shipping with instant order placement.
+- **Razorpay Integration**: Support for UPI, Net Banking, and Wallets.
+- **Security Protections**:
+  - ✅ Bcrypt password hashing (10 rounds)
+  - ✅ JWT Access & Refresh Token rotation
+  - ✅ Zod schema validation on every request
+  - ✅ Authorize.net Merchant Credential encryption
 
 ---
 
-## 🔐 Security
-
-- ✅ Bcrypt password hashing (10 salt rounds)
-- ✅ JWT access + refresh token rotation
-- ✅ HMAC SHA256 payment signature verification
-- ✅ Rate limiting (100 req/min per IP)
-- ✅ Helmet security headers (CSP, HSTS, X-Frame-Options)
-- ✅ CORS strict origin whitelist
-- ✅ Zod input validation on every endpoint
-- ✅ Webhook idempotency with `webhooklogs`
-- ✅ Active device session auditing & remote revocation
-
----
-
-## 📊 Demo Data
-
-On first startup, the backend automatically seeds:
-
-- **8 Categories:** Gold Rings, Diamond Necklaces, Luxury Earrings, Fine Bracelets, Matte Lipsticks, Liquid Foundations, Natural Skin Creams, Eye Shadow Palettes
-- **30 Premium Products:** 15 Jewellery + 15 Cosmetics items with prices, descriptions, images, and variants
-- **Admin Account:** `admin@antigravity.com` / configured password
-
----
-
-## 📝 API Documentation
+## 📝 Key API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/public/products` | List products (search, filter, sort, paginate) |
-| `GET` | `/api/public/products/:slug` | Product detail |
-| `GET` | `/api/public/categories` | All categories |
-| `GET` | `/api/public/products/facets` | Filter facets (brands, price ranges) |
-| `GET` | `/api/public/cms/banners` | Homepage banners |
-| `GET` | `/api/public/cms/faqs` | FAQ list |
-| `POST` | `/api/auth/register` | User registration |
-| `POST` | `/api/auth/login` | User login |
-| `POST` | `/api/auth/refresh` | Token refresh |
-| `POST` | `/api/auth/logout` | User logout |
-| `GET` | `/api/wishlist` | User wishlist |
-| `POST` | `/api/wishlist` | Add to wishlist |
-| `POST` | `/api/orders` | Create order |
-| `POST` | `/api/payments/create-order` | Create Razorpay order |
-| `POST` | `/api/payments/verify` | Verify payment signature |
-
----
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
----
-
-## 📄 License
-
-This project is proprietary and confidential.
+| `GET` | `/api/categories` | List all active product categories |
+| `POST` | `/api/categories` | Create new category (Admin) |
+| `PATCH` | `/api/categories/:id` | Update category details (Admin) |
+| `DELETE` | `/api/categories/:id` | Delete category (Admin) |
+| `GET` | `/api/products` | List products with pagination, search & filters |
+| `POST` | `/api/products` | Create product with variants (Admin) |
+| `POST` | `/api/orders` | Place new customer order |
+| `GET` | `/api/orders/admin/list` | Fetch all orders for admin management |
+| `PATCH` | `/api/orders/admin/:id/status` | Update order processing/shipping status |
+| `POST` | `/api/payments/authorize/charge` | Execute Authorize.net card transaction |
 
 ---
 
 <div align="center">
 
-**Built with ❤️ by the Antigravity Team**
+**Built with ❤️ for the Sanab Platform**
 
-*Enterprise-grade commerce for the modern web.*
+*Enterprise Commerce & Live Admin Operations.*
 
 </div>

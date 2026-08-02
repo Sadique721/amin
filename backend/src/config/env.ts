@@ -2,14 +2,15 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { z } from 'zod';
 
-// Load env files — .env.production is bundled with Vercel serverless function
-dotenv.config({ path: path.join(__dirname, '../../../.env.production') });
+// Load environment variables conditionally from .env
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 dotenv.config();
 
+const nodeEnv = process.env.NODE_ENV || 'development';
+
 const envSchema = z.object({
   PORT: z.coerce.number().default(2800),
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('production'),
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   DATABASE_URL: z.string().optional(),
   POSTGRES_HOST: z.string().optional(),
   POSTGRES_PORT: z.coerce.number().optional(),
@@ -17,9 +18,9 @@ const envSchema = z.object({
   POSTGRES_PASSWORD: z.string().optional(),
   POSTGRES_DB: z.string().optional(),
   MONGODB_URI: z.string().optional(),
-  JWT_SECRET: z.string().default('fallback_jwt_secret_change_in_production'),
+  JWT_SECRET: z.string().min(1, 'JWT_SECRET is required'),
   JWT_EXPIRES_IN: z.string().default('1h'),
-  JWT_REFRESH_SECRET: z.string().default('fallback_refresh_secret_change_in_production'),
+  JWT_REFRESH_SECRET: z.string().min(1, 'JWT_REFRESH_SECRET is required'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
   CLOUDINARY_CLOUD_NAME: z.string().optional(),
   CLOUDINARY_API_KEY: z.string().optional(),
@@ -47,14 +48,27 @@ const envSchema = z.object({
 });
 
 const parseEnv = () => {
-  const result = envSchema.safeParse(process.env);
+  const envVars = { ...process.env };
+
+  // Allow safe dev/test defaults if missing, but throw in production
+  if (!envVars.JWT_SECRET) {
+    if (nodeEnv === 'production') {
+      throw new Error('FATAL SECURITY ERROR: JWT_SECRET environment variable is missing in production!');
+    }
+    envVars.JWT_SECRET = 'dev_only_jwt_secret_do_not_use_in_production_12345';
+  }
+
+  if (!envVars.JWT_REFRESH_SECRET) {
+    if (nodeEnv === 'production') {
+      throw new Error('FATAL SECURITY ERROR: JWT_REFRESH_SECRET environment variable is missing in production!');
+    }
+    envVars.JWT_REFRESH_SECRET = 'dev_only_refresh_secret_do_not_use_in_production_12345';
+  }
+
+  const result = envSchema.safeParse(envVars);
   if (!result.success) {
-    console.warn('⚠️ Env config warnings:', JSON.stringify(result.error.format()));
-    return envSchema.parse({
-      ...process.env,
-      JWT_SECRET: process.env.JWT_SECRET || 'fallback_jwt_secret',
-      JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || 'fallback_refresh_secret',
-    });
+    console.error('❌ Env validation failed:', JSON.stringify(result.error.format(), null, 2));
+    throw new Error('Invalid environment configuration');
   }
   return result.data;
 };

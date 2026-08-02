@@ -11,6 +11,14 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
+export interface IJwtPayload {
+  sub: string;
+  role?: 'customer' | 'admin' | 'staff';
+  email?: string;
+  iat?: number;
+  exp?: number;
+}
+
 const userRepository = new UserRepository();
 
 export const authMiddleware = async (
@@ -25,11 +33,12 @@ export const authMiddleware = async (
     }
 
     const token = authHeader.split(' ')[1];
-    let payload: any;
+    let payload: IJwtPayload;
     try {
-      payload = verifyToken(token, env.JWT_SECRET);
-    } catch (err: any) {
-      throw new UnauthorizedException(err.message || 'Invalid or expired token');
+      payload = verifyToken(token, env.JWT_SECRET) as unknown as IJwtPayload;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Invalid or expired token';
+      throw new UnauthorizedException(msg);
     }
 
     const userId = payload.sub;

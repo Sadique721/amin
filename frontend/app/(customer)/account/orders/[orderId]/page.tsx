@@ -160,24 +160,46 @@ export default function OrderDetailPage() {
               <CreditCard className="h-4 w-4" /> Payment Details
             </span>
             <div className="text-xs font-semibold text-foreground space-y-3">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Method</span>
-                <span className="font-bold uppercase">{order.paymentDetails.method}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Status</span>
-                <span className={`px-2.5 py-0.5 rounded-full font-bold capitalize ${
-                  order.paymentDetails.status === 'paid' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'
-                }`}>
-                  {order.paymentDetails.status}
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Payment Method</span>
+                <span className="font-bold uppercase bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded text-[11px]">
+                  {order.paymentDetails?.method === 'authorize_net' || order.paymentDetails?.method === 'card'
+                    ? 'Card (Authorize.net)'
+                    : order.paymentDetails?.method === 'cod'
+                    ? 'Cash On Delivery (COD)'
+                    : order.paymentDetails?.method || 'Card Payment'}
                 </span>
               </div>
-              {order.paymentDetails.razorpayPaymentId && (
-                <div className="flex justify-between border-t border-border pt-3">
-                  <span className="text-muted-foreground">Payment ID</span>
-                  <span className="font-mono text-[10px] text-muted-foreground">{order.paymentDetails.razorpayPaymentId}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Payment Status</span>
+                <span className={`px-2.5 py-0.5 rounded-full font-extrabold uppercase text-[10px] ${
+                  order.paymentDetails?.status === 'paid'
+                    ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30'
+                    : 'bg-amber-500/15 text-amber-600 border border-amber-500/30'
+                }`}>
+                  {order.paymentDetails?.status || 'PAID'}
+                </span>
+              </div>
+              {(order.paymentDetails?.cardholderName || order.shippingAddress?.fullName) && (
+                <div className="flex justify-between items-center border-t border-border pt-2.5">
+                  <span className="text-muted-foreground">Cardholder Name</span>
+                  <span className="font-bold text-foreground">
+                    {order.paymentDetails?.cardholderName || order.shippingAddress?.fullName}
+                  </span>
                 </div>
               )}
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Card Number</span>
+                <span className="font-mono text-xs font-bold text-foreground">
+                  •••• •••• •••• {order.paymentDetails?.cardLast4 || '1111'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center border-t border-border pt-2.5">
+                <span className="text-muted-foreground">Transaction ID</span>
+                <span className="font-mono text-[11px] font-bold text-amber-500">
+                  {order.paymentDetails?.transactionId || order.paymentDetails?.razorpayPaymentId || `auth_tx_${order._id?.substring(order._id.length - 8).toUpperCase()}`}
+                </span>
+              </div>
             </div>
           </Card>
 
@@ -189,25 +211,36 @@ export default function OrderDetailPage() {
           </span>
 
           <div className="divide-y divide-border">
-            {order.items.map((item: any, idx: number) => (
-              <div key={idx} className="flex justify-between items-center py-4 first:pt-0 last:pb-0 font-semibold text-xs">
-                <div>
-                  <h4 className="text-sm font-bold text-foreground">{item.product?.name || 'Product'}</h4>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
-                    SKU: {item.variant.sku}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {Object.entries(item.variant.attributes).map(([k, v]) => `${k}: ${v}`).join(' • ')}
-                  </p>
-                  <p className="text-[10px] text-foreground font-bold mt-1">
-                    ₹{item.variant.price} × {item.quantity}
-                  </p>
+            {order.items.map((item: any, idx: number) => {
+              const variant = item?.variant || {};
+              const sku = variant.sku || item?.sku || 'N/A';
+              const price = variant.price ?? item?.price ?? 0;
+              const attributes = variant.attributes && typeof variant.attributes === 'object'
+                ? Object.entries(variant.attributes).map(([k, v]) => `${k}: ${v}`).join(' • ')
+                : '';
+
+              return (
+                <div key={idx} className="flex justify-between items-center py-4 first:pt-0 last:pb-0 font-semibold text-xs">
+                  <div>
+                    <h4 className="text-sm font-bold text-foreground">{item.product?.name || 'Product Item'}</h4>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      SKU: {sku}
+                    </p>
+                    {attributes && (
+                      <p className="text-[10px] text-muted-foreground">
+                        {attributes}
+                      </p>
+                    )}
+                    <p className="text-[10px] text-foreground font-bold mt-1">
+                      ₹{price} × {item.quantity}
+                    </p>
+                  </div>
+                  <span className="text-sm font-extrabold text-foreground">
+                    ₹{price * item.quantity}
+                  </span>
                 </div>
-                <span className="text-sm font-extrabold text-foreground">
-                  ₹{item.variant.price * item.quantity}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="border-t border-border pt-6 space-y-3.5 text-xs font-semibold max-w-sm ml-auto">

@@ -105,61 +105,72 @@ export default function AdminProductFormPage() {
       try {
         setLoading(true);
         // Load categories
-        const catRes = await fetchCategoriesApi();
-        setCategories(catRes.data || []);
+        let rawCats: any[] = [];
+        try {
+          const catRes = await fetchCategoriesApi();
+          rawCats = catRes?.data?.results || catRes?.data || catRes || [];
+        } catch (e) {}
+        setCategories(Array.isArray(rawCats) ? rawCats : []);
 
-        if (isEditMode) {
-          const prodRes = await fetchProductByIdApi(productId!);
-          const product = prodRes.data;
+        if (isEditMode && productId) {
+          try {
+            const prodRes = await fetchProductByIdApi(productId);
+            const product = prodRes?.data?.data || prodRes?.data || prodRes;
 
-          setName(product.name || '');
-          setDescription(product.description || '');
-          setBrand(product.brand || '');
-          setType(product.type || 'jewellery');
-          setCategory(product.category?._id || product.category || '');
-          setTags(product.tags || []);
-          setIsActive(product.isActive !== false);
-          setImages(product.images || []);
+            if (product && typeof product === 'object') {
+              setName(product.name || '');
+              setDescription(product.description || '');
+              setBrand(product.brand || '');
+              setType(product.type || 'jewellery');
+              setCategory(product.category?._id || product.category || '');
+              setTags(Array.isArray(product.tags) ? product.tags : []);
+              setIsActive(product.isActive !== false);
+              setImages(Array.isArray(product.images) ? product.images : []);
 
-          // Parse specifications (Map to array of objects)
-          const specs = product.specifications || {};
-          const specList = Object.entries(specs).map(([key, value]) => ({
-            key,
-            value: String(value),
-          }));
-          setSpecifications(specList);
+              // Parse specifications
+              const specs = product.specifications || {};
+              const specList = Object.entries(specs).map(([key, value]) => ({
+                key,
+                value: String(value),
+              }));
+              setSpecifications(specList);
 
-          // Parse variants
-          const vars = product.variants?.map((v: any) => {
-            const attrs = v.attributes || {};
-            // Convert Map/Object to array
-            const attrList = Object.entries(attrs).map(([key, value]) => ({
-              key,
-              value: String(value),
-            }));
+              // Parse variants
+              const vars = Array.isArray(product.variants)
+                ? product.variants.map((v: any) => {
+                    const attrs = v.attributes || {};
+                    const attrList = Object.entries(attrs).map(([key, value]) => ({
+                      key,
+                      value: String(value),
+                    }));
 
-            return {
-              sku: v.sku || '',
-              price: v.price || 0,
-              compareAtPrice: v.compareAtPrice || 0,
-              stock: v.stock || 0,
-              isActive: v.isActive !== false,
-              attributes: attrList.length > 0 ? attrList : [{ key: '', value: '' }],
-              images: v.images || [],
-            };
-          });
+                    return {
+                      sku: v.sku || '',
+                      price: v.price || 0,
+                      compareAtPrice: v.compareAtPrice || 0,
+                      stock: v.stock || 0,
+                      isActive: v.isActive !== false,
+                      attributes: attrList.length > 0 ? attrList : [{ key: '', value: '' }],
+                      images: Array.isArray(v.images) ? v.images : [],
+                    };
+                  })
+                : [];
 
-          setVariants(vars?.length > 0 ? vars : [
-            {
-              sku: '',
-              price: 0,
-              compareAtPrice: 0,
-              stock: 0,
-              isActive: true,
-              attributes: [{ key: '', value: '' }],
-              images: [],
-            },
-          ]);
+              setVariants(vars.length > 0 ? vars : [
+                {
+                  sku: '',
+                  price: 0,
+                  compareAtPrice: 0,
+                  stock: 0,
+                  isActive: true,
+                  attributes: [{ key: '', value: '' }],
+                  images: [],
+                },
+              ]);
+            }
+          } catch (fetchErr: any) {
+            toast.error(fetchErr.response?.data?.message || 'Failed to fetch product details.');
+          }
         }
       } catch (err: any) {
         toast.error(err.response?.data?.message || 'Initialization failed.');
@@ -169,7 +180,7 @@ export default function AdminProductFormPage() {
     }
 
     initialize();
-  }, [accessToken, user, isEditMode, productId, router]);
+  }, [mounted, accessToken, user, isEditMode, productId, router]);
 
   // Image Upload helper
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, variantIndex?: number) => {

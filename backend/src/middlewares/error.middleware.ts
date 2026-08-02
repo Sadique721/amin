@@ -3,17 +3,25 @@ import { ApiError } from '@/shared/api/ApiError';
 import { env } from '@/config/env';
 import { logger } from '@/shared/logger';
 
+interface CustomError extends Error {
+  statusCode?: number;
+  status?: number;
+  isOperational?: boolean;
+}
+
 export const errorMiddleware = (
-  err: any,
+  err: CustomError,
   req: Request,
   res: Response,
   next: NextFunction
 ): void => {
-  let error = err;
+  let error: ApiError;
 
-  if (!(error instanceof ApiError)) {
-    const statusCode = error.statusCode || error.status || 500;
-    const message = error.message || 'Internal Server Error';
+  if (err instanceof ApiError) {
+    error = err;
+  } else {
+    const statusCode = err.statusCode || err.status || 500;
+    const message = err.message || 'Internal Server Error';
     error = new ApiError(statusCode, message, false, err.stack);
   }
 

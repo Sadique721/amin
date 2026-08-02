@@ -23,9 +23,11 @@ export interface IShippingAddress {
 }
 
 export interface IPaymentDetails {
-  method: 'stripe' | 'razorpay' | 'cod';
+  method: 'stripe' | 'razorpay' | 'cod' | 'authorize_net' | 'card';
   status: 'pending' | 'paid' | 'failed' | 'refunded';
   transactionId?: string;
+  cardholderName?: string;
+  cardLast4?: string;
   paymentIntentId?: string;
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
@@ -91,7 +93,7 @@ const OrderSchema = new Schema<IOrder>(
       method: {
         type: String,
         required: true,
-        enum: ['stripe', 'razorpay', 'cod'],
+        enum: ['stripe', 'razorpay', 'cod', 'authorize_net', 'card'],
       },
       status: {
         type: String,
@@ -100,6 +102,8 @@ const OrderSchema = new Schema<IOrder>(
         default: 'pending',
       },
       transactionId: { type: String },
+      cardholderName: { type: String },
+      cardLast4: { type: String },
       paymentIntentId: { type: String },
       razorpayOrderId: { type: String },
       razorpayPaymentId: { type: String },

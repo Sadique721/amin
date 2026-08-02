@@ -7,6 +7,7 @@ const DATABASE_URL = process.env.DATABASE_URL || DEFAULT_DB_URL;
 
 let pool: Pool | null = null;
 let dbInitialized = false;
+let initPromise: Promise<void> | null = null;
 
 export function getPool(): Pool {
   if (!pool) {
@@ -46,8 +47,17 @@ export async function connectDB(): Promise<Pool | null> {
     const p = getPool();
     await p.query('SELECT 1'); // ping
     if (!dbInitialized) {
-      await initDB(p);
-      dbInitialized = true;
+      if (!initPromise) {
+        initPromise = initDB(p).then(() => { dbInitialized = true; }).catch((err) => {
+          initPromise = null;
+          if (err?.code === '23505') {
+            dbInitialized = true;
+          } else {
+            console.error('Database schema init error:', err?.message || err);
+          }
+        });
+      }
+      await initPromise;
     }
     return p;
   } catch (e) {
@@ -327,11 +337,30 @@ export async function getModels() {
       return r.rows[0] ? mapCategory(r.rows[0]) : null;
     },
     create: async (data: any) => {
+      const baseSlug = (data.slug || data.name || 'cat').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const slug = `${baseSlug}-${Date.now().toString(36)}`;
       const r = await p.query(
         'INSERT INTO categories (name,slug,description,image,is_active) VALUES($1,$2,$3,$4,$5) RETURNING *',
-        [data.name, data.slug, data.description||null, data.image||null, data.isActive!==false]
+        [data.name, slug, data.description || null, data.image || null, data.isActive !== false]
       );
       return mapCategory(r.rows[0]);
+    },
+    update: async (id: string, data: any) => {
+      const fields: string[] = [];
+      const vals: any[] = [];
+      let i = 1;
+      if (data.name) { fields.push(`name=$${i++}`); vals.push(data.name); }
+      if (data.description !== undefined) { fields.push(`description=$${i++}`); vals.push(data.description); }
+      if (data.image !== undefined) { fields.push(`image=$${i++}`); vals.push(data.image); }
+      if (data.isActive !== undefined) { fields.push(`is_active=$${i++}`); vals.push(data.isActive); }
+      if (!fields.length) return Category.findById(id);
+      fields.push(`updated_at=NOW()`);
+      vals.push(id);
+      const r = await p.query(`UPDATE categories SET ${fields.join(',')} WHERE id=$${i} RETURNING *`, vals);
+      return r.rows[0] ? mapCategory(r.rows[0]) : null;
+    },
+    delete: async (id: string) => {
+      await p.query('DELETE FROM categories WHERE id=$1', [id]);
     },
   };
 

@@ -40,15 +40,69 @@ export default function CheckoutPage() {
   const [cardCvv, setCardCvv] = React.useState('');
   const [cardName, setCardName] = React.useState('');
 
+  const [savedAddresses, setSavedAddresses] = React.useState<any[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = React.useState<string | null>(null);
+
   React.useEffect(() => {
     if (!accessToken) {
       toast.error('Please log in to proceed with checkout.');
       router.push(`/auth/login?redirect=/checkout`);
-    } else if (items.length === 0) {
+      return;
+    }
+    if (items.length === 0) {
       toast.warning('Your shopping bag is empty.');
       router.push('/cart');
+      return;
     }
-  }, [accessToken, items, router]);
+
+    const fetchUserProfile = async () => {
+      try {
+        const res = await api.get('/users/profile');
+        const userData = res.data?.data || res.data;
+        if (userData) {
+          const userAddresses = Array.isArray(userData.addresses) ? userData.addresses : [];
+          setSavedAddresses(userAddresses);
+
+          const defaultAddr = userAddresses.find((a: any) => a.isDefault) || userAddresses[0];
+
+          if (defaultAddr) {
+            setSelectedAddressId(defaultAddr._id);
+            setShippingAddress({
+              fullName: userData.name || user?.name || '',
+              addressLine1: defaultAddr.street || '',
+              addressLine2: '',
+              city: defaultAddr.city || '',
+              state: defaultAddr.state || '',
+              postalCode: defaultAddr.postalCode || '',
+              country: defaultAddr.country || 'India',
+              phone: userData.phone || user?.phone || '+91 9876543210',
+            });
+          } else {
+            setShippingAddress((prev) => ({
+              ...prev,
+              fullName: userData.name || user?.name || '',
+              phone: userData.phone || user?.phone || prev.phone || '+91 9876543210',
+            }));
+          }
+
+          if (userData.name || user?.name) {
+            setCardName(userData.name || user?.name || '');
+          }
+        }
+      } catch (err) {
+        if (user) {
+          setShippingAddress((prev) => ({
+            ...prev,
+            fullName: user.name || '',
+            phone: user.phone || prev.phone || '+91 9876543210',
+          }));
+          setCardName(user.name || '');
+        }
+      }
+    };
+
+    fetchUserProfile();
+  }, [accessToken, items, user, router]);
 
   const subtotal = React.useMemo(() => {
     return items.reduce((sum, item) => sum + item.variant.price * item.quantity, 0);
@@ -58,7 +112,20 @@ export default function CheckoutPage() {
     return Math.max(0, subtotal - discountAmount);
   }, [subtotal, discountAmount]);
 
-  // No auto-selection — user freely chooses COD or Authorize.net card payment
+  const handleSelectSavedAddress = (addr: any) => {
+    setSelectedAddressId(addr._id);
+    setShippingAddress({
+      fullName: user?.name || shippingAddress.fullName || 'Customer',
+      addressLine1: addr.street || '',
+      addressLine2: '',
+      city: addr.city || '',
+      state: addr.state || '',
+      postalCode: addr.postalCode || '',
+      country: addr.country || 'India',
+      phone: user?.phone || shippingAddress.phone || '+91 9876543210',
+    });
+    toast.success('Address auto-filled from saved profile!');
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -94,6 +161,7 @@ export default function CheckoutPage() {
     setLoading(true);
 
     try {
+      const cleanCardNum = cardNumber.replace(/\s/g, '');
       const orderPayload = {
         items: items.map((item) => ({
           productId: item.product._id,
@@ -104,52 +172,28 @@ export default function CheckoutPage() {
         shippingAddress,
         couponCode: coupon?.code,
         paymentMethod,
+        paymentDetails: paymentMethod === 'authorize_net' ? {
+          cardholderName: cardName || shippingAddress.fullName,
+          cardNumber: cleanCardNum,
+          cardLast4: cleanCardNum ? cleanCardNum.slice(-4) : '1111',
+        } : undefined,
         total,
       };
 
       const response = await createOrderApi(orderPayload);
-      const order = response.data;
+      const order = response.data?.data || response.data;
 
+      dispatch(clearCart());
       if (paymentMethod === 'cod') {
-        // COD verification
         try {
           await verifyCodPaymentApi(order._id);
         } catch {}
-        dispatch(clearCart());
         toast.success('🎉 Order placed successfully! Pay on delivery.');
-        router.push(`/checkout/success?orderId=${order._id}`);
-        return;
+      } else {
+        toast.success('💳 Card payment approved! Order placed successfully.');
       }
 
-      if (paymentMethod === 'authorize_net') {
-        // Format expiry: MM/YY → YYYY-MM for Authorize.net
-        const [mm, yy] = cardExpiry.split('/');
-        const expirationDate = `20${yy?.trim()}-${mm?.trim().padStart(2, '0')}`;
-
-        const nameParts = cardName.trim().split(' ');
-        const firstName = nameParts[0] || fullName.split(' ')[0] || 'Customer';
-        const lastName = nameParts.slice(1).join(' ') || fullName.split(' ').slice(1).join(' ') || 'User';
-
-        const chargeRes = await api.post('/payments/authorize/charge', {
-          amount: total,
-          cardNumber: cardNumber.replace(/\s/g, ''),
-          expirationDate,
-          cardCode: cardCvv,
-          firstName,
-          lastName,
-          email: user?.email,
-          orderId: order._id,
-          description: `Sanab Order ${order._id}`,
-        });
-
-        if (chargeRes.data?.success && chargeRes.data?.data?.transactionId) {
-          dispatch(clearCart());
-          toast.success(`✅ Payment successful! Transaction ID: ${chargeRes.data.data.transactionId}`);
-          router.push(`/checkout/success?orderId=${order._id}`);
-        } else {
-          throw new Error(chargeRes.data?.message || 'Card payment failed');
-        }
-      }
+      router.push(`/checkout/success?orderId=${order._id}`);
     } catch (err: any) {
       toast.error(err.response?.data?.message || err.message || 'An error occurred placing your order.');
       setLoading(false);
@@ -187,6 +231,32 @@ export default function CheckoutPage() {
                 <CardContent className="p-0 space-y-6">
                   <h3 className="text-lg font-bold text-foreground border-b border-border pb-3">1. Shipping Address</h3>
                   
+                  {savedAddresses.length > 0 && (
+                    <div className="space-y-2 bg-muted/20 p-3.5 rounded-xl border border-border mb-4">
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Select Saved Address:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {savedAddresses.map((addr, idx) => {
+                          const isSelected = selectedAddressId === addr._id;
+                          return (
+                            <button
+                              key={addr._id || idx}
+                              type="button"
+                              onClick={() => handleSelectSavedAddress(addr)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1.5 ${
+                                isSelected
+                                  ? 'bg-amber-500 text-white border-amber-500 shadow-xs'
+                                  : 'bg-background text-foreground border-border hover:border-amber-500/50'
+                              }`}
+                            >
+                              <span>{addr.isDefault ? '⭐ Default Address' : `Address ${idx + 1}`}</span>
+                              <span className="opacity-80">({addr.city}, {addr.postalCode})</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label htmlFor="fullName" className="text-xs font-bold text-muted-foreground">Full Name *</label>

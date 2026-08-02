@@ -143,6 +143,44 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
     } catch (e: any) { return err(e.message, 500); }
   }
 
+  // POST /api/categories (admin only — create category)
+  if ((route === 'categories' || route === 'public/categories') && method === 'POST') {
+    const currentUser = await getUser(req);
+    if (!currentUser || currentUser.role !== 'admin') return err('Admin access required', 403);
+    try {
+      const body = await req.json();
+      const { Category } = await getModels();
+      const cat = await Category.create(body);
+      return ok(cat, 201);
+    } catch (e: any) { return err(e.message, 500); }
+  }
+
+  // PATCH or PUT /api/categories/:id (admin only — update category)
+  if (route.startsWith('categories/') && (method === 'PATCH' || method === 'PUT')) {
+    const currentUser = await getUser(req);
+    if (!currentUser || currentUser.role !== 'admin') return err('Admin access required', 403);
+    try {
+      const id = path[path.length - 1];
+      const body = await req.json();
+      const { Category } = await getModels();
+      const cat = await Category.update(id, body);
+      if (!cat) return err('Category not found', 404);
+      return ok(cat);
+    } catch (e: any) { return err(e.message, 500); }
+  }
+
+  // DELETE /api/categories/:id (admin only — delete category)
+  if (route.startsWith('categories/') && method === 'DELETE') {
+    const currentUser = await getUser(req);
+    if (!currentUser || currentUser.role !== 'admin') return err('Admin access required', 403);
+    try {
+      const id = path[path.length - 1];
+      const { Category } = await getModels();
+      await Category.delete(id);
+      return ok({ message: 'Category deleted' });
+    } catch (e: any) { return err(e.message, 500); }
+  }
+
   // ── PRODUCTS (public + admin, same URL) ───────────────────────────────────
   // GET /api/products
   if (route === 'products' && method === 'GET') {

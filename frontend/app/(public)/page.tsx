@@ -62,11 +62,16 @@ export default function HomePage() {
           fetchCategoriesApi()
         ]);
 
-        const banners = bannersRes.data || [];
-        setHeroBanners(banners.filter((b: BannerItem) => b.type === 'hero'));
-        setPromoBanners(banners.filter((b: BannerItem) => b.type !== 'hero'));
-        setFaqs(faqsRes.data || []);
-        setCategories(categoriesRes.data || []);
+        const bannersData = bannersRes?.data || bannersRes;
+        const bannersList = Array.isArray(bannersData) ? bannersData : (Array.isArray(bannersData?.results) ? bannersData.results : []);
+        setHeroBanners(bannersList.filter((b: BannerItem) => b.type === 'hero'));
+        setPromoBanners(bannersList.filter((b: BannerItem) => b.type !== 'hero'));
+
+        const faqsData = faqsRes?.data || faqsRes;
+        setFaqs(Array.isArray(faqsData) ? faqsData : (Array.isArray(faqsData?.results) ? faqsData.results : []));
+
+        const catsData = categoriesRes?.data || categoriesRes;
+        setCategories(Array.isArray(catsData) ? catsData : (Array.isArray(catsData?.results) ? catsData.results : []));
       } catch (err) {
         console.error('Failed to load CMS content', err);
       } finally {

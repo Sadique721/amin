@@ -127,8 +127,11 @@ export const Header: React.FC = () => {
             <Link href="/cart">
               <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-primary cursor-pointer">
                 <ShoppingBag className="h-5 w-5" />
-                {cartCount > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[10px] font-semibold text-white animate-pulse">
+                {mounted && cartCount > 0 && (
+                  <span
+                    className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[10px] font-semibold text-white animate-pulse"
+                    suppressHydrationWarning
+                  >
                     {cartCount}
                   </span>
                 )}
@@ -142,7 +145,7 @@ export const Header: React.FC = () => {
                 </Button>
               } />
               <DropdownMenuContent align="end" className="w-48">
-                {user ? (
+                {mounted && user ? (
                   <>
                     <DropdownMenuItem disabled className="font-semibold text-xs text-muted-foreground border-b border-border pb-1 flex items-center justify-between">
                       <span>Hi, {user.name}</span>

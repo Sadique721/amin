@@ -11,10 +11,10 @@ export const validationMiddleware = (schema: AnyZodObject) => {
         params: req.params,
       });
       
-      // Re-assign parsed inputs to request context
-      req.body = parsed.body;
-      req.query = parsed.query;
-      req.params = parsed.params;
+      // Re-assign parsed inputs to request context safely
+      if (parsed.body !== undefined) req.body = parsed.body;
+      if (parsed.query !== undefined) req.query = parsed.query;
+      if (parsed.params !== undefined) req.params = { ...req.params, ...parsed.params };
       
       next();
     } catch (error) {

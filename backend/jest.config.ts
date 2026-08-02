@@ -1,3 +1,5 @@
+process.env.MONGOMS_CHECK_MD5 = 'false';
+
 import type { Config } from 'jest';
 
 const config: Config = {

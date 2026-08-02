@@ -59,5 +59,5 @@ This document lists the tasks required to implement the Jewellery & Cosmetics E-
 ---
 
 ## Phase 8: Testing, Logs, & Production Deployments
-- [ ] **Task 8.1**: Setup BullMQ queues, cron cleanups, and Jest unit/integration test suites.
-- [ ] **Task 8.2**: Build performance validations, configure Vercel/AWS environments, and launch.
+- [x] **Task 8.1**: Setup BullMQ queues, cron cleanups, and Jest unit/integration test suites.
+- [x] **Task 8.2**: Build performance validations, configure Vercel/AWS environments, and launch.
