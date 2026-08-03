@@ -540,7 +540,7 @@ export async function getModels() {
       `, [
         num, validUserId, data.userEmail||null,
         JSON.stringify(data.items||[]), data.total||0, data.subtotal||data.total||0,
-        data.tax||0, data.shipping||0, 'pending', 'pending',
+        data.tax||0, data.shipping||0, data.status||'pending', data.paymentStatus||'pending',
         data.paymentMethod||'cod', JSON.stringify(data.paymentDetails||{}),
         JSON.stringify(data.shippingAddress||{}), data.couponCode||null
       ]);
