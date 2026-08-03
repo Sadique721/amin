@@ -1,9 +1,9 @@
 // ── PostgreSQL Connection (Aiven) ─────────────────────────────────────────────
 import { Pool, PoolClient } from 'pg';
 
-const DEFAULT_PASS = Buffer.from('QVZOU181UlBLNW9TUElUemg2SzREaDZQ', 'base64').toString('utf-8');
-const DEFAULT_DB_URL = `postgresql://avnadmin:${DEFAULT_PASS}@pg-44c5293-database-mangobd.j.aivencloud.com:22321/defaultdb?sslmode=require`;
-const DATABASE_URL = process.env.DATABASE_URL || DEFAULT_DB_URL;
+// DATABASE_URL must be set as an environment variable (Vercel / .env)
+// Format: postgres://user:password@host:port/dbname?sslmode=require
+const DATABASE_URL = process.env.DATABASE_URL || '';
 
 let pool: Pool | null = null;
 let dbInitialized = false;
@@ -11,7 +11,7 @@ let initPromise: Promise<void> | null = null;
 
 export function getPool(): Pool {
   if (!pool) {
-    const dbUrl = process.env.DATABASE_URL || DEFAULT_DB_URL;
+    const dbUrl = process.env.DATABASE_URL || '';
     const useSsl = dbUrl.includes('sslmode=require') || dbUrl.includes('ssl=true') || dbUrl.includes('aivencloud.com');
     const ssl = useSsl ? { rejectUnauthorized: false } : false;
     let config: any = {};
