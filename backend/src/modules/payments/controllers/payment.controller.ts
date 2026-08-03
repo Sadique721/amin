@@ -6,6 +6,7 @@ import { ApiResponse } from '@/shared/api/ApiResponse';
 import { ApiError } from '@/shared/api/ApiError';
 import { Order } from '@/modules/orders/models/order.model';
 import { logger } from '@/shared/logger';
+import { AuthorizeNetService } from '../services/authorizenet.service';
 
 let razorpayInstance: Razorpay | null = null;
 if (env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET) {
@@ -154,6 +155,92 @@ export class PaymentController {
       }
 
       res.status(200).json({ status: 'ok' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Charge Card via Authorize.Net
+   * POST /api/payments/authorizenet/charge
+   */
+  static async chargeAuthorizeNet(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { orderId, cardNumber, expirationDate, cardCode } = req.body;
+
+      if (!orderId || !cardNumber || !expirationDate) {
+        throw new ApiError(400, 'orderId, cardNumber, and expirationDate are required');
+      }
+
+      const order = await Order.findById(orderId);
+      if (!order) {
+        throw new ApiError(404, 'Order not found');
+      }
+
+      const result = await AuthorizeNetService.chargeCard({
+        amount: order.total,
+        card: { cardNumber, expirationDate, cardCode },
+        description: `SANAB Order #${order._id}`,
+        orderId: order._id.toString(),
+      });
+
+      if (!result.success) {
+        throw new ApiError(402, result.message || 'Payment declined');
+      }
+
+      // Update order payment status
+      order.paymentDetails = {
+        ...order.paymentDetails,
+        status: 'paid',
+        transactionId: result.transactionId,
+        authCode: result.authCode,
+      } as any;
+      order.status = 'processing';
+      await order.save();
+
+      res.status(200).json(
+        new ApiResponse(
+          200,
+          {
+            orderId: order._id,
+            transactionId: result.transactionId,
+            authCode: result.authCode,
+            status: order.status,
+          },
+          'Payment processed successfully via Authorize.Net'
+        )
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Authorize.Net Silent Post Webhook
+   * POST /api/payments/authorizenet/webhook
+   */
+  static async handleAuthorizeNetWebhook(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { x_response_code, x_trans_id, x_auth_code, x_invoice_num } = req.body;
+
+      logger.info(`[AUTHORIZE.NET WEBHOOK] Response Code: ${x_response_code}, Transaction: ${x_trans_id}`);
+
+      if (x_response_code === '1' && x_invoice_num) {
+        const order = await Order.findById(x_invoice_num);
+        if (order && order.paymentDetails.status !== 'paid') {
+          order.paymentDetails = {
+            ...order.paymentDetails,
+            status: 'paid',
+            transactionId: x_trans_id,
+            authCode: x_auth_code,
+          } as any;
+          order.status = 'processing';
+          await order.save();
+          logger.info(`✅ Order ${order._id} marked as PAID via Authorize.Net webhook`);
+        }
+      }
+
+      res.status(200).send('OK');
     } catch (error) {
       next(error);
     }

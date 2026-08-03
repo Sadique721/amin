@@ -189,11 +189,10 @@ export const seedCmsData = async (): Promise<void> => {
 
 export const seedProductsAndCategories = async (): Promise<void> => {
   try {
-    const categoriesCount = await Category.countDocuments();
-    const productsCount = await Product.countDocuments();
+    const praoProductCount = await Product.countDocuments({ brand: 'PRAO Paris' });
 
-    if (categoriesCount > 0 && productsCount >= 25) {
-      console.log('✅ Demo categories and products are already seeded.');
+    if (praoProductCount >= 10) {
+      console.log('✅ PRAO collection and demo products are already fully seeded in database.');
       return;
     }
 
@@ -206,6 +205,10 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       { name: 'Gold Rings', description: 'Fine 18k and 22k gold rings' },
       { name: 'Diamond Necklaces', description: 'Ethically sourced diamond pendants and necklaces' },
       { name: 'Luxury Earrings', description: 'Elegant studs, drops, and hoops' },
+      { name: 'Anti-Tarnish Earrings', description: 'Waterproof 18k gold plated anti-tarnish fashion earrings' },
+      { name: 'Hoops & Huggies', description: 'Classic and modern anti-tarnish hoop earrings' },
+      { name: 'Jhumkas & Chaandbalis', description: 'Handcrafted traditional and oxidized jhumka dangles' },
+      { name: 'Minimalist Studs', description: 'Everyday waterproof geometric and floral studs' },
       { name: 'Fine Bracelets', description: 'Gold and diamond wristwear' },
       { name: 'Matte Lipsticks', description: 'Highly pigmented luxury lip cosmetics' },
       { name: 'Liquid Foundations', description: 'Dermatologically safe natural coverage' },
@@ -387,10 +390,132 @@ export const seedProductsAndCategories = async (): Promise<void> => {
         category: catMap['Diamond Necklaces'],
         brand: 'SANAB Atelier',
         type: 'jewellery',
+        tags: ['necklace', 'pearl', 'diamond'],
         description: 'A shimmering white South Sea pearl suspended inside a diamond-studded infinity loop in 18K rose gold.',
         images: ['https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=600&auto=format&fit=crop'],
         variants: [
           { sku: 'SNB-JWL-NK-004', price: 48000, compareAtPrice: 55000, stock: 10, attributes: { metal: '18K Rose Gold' }, isActive: true }
+        ]
+      },
+      // --- PRAO ANTI-TARNISH EARRINGS COLLECTION ---
+      {
+        name: 'PRAO Anti-Tarnish Heart Evil Eye Hoops',
+        category: catMap['Anti-Tarnish Earrings'] || catMap['Hoops & Huggies'] || catMap['Luxury Earrings'],
+        brand: 'PRAO Paris',
+        type: 'jewellery',
+        tags: ['anti-tarnish', 'waterproof', 'evil-eye', 'hoops', 'gold', 'prao-collection'],
+        description: 'Waterproof 18k gold plated stainless steel hoops featuring a protective enamel evil eye heart charm. Guaranteed anti-tarnish and hypoallergenic.',
+        images: ['https://images.unsplash.com/photo-1630019852942-f89202989a59?q=80&w=600&auto=format&fit=crop'],
+        variants: [
+          { sku: 'PRAO-ER-6103DR', price: 1299, compareAtPrice: 1999, stock: 40, attributes: { finish: 'Gold', antiTarnish: 'Yes' }, isActive: true }
+        ]
+      },
+      {
+        name: 'PRAO Anti-Tarnish Crystal Leaf Ear Climbers',
+        category: catMap['Anti-Tarnish Earrings'] || catMap['Minimalist Studs'] || catMap['Luxury Earrings'],
+        brand: 'PRAO Paris',
+        type: 'jewellery',
+        tags: ['anti-tarnish', 'waterproof', 'crystal', 'ear-climbers', 'silver', 'prao-collection'],
+        description: 'Dazzling marquise cubic zirconia crystal leaves designed to gently climb along your earlobe. Tarnish-free 18k white gold finish.',
+        images: ['https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=600&auto=format&fit=crop'],
+        variants: [
+          { sku: 'PRAO-ER-6065PR', price: 1499, compareAtPrice: 2299, stock: 35, attributes: { finish: 'Silver', antiTarnish: 'Yes' }, isActive: true }
+        ]
+      },
+      {
+        name: 'PRAO Anti-Tarnish Cascading Crystal Dangles',
+        category: catMap['Anti-Tarnish Earrings'] || catMap['Luxury Earrings'],
+        brand: 'PRAO Paris',
+        type: 'jewellery',
+        tags: ['anti-tarnish', 'waterproof', 'dangles', 'crystal', 'gold', 'prao-collection'],
+        description: 'Multi-tiered waterfall crystal dangles that catch light from every angle. Crafted with PVD gold coating for lifetime anti-tarnish protection.',
+        images: ['https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=600&auto=format&fit=crop'],
+        variants: [
+          { sku: 'PRAO-ER-6047PR', price: 1699, compareAtPrice: 2499, stock: 25, attributes: { finish: 'Gold', antiTarnish: 'Yes' }, isActive: true }
+        ]
+      },
+      {
+        name: 'PRAO Anti-Tarnish Emerald Halo Studs',
+        category: catMap['Anti-Tarnish Earrings'] || catMap['Minimalist Studs'] || catMap['Luxury Earrings'],
+        brand: 'PRAO Paris',
+        type: 'jewellery',
+        tags: ['anti-tarnish', 'waterproof', 'emerald', 'studs', 'gold', 'prao-collection'],
+        description: 'Deep green cushion-cut emerald cubic zirconia encased in a sparkling halo of pave crystals. 100% waterproof and tarnish-proof.',
+        images: ['https://images.unsplash.com/photo-1635767798638-3e25273a8236?q=80&w=600&auto=format&fit=crop'],
+        variants: [
+          { sku: 'PRAO-ER-6055PR', price: 999, compareAtPrice: 1599, stock: 50, attributes: { finish: 'Gold', antiTarnish: 'Yes' }, isActive: true }
+        ]
+      },
+      {
+        name: 'PRAO Anti-Tarnish Crystal Pearl Hoops',
+        category: catMap['Anti-Tarnish Earrings'] || catMap['Hoops & Huggies'] || catMap['Luxury Earrings'],
+        brand: 'PRAO Paris',
+        type: 'jewellery',
+        tags: ['anti-tarnish', 'waterproof', 'pearl', 'hoops', 'gold', 'prao-collection'],
+        description: 'Lustrous freshwater pearls accenting high-shine gold hoop earrings. Sweat-proof, waterproof, and everyday wearable.',
+        images: ['https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=600&auto=format&fit=crop'],
+        variants: [
+          { sku: 'PRAO-ER-6038PR', price: 1399, compareAtPrice: 1999, stock: 30, attributes: { finish: 'Gold', antiTarnish: 'Yes' }, isActive: true }
+        ]
+      },
+      {
+        name: 'PRAO Anti-Tarnish Peacock Pearl Jhumkas',
+        category: catMap['Anti-Tarnish Earrings'] || catMap['Jhumkas & Chaandbalis'] || catMap['Luxury Earrings'],
+        brand: 'PRAO Paris',
+        type: 'jewellery',
+        tags: ['anti-tarnish', 'waterproof', 'jhumka', 'peacock', 'gold', 'prao-collection'],
+        description: 'Intricately carved peacock motif traditional jhumki earrings with delicate seed pearl droplets. Premium anti-tarnish gold finish.',
+        images: ['https://images.unsplash.com/photo-1611591437281-460bfbe1220a?q=80&w=600&auto=format&fit=crop'],
+        variants: [
+          { sku: 'PRAO-ER-5563MR', price: 1899, compareAtPrice: 2799, stock: 20, attributes: { finish: 'Gold', antiTarnish: 'Yes' }, isActive: true }
+        ]
+      },
+      {
+        name: 'PRAO Anti-Tarnish Oxidized Handpainted Chaandbali',
+        category: catMap['Anti-Tarnish Earrings'] || catMap['Jhumkas & Chaandbalis'] || catMap['Luxury Earrings'],
+        brand: 'PRAO Paris',
+        type: 'jewellery',
+        tags: ['anti-tarnish', 'waterproof', 'chaandbali', 'oxidized', 'silver', 'prao-collection'],
+        description: 'Royal crescent chaandbali earrings handpainted with vibrant floral enamel motifs on oxidized anti-tarnish silver.',
+        images: ['https://images.unsplash.com/photo-1601121141461-9d6647bca1ed?q=80&w=600&auto=format&fit=crop'],
+        variants: [
+          { sku: 'PRAO-ER-6037MR', price: 1799, compareAtPrice: 2599, stock: 15, attributes: { finish: 'Oxidised Silver', antiTarnish: 'Yes' }, isActive: true }
+        ]
+      },
+      {
+        name: 'PRAO Anti-Tarnish Kashmiri Kundan Dangles',
+        category: catMap['Anti-Tarnish Earrings'] || catMap['Luxury Earrings'],
+        brand: 'PRAO Paris',
+        type: 'jewellery',
+        tags: ['anti-tarnish', 'waterproof', 'kundan', 'dangles', 'gold', 'prao-collection'],
+        description: 'Traditional Kashmiri Kundan multi-stone chandelier earrings set in anti-tarnish gold frame with pastel enamel beads.',
+        images: ['https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=600&auto=format&fit=crop'],
+        variants: [
+          { sku: 'PRAO-ER-5611MR', price: 2199, compareAtPrice: 3299, stock: 18, attributes: { finish: 'Gold', antiTarnish: 'Yes' }, isActive: true }
+        ]
+      },
+      {
+        name: 'PRAO Anti-Tarnish Purple Butterfly Drops',
+        category: catMap['Anti-Tarnish Earrings'] || catMap['Luxury Earrings'],
+        brand: 'PRAO Paris',
+        type: 'jewellery',
+        tags: ['anti-tarnish', 'waterproof', 'butterfly', 'drops', 'rose-gold', 'prao-collection'],
+        description: 'Whimsical butterfly drop earrings featuring iridescent purple crystal wings on 18k rose gold anti-tarnish chain.',
+        images: ['https://images.unsplash.com/photo-1630019852942-f89202989a59?q=80&w=600&auto=format&fit=crop'],
+        variants: [
+          { sku: 'PRAO-ER-5084MR', price: 1199, compareAtPrice: 1799, stock: 35, attributes: { finish: 'Rose Gold', antiTarnish: 'Yes' }, isActive: true }
+        ]
+      },
+      {
+        name: 'PRAO Anti-Tarnish Open Heart Studs',
+        category: catMap['Anti-Tarnish Earrings'] || catMap['Minimalist Studs'] || catMap['Luxury Earrings'],
+        brand: 'PRAO Paris',
+        type: 'jewellery',
+        tags: ['anti-tarnish', 'waterproof', 'heart', 'studs', 'gold', 'prao-collection'],
+        description: 'Minimalist open heart stud earrings in high-polish 18k gold plated anti-tarnish stainless steel. Perfect for daily wear.',
+        images: ['https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=600&auto=format&fit=crop'],
+        variants: [
+          { sku: 'PRAO-ER-5920MR', price: 799, compareAtPrice: 1299, stock: 60, attributes: { finish: 'Gold', antiTarnish: 'Yes' }, isActive: true }
         ]
       }
     ];

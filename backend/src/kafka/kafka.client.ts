@@ -11,11 +11,12 @@ export function getKafkaClient(): Kafka {
     kafkaInstance = new Kafka({
       clientId: KAFKA_CLIENT_ID,
       brokers: KAFKA_BROKERS,
-      connectionTimeout: 10000,
-      requestTimeout: 30000,
+      connectionTimeout: 1000,
+      requestTimeout: 2000,
       retry: {
-        initialRetryTime: 300,
-        retries: 10,
+        initialRetryTime: 100,
+        retries: 1,
+        maxRetryTime: 500,
       },
       logLevel: logLevel.WARN,
       logCreator: () => ({ namespace, level, label, log }) => {

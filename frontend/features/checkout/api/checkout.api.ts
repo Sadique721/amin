@@ -18,7 +18,14 @@ export interface ICreateOrderInput {
   };
   couponCode?: string;
   paymentMethod: 'razorpay' | 'cod' | 'authorize_net';
+  paymentDetailsInput?: {
+    cardNumber?: string;
+    cardExpiry?: string;
+    cardCvv?: string;
+    cardholderName?: string;
+  };
 }
+
 
 export async function createOrderApi(input: ICreateOrderInput) {
   const response = await api.post('/orders', input);

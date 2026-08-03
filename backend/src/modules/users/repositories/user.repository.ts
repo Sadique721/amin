@@ -1,5 +1,7 @@
+import mongoose from 'mongoose';
 import { User, IUser } from '../models/user.model';
 import { CreateUserDTO } from '../validators/user.validator';
+
 
 export class UserRepository {
   async create(data: Partial<IUser>): Promise<IUser> {
@@ -7,8 +9,17 @@ export class UserRepository {
   }
 
   async findById(id: string): Promise<IUser | null> {
-    return User.findById(id);
+    try {
+      if (mongoose.Types.ObjectId.isValid(id)) {
+        const user = await User.findById(id);
+        if (user) return user;
+      }
+      return await User.findOne({ email: id.toLowerCase() });
+    } catch {
+      return null;
+    }
   }
+
 
   async findByEmail(email: string): Promise<IUser | null> {
     return User.findOne({ email: email.toLowerCase() });

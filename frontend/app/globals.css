@@ -126,4 +126,27 @@
   html {
     @apply font-sans;
     }
+  .font-serif {
+    font-family: 'Georgia', 'Times New Roman', serif;
+  }
 }
+
+/* Marquee animation for trust bar */
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+/* Hide scrollbar utility */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Smooth fade transition for hero banners */
+.transition-1200 {
+  transition-duration: 1200ms;
+}

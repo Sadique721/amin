@@ -7,6 +7,8 @@ import { env } from '@/config/env';
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import { logger } from '@/shared/logger';
+import { emailQueue } from '@/queues/email.queue';
+import { User } from '@/modules/users/models/user.model';
 
 export class OrderService {
   private repository = new OrderRepository();
@@ -122,6 +124,16 @@ export class OrderService {
       }
     }
 
+    // Trigger Order Placed Email in background
+    try {
+      const user = await User.findById(userId);
+      if (user && user.email) {
+        await emailQueue.add({ type: 'order_placed', email: user.email, order });
+      }
+    } catch (err) {
+      logger.warn(`Failed to queue order_placed email: ${err}`);
+    }
+
     return order;
   }
 
@@ -178,6 +190,14 @@ export class OrderService {
       }
     }
 
+    // Dispatch Order Confirmation Email
+    try {
+      const user = await User.findById(order.user);
+      if (user && user.email) {
+        await emailQueue.add({ type: 'order_placed', email: user.email, order });
+      }
+    } catch (e) {}
+
     return order;
   }
 
@@ -208,6 +228,14 @@ export class OrderService {
         await this.couponService.incrementUsage(coupon.code);
       }
     }
+
+    // Dispatch Order Confirmation Email
+    try {
+      const user = await User.findById(order.user);
+      if (user && user.email) {
+        await emailQueue.add({ type: 'order_placed', email: user.email, order });
+      }
+    } catch (e) {}
 
     return order;
   }
@@ -246,8 +274,20 @@ export class OrderService {
       order.paymentDetails.status = paymentStatus;
     }
     await order.save();
+
+    // Dispatch Order Status Change Email to User
+    try {
+      const user = await User.findById(order.user);
+      if (user && user.email) {
+        await emailQueue.add({ type: 'order_status', email: user.email, order, newStatus: status });
+      }
+    } catch (err) {
+      logger.warn(`Failed to dispatch order_status email: ${err}`);
+    }
+
     return order;
   }
+
 
   async getSalesStats(): Promise<any> {
     const stats = await this.repository.aggregate([

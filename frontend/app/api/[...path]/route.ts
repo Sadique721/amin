@@ -29,9 +29,13 @@ async function getUser(req: NextRequest) {
     const auth = req.headers.get('authorization');
     if (!auth?.startsWith('Bearer ')) return null;
     const { verifyAccess } = await getDb();
-    return await verifyAccess(auth.slice(7));
+    const payload = await verifyAccess(auth.slice(7));
+    if (!payload) return null;
+    const userId = payload.sub || payload.id || payload._id;
+    return userId ? { ...payload, id: userId, _id: userId } : null;
   } catch { return null; }
 }
+
 
 // ── Authorize.net charge ──────────────────────────────────────────────────────
 async function chargeAuthorizeNet(opts: {
@@ -87,33 +91,34 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
   if (route === 'public/auth/otp/send' && method === 'POST') {
     try {
       const body = await req.json();
-      const email = (body.email || '').toLowerCase().trim();
-      if (!email) return err('Email required');
-      const { User } = await getModels();
-      const user = await User.findByEmail(email);
-      if (!user) return err('No account found with this email address', 404);
-      return ok({ message: 'OTP sent (use your password as OTP in this demo)' });
-    } catch (e: any) { return err(e.message, 500); }
+      const backendRes = await fetch('http://localhost:2800/api/public/auth/otp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await backendRes.json();
+      return NextResponse.json(data, { status: backendRes.status });
+    } catch (e: any) {
+      return err(e.message || 'Failed to communicate with authentication server', 500);
+    }
   }
 
   // POST /api/public/auth/otp/verify
   if (route === 'public/auth/otp/verify' && method === 'POST') {
     try {
       const body = await req.json();
-      const email = (body.email || '').toLowerCase().trim();
-      const otp = body.otp || '';
-      if (!email || !otp) return err('Email and OTP required');
-      const { User } = await getModels();
-      const user = await User.findByEmail(email);
-      if (!user) return err('Invalid email or password. Please try again.', 401);
-      if (!user.isActive) return err('Account is deactivated', 401);
-      const valid = await bcrypt.compare(otp, user.password);
-      if (!valid) return err('Invalid email or password. Please try again.', 401);
-      const payload = { id: user._id, email: user.email, role: user.role, name: user.name };
-      const [accessToken, refreshToken] = await Promise.all([signAccess(payload), signRefresh(payload)]);
-      return ok({ user: { _id: user._id, id: user._id, name: user.name, email: user.email, role: user.role }, accessToken, refreshToken });
-    } catch (e: any) { return err(e.message, 500); }
+      const backendRes = await fetch('http://localhost:2800/api/public/auth/otp/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await backendRes.json();
+      return NextResponse.json(data, { status: backendRes.status });
+    } catch (e: any) {
+      return err(e.message || 'Failed to verify verification code', 500);
+    }
   }
+
 
   // POST /api/public/auth/password/login  (alias for OTP/verify)
   if ((route === 'public/auth/password/login' || route === 'auth/login') && method === 'POST') {
@@ -392,6 +397,24 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
   // ── USER PROFILE & ADDRESSES ──────────────────────────────────────────────
   // GET /api/users/profile
   if ((route === 'users/profile' || route === 'public/users/profile') && method === 'GET') {
+    const authHeader = req.headers.get('authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      try {
+        const backendRes = await fetch('http://localhost:2800/api/public/users/profile', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: authHeader,
+          },
+        });
+
+        if (backendRes.ok) {
+          const data = await backendRes.json();
+          return NextResponse.json(data, { status: backendRes.status });
+        }
+      } catch (e) {}
+    }
+
     const currentUser = await getUser(req);
     if (!currentUser) return err('Authentication required', 401);
     try {
@@ -401,6 +424,7 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
       return ok({ ...user, addresses: user.addresses || [] });
     } catch (e: any) { return err(e.message, 500); }
   }
+
 
   // PATCH /api/users/profile
   if ((route === 'users/profile' || route === 'public/users/profile') && method === 'PATCH') {
@@ -416,13 +440,63 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
 
   // POST /api/users/addresses
   if (route === 'users/addresses' && method === 'POST') {
+    const authHeader = req.headers.get('authorization');
+    const body = await req.json();
+    if (authHeader?.startsWith('Bearer ')) {
+      try {
+        const backendRes = await fetch('http://localhost:2800/api/public/users/addresses', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: authHeader,
+          },
+          body: JSON.stringify(body),
+        });
+        if (backendRes.ok) {
+          const data = await backendRes.json();
+          return NextResponse.json(data, { status: backendRes.status });
+        }
+      } catch (e) {}
+    }
+
     const currentUser = await getUser(req);
     if (!currentUser) return err('Authentication required', 401);
     try {
-      const body = await req.json();
-      return ok([{ _id: `addr-${Date.now()}`, ...body, isDefault: true }]);
+      const { User } = await getModels();
+      const addresses = await User.addAddress(currentUser.email || currentUser.id, body);
+      return ok(addresses || []);
     } catch (e: any) { return err(e.message, 500); }
   }
+
+  // DELETE /api/users/addresses/:addressId
+  if (route.startsWith('users/addresses/') && method === 'DELETE') {
+    const authHeader = req.headers.get('authorization');
+    const addressId = path[path.length - 1];
+    if (authHeader?.startsWith('Bearer ')) {
+      try {
+        const backendRes = await fetch(`http://localhost:2800/api/public/users/addresses/${addressId}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: authHeader,
+          },
+        });
+        if (backendRes.ok) {
+          const data = await backendRes.json();
+          return NextResponse.json(data, { status: backendRes.status });
+        }
+      } catch (e) {}
+    }
+
+    const currentUser = await getUser(req);
+    if (!currentUser) return err('Authentication required', 401);
+    try {
+      const { User } = await getModels();
+      const addresses = await User.deleteAddress(currentUser.email || currentUser.id, addressId);
+      return ok(addresses || []);
+    } catch (e: any) { return err(e.message, 500); }
+  }
+
+
 
   // ── WISHLIST ──────────────────────────────────────────────────────────────
   // GET /api/wishlist OR /api/public/wishlist

@@ -12,10 +12,13 @@ export const connectDB = async (): Promise<void> => {
   const dbUrl = env.DATABASE_URL || process.env.DATABASE_URL;
   if (dbUrl || env.POSTGRES_HOST) {
     try {
+      // Strip sslmode from URL to avoid conflict with explicit ssl config
+      const cleanUrl = dbUrl ? dbUrl.replace(/[?&]sslmode=[^&]*/g, '').replace(/\?$/, '') : undefined;
+
       pgPool = new Pool(
-        dbUrl
+        cleanUrl
           ? {
-              connectionString: dbUrl,
+              connectionString: cleanUrl,
               ssl: { rejectUnauthorized: false },
             }
           : {
@@ -24,10 +27,12 @@ export const connectDB = async (): Promise<void> => {
               user: env.POSTGRES_USER || 'sanab_admin',
               password: env.POSTGRES_PASSWORD || 'sanab_password_123',
               database: env.POSTGRES_DB || 'defaultdb',
+              ssl: { rejectUnauthorized: false },
             }
       );
       const client = await pgPool.connect();
-      logger.info('🐘 PostgreSQL Database Connected successfully.');
+      const { rows } = await client.query('SELECT version()');
+      logger.info(`🐘 PostgreSQL Connected: ${rows[0]?.version?.split(' ').slice(0, 2).join(' ')}`);
       client.release();
     } catch (pgErr) {
       logger.warn(`⚠️ PostgreSQL Cloud Connection warning: ${(pgErr as Error).message}`);

@@ -9,6 +9,12 @@ export const addressValidationSchema = z.object({
   isDefault: z.boolean().default(false),
 });
 
+export const addAddressSchema = z.object({
+  body: addressValidationSchema,
+});
+
+
+
 export const createUserValidationSchema = z.object({
   name: z.string({ required_error: 'Name is required' }).trim().min(2, 'Name must be at least 2 characters'),
   email: z.string({ required_error: 'Email is required' }).trim().email('Invalid email address'),

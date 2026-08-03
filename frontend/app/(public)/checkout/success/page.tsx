@@ -13,10 +13,17 @@ export default function CheckoutSuccessPage() {
   const router = useRouter();
   const orderId = searchParams.get('orderId');
 
+  const [mounted, setMounted] = React.useState(false);
   const [order, setOrder] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  React.useEffect(() => {
+    if (!mounted) return;
+
     if (!orderId) {
       router.push('/shop');
       return;
@@ -35,15 +42,16 @@ export default function CheckoutSuccessPage() {
     }
 
     getOrderDetails(orderId);
-  }, [orderId, router]);
+  }, [mounted, orderId, router]);
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
       <div className="min-h-screen bg-muted/10 flex items-center justify-center p-6">
         <RefreshCw className="h-8 w-8 animate-spin text-amber-500" />
       </div>
     );
   }
+
 
   if (!order) {
     return (

@@ -10,6 +10,7 @@ import { addToCart } from '@/features/cart';
 import { api } from '@/services/axios';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import { ProductQuickView } from './product-quick-view';
 
 interface ProductCardProps {
   product: IProduct;
@@ -36,6 +37,11 @@ export function ProductCard({ product }: ProductCardProps) {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!user || !accessToken) {
+      toast.error('Please log in to add items to your cart.');
+      window.location.href = '/auth/login';
+      return;
+    }
     if (!activeVariant) {
       toast.error('This product is currently out of stock.');
       return;
@@ -52,9 +58,8 @@ export function ProductCard({ product }: ProductCardProps) {
     e.preventDefault();
     e.stopPropagation();
     if (!user || !accessToken) {
-      toast.error('Log in to save to wishlist', {
-        action: { label: 'Log In', onClick: () => (window.location.href = '/auth/login') },
-      });
+      toast.error('Please log in to save items to your wishlist.');
+      window.location.href = '/auth/login';
       return;
     }
     const pId = product._id || (product as any).id;
@@ -97,37 +102,45 @@ export function ProductCard({ product }: ProductCardProps) {
             unoptimized
           />
 
+          {/* Anti-Tarnish Badge (PRAO Feature) */}
+          {(product.tags?.includes('anti-tarnish') || product.brand === 'PRAO Paris' || product.name.toLowerCase().includes('anti-tarnish')) && (
+            <div className="absolute left-3 top-3 z-10 bg-amber-500 text-slate-950 font-extrabold text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-md flex items-center gap-1 border border-amber-300">
+              <span>✨</span> Anti-Tarnish
+            </div>
+          )}
+
           {/* Discount badge */}
           {discount > 0 && (
-            <div className="absolute left-3 top-3 bg-rose-500 text-white text-xs font-bold px-2 py-1 rounded-full uppercase tracking-wider shadow-md">
+            <div className={`absolute top-3 ${product.tags?.includes('anti-tarnish') || product.brand === 'PRAO Paris' ? 'left-28' : 'left-3'} bg-rose-500 text-white text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-md z-10`}>
               -{discount}%
             </div>
           )}
 
-          {/* Quick action buttons (appear on hover) */}
-          <div className="absolute right-3 top-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-2 group-hover:translate-x-0">
+          {/* Wishlist Button - Default Normal & Filled When Wishlisted */}
+          <div className="absolute right-3 top-3 z-20">
             <button
               onClick={handleWishlist}
-              title="Add to Wishlist"
-              className={`p-2 rounded-full shadow-lg text-white transition-all duration-200 active:scale-90 ${
+              title={wishlisted ? 'Wishlisted' : 'Add to Wishlist'}
+              className={`p-2.5 rounded-full transition-all duration-200 active:scale-90 shadow-sm ${
                 wishlisted
-                  ? 'bg-rose-500'
-                  : 'bg-background/80 text-foreground hover:bg-rose-500 hover:text-white backdrop-blur-sm'
+                  ? 'bg-rose-500 text-white shadow-rose-500/30 scale-105 border border-rose-500'
+                  : 'bg-white/90 text-slate-700 hover:text-rose-500 hover:bg-white backdrop-blur-md border border-slate-200/80 hover:shadow-md'
               }`}
             >
-              <Heart className={`h-4 w-4 ${wishlisted ? 'fill-current' : ''}`} />
+              <Heart className={`h-4 w-4 transition-colors ${wishlisted ? 'fill-current text-white' : 'fill-none'}`} />
             </button>
           </div>
 
+
           {/* Add to Cart bar on bottom hover */}
-          <div className="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+          <div className="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-10">
             <button
               onClick={handleAddToCart}
               disabled={!activeVariant || cartLoading}
               className={`w-full py-2.5 flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wider transition-colors ${
                 !activeVariant
                   ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                  : 'bg-amber-500 hover:bg-amber-600 text-white'
+                  : 'bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold'
               }`}
             >
               <ShoppingCart className="h-3.5 w-3.5" />
@@ -151,10 +164,10 @@ export function ProductCard({ product }: ProductCardProps) {
             {Array.from({ length: 5 }).map((_, i) => (
               <Star
                 key={i}
-                className={`h-3 w-3 ${i < Math.round(product.ratingsAverage) ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30 fill-none'}`}
+                className={`h-3 w-3 ${i < Math.round(product.ratingsAverage || 0) ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30 fill-none'}`}
               />
             ))}
-            <span className="text-xs text-muted-foreground ml-1">({product.ratingsQuantity})</span>
+            <span className="text-xs text-muted-foreground ml-1">({product.ratingsQuantity || 0})</span>
           </div>
 
           <div className="pt-1 flex items-baseline gap-2 mt-auto">
@@ -169,3 +182,5 @@ export function ProductCard({ product }: ProductCardProps) {
     </Link>
   );
 }
+
+

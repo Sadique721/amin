@@ -118,21 +118,16 @@ export default function LoginPage() {
     }
 
     try {
-      const response = await sendOtpApi(email);
+      await sendOtpApi(email);
       setOtpStep(2);
       setTimer(60);
-      const devOtp = response?.data?.devOtp;
-      if (devOtp) {
-        toast.success(`OTP sent to ${email}! (Dev OTP: ${devOtp})`);
-        setOtpCode(devOtp); // Auto-fill in development for fast testing
-      } else {
-        toast.success(`OTP sent to your email (${email})!`);
-      }
+      toast.success(`Verification code sent to your email (${email})!`);
     } catch (err: any) {
       setErrors({ general: err.response?.data?.message || 'Failed to send OTP. Please try again.' });
     } finally {
       setLoading(false);
     }
+
   };
 
   // OTP Login Step 2: Verify OTP

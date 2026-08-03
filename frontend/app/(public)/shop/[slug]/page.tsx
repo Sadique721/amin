@@ -76,6 +76,11 @@ export default function ShopDetailPage({ params }: { params: Promise<{ slug: str
 
   // ─── Add to Cart ──────────────────────────────────────────────────
   const handleAddToCart = () => {
+    if (!user || !accessToken) {
+      toast.error('Please log in to add items to your cart.');
+      window.location.href = '/auth/login';
+      return;
+    }
     if (!product || !selectedVariant) return;
     dispatch(addToCart({ product, variant: selectedVariant, quantity }));
     toast.success(`Added to cart!`, {
@@ -85,22 +90,26 @@ export default function ShopDetailPage({ params }: { params: Promise<{ slug: str
 
   // ─── Buy Now ──────────────────────────────────────────────────────
   const handleBuyNow = () => {
+    if (!user || !accessToken) {
+      toast.error('Please log in to proceed with purchase.');
+      window.location.href = '/auth/login';
+      return;
+    }
     if (!product || !selectedVariant) return;
     dispatch(addToCart({ product, variant: selectedVariant, quantity }));
     toast.success('Redirecting to checkout...');
-    // Navigate to checkout
     window.location.href = '/checkout';
   };
 
   // ─── Add to Wishlist ──────────────────────────────────────────────
   const handleAddToWishlist = async () => {
     if (!user || !accessToken) {
-      toast.error('Please log in to save items to your wishlist.', {
-        action: { label: 'Log In', onClick: () => window.location.href = '/auth/login' },
-      });
+      toast.error('Please log in to save items to your wishlist.');
+      window.location.href = '/auth/login';
       return;
     }
     if (!product) return;
+
     const targetId = product._id || (product as any).id;
     setWishlistLoading(true);
     try {

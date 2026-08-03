@@ -12,7 +12,7 @@ import crypto from 'crypto';
 export class AuthService {
   private userRepository = new UserRepository();
 
-  async requestOtp(email: string): Promise<{ hasPassword: boolean; devOtp?: string }> {
+  async requestOtp(email: string): Promise<{ hasPassword: boolean }> {
     const formattedEmail = email.toLowerCase().trim();
     const adminEmail = env.ADMIN_EMAIL ? env.ADMIN_EMAIL.toLowerCase().trim() : 'admin@sanab.com';
     
@@ -35,9 +35,9 @@ export class AuthService {
 
     return {
       hasPassword,
-      devOtp: env.NODE_ENV !== 'production' ? otp : undefined
     };
   }
+
 
   async verifyOtp(email: string, otpCode: string, meta?: { ip: string; userAgent: string }) {
     const formattedEmail = email.toLowerCase().trim();
@@ -119,7 +119,9 @@ export class AuthService {
 
     await OTP.deleteOne({ _id: otpRecord._id });
 
+    let isNewUser = false;
     if (!user) {
+      isNewUser = true;
       const defaultName = formattedEmail.split('@')[0];
       user = await this.userRepository.create({
         name: defaultName.charAt(0).toUpperCase() + defaultName.slice(1),
@@ -127,6 +129,9 @@ export class AuthService {
         role: formattedEmail === adminEmail ? 'admin' : 'customer',
         isEmailVerified: true,
       });
+      try {
+        await emailQueue.add({ type: 'welcome', email: user.email, name: user.name });
+      } catch (e) {}
     }
 
     const payload = { sub: user._id.toString(), role: user.role };
