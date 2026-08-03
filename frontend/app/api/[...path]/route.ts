@@ -1,7 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
+import nodemailer from 'nodemailer';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+async function sendOtpEmail(to: string, otp: string) {
+  try {
+    const host = process.env.SMTP_HOST || process.env.MAIL_HOST || 'smtp.gmail.com';
+    const port = parseInt(process.env.SMTP_PORT || process.env.MAIL_PORT || '465');
+    const user = process.env.SMTP_USER || process.env.MAIL_USERNAME || 'mdsadiqueamin721786@gmail.com';
+    const pass = process.env.SMTP_PASS || process.env.MAIL_PASSWORD || 'thvmiexrbpfekwqz';
+    const from = process.env.SMTP_FROM || user;
+
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass },
+      tls: { rejectUnauthorized: false },
+    });
+
+    await transporter.sendMail({
+      from: `"SANAB Luxury Atelier" <${from}>`,
+      to,
+      subject: `Your SANAB Verification Code: ${otp}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 25px; background-color: #0f0f11; color: #ffffff; border-radius: 12px; max-width: 500px; margin: 0 auto; border: 1px solid #333;">
+          <h2 style="color: #f59e0b; margin-top: 0; font-size: 22px;">✨ SANAB Enterprise Luxury Atelier</h2>
+          <p style="font-size: 14px; color: #cccccc; line-height: 1.5;">Welcome! Please use the following 6-digit One-Time Password (OTP) to complete your verification:</p>
+          <div style="background-color: #1c1c21; border: 1px solid #f59e0b; padding: 16px; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #f59e0b; text-align: center; margin: 25px 0; border-radius: 8px;">
+            ${otp}
+          </div>
+          <p style="font-size: 12px; color: #888888; margin-bottom: 0;">This OTP is valid for 10 minutes. If you did not request this code, please ignore this email.</p>
+        </div>
+      `,
+    });
+  } catch (err: any) {
+    console.error('SMTP Mail send error:', err?.message || err);
+  }
+}
 
 // Lazy-load db helpers
 let _dbModule: any = null;
@@ -117,32 +154,66 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
 
   // ── PUBLIC AUTH ───────────────────────────────────────────────────────────
   // POST /api/public/auth/otp/send
-  if (route === 'public/auth/otp/send' && method === 'POST') {
+  if ((route === 'public/auth/otp/send' || route === 'auth/otp/send') && method === 'POST') {
     try {
       const body = await req.json();
-      const backendRes = await fetch('http://localhost:2800/api/public/auth/otp/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const data = await backendRes.json();
-      return NextResponse.json(data, { status: backendRes.status });
+      const email = (body.email || '').toLowerCase().trim();
+      if (!email || !email.includes('@')) return err('Valid email address is required', 400);
+
+      // Generate 6-digit OTP
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+      const { Otp } = await getModels();
+      await Otp.save(email, otpCode);
+
+      // Send email via Nodemailer SMTP asynchronously
+      sendOtpEmail(email, otpCode);
+
+      return ok({ message: 'Verification code sent to your email address' });
     } catch (e: any) {
-      return err(e.message || 'Failed to communicate with authentication server', 500);
+      return err(e.message || 'Failed to send verification code', 500);
     }
   }
 
   // POST /api/public/auth/otp/verify
-  if (route === 'public/auth/otp/verify' && method === 'POST') {
+  if ((route === 'public/auth/otp/verify' || route === 'auth/otp/verify') && method === 'POST') {
     try {
       const body = await req.json();
-      const backendRes = await fetch('http://localhost:2800/api/public/auth/otp/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+      const email = (body.email || '').toLowerCase().trim();
+      const otp = (body.otp || body.code || '').toString().trim();
+
+      if (!email || !otp) return err('Email and OTP verification code are required', 400);
+
+      const { Otp, User } = await getModels();
+      const isValid = await Otp.verify(email, otp);
+
+      if (!isValid) {
+        return err('Invalid or expired verification code. Please try again.', 401);
+      }
+
+      // Check if user exists, else auto-create user
+      let user = await User.findByEmail(email);
+      if (!user) {
+        const rawName = email.split('@')[0].replace(/[^a-zA-Z0-9]+/g, ' ');
+        const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+        const defaultPassword = await bcrypt.hash('SanabUser@123', 10);
+        user = await User.create({
+          name: formattedName,
+          email,
+          password: defaultPassword,
+          role: 'user',
+        });
+      }
+
+      const payload = { id: user._id, email: user.email, role: user.role, name: user.name };
+      const [accessToken, refreshToken] = await Promise.all([signAccess(payload), signRefresh(payload)]);
+
+      return ok({
+        user: { _id: user._id, name: user.name, email: user.email, role: user.role },
+        accessToken,
+        refreshToken,
+        message: 'Email verification successful!',
       });
-      const data = await backendRes.json();
-      return NextResponse.json(data, { status: backendRes.status });
     } catch (e: any) {
       return err(e.message || 'Failed to verify verification code', 500);
     }
