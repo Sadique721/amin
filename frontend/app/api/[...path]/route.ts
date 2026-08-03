@@ -343,29 +343,138 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
     try {
       const { searchParams } = new URL(req.url);
       const { Order } = await getModels();
-      const data = await Order.listByUser(
-        currentUser.id,
-        parseInt(searchParams.get('page') || '1'),
-        parseInt(searchParams.get('limit') || '10')
-      );
-      return ok({ results: data.results, totalResults: data.total, totalPages: data.totalPages });
+      const page = parseInt(searchParams.get('page') || '1');
+      const limit = parseInt(searchParams.get('limit') || '10');
+      // Search by userId first, then also merge results by email to catch all orders
+      const byId = await Order.listByUser(currentUser.id, page, limit);
+      const byEmail = await Order.listByUser(currentUser.email, page, limit);
+      // Deduplicate by order id
+      const seen = new Set<string>();
+      const combined: any[] = [];
+      for (const o of [...byId.results, ...byEmail.results]) {
+        if (!seen.has(o._id)) { seen.add(o._id); combined.push(o); }
+      }
+      combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      return ok({ results: combined, totalResults: combined.length, totalPages: Math.ceil(combined.length / limit) });
     } catch (e: any) { return err(e.message, 500); }
   }
 
-  // POST /api/orders (create order)
+  // POST /api/orders (create order — full payment + DB persistence)
   if (route === 'orders' && method === 'POST') {
     const currentUser = await getUser(req);
     if (!currentUser) return err('Authentication required', 401);
     try {
       const body = await req.json();
-      const { Order } = await getModels();
+      const { items: cartItems, shippingAddress, couponCode, paymentMethod, paymentDetailsInput } = body;
+
+      if (!cartItems || cartItems.length === 0) return err('No items in order', 400);
+
+      // ── Resolve product details from DB ──
+      const { Order, Product } = await getModels();
+      const resolvedItems: any[] = [];
+      let subtotal = 0;
+
+      for (const ci of cartItems) {
+        let prod: any = null;
+        try {
+          prod = await Product.findById(ci.productId);
+          if (!prod) prod = await Product.findBySlug(ci.productId);
+        } catch {}
+
+        const price = prod?.salePrice || prod?.price || ci.price || 0;
+        const name = prod?.name || ci.name || 'Product';
+        const image = (prod?.images?.[0]) || ci.image || '';
+        const qty = parseInt(ci.quantity) || 1;
+        subtotal += price * qty;
+
+        resolvedItems.push({
+          productId: ci.productId,
+          name,
+          sku: ci.sku || prod?.sku || '',
+          price,
+          quantity: qty,
+          image,
+          total: price * qty,
+        });
+      }
+
+      // ── Coupon / discount ──
+      let discountAmount = 0;
+      if (couponCode === 'SANAB10') discountAmount = Math.round(subtotal * 0.10);
+      else if (couponCode === 'WELCOME20') discountAmount = Math.round(subtotal * 0.20);
+
+      const shipping = subtotal >= 999 ? 0 : 99;
+      const tax = Math.round((subtotal - discountAmount) * 0.05);
+      const total = Math.max(0, subtotal - discountAmount + shipping + tax);
+
+      // ── Process Authorize.net payment ──
+      let paymentDetails: any = { method: paymentMethod };
+      let paymentStatus = 'pending';
+
+      if (paymentMethod === 'authorize_net' && paymentDetailsInput) {
+        try {
+          const { cardNumber, cardExpiry, cardCvv, cardholderName } = paymentDetailsInput;
+          const cleanCard = (cardNumber || '').replace(/\s/g, '');
+          const [expMonth, expYear] = (cardExpiry || '/').split('/');
+          const expirationDate = `20${(expYear || '').trim()}-${(expMonth || '').trim().padStart(2, '0')}`;
+          const nameParts = (cardholderName || currentUser.name || 'Card Holder').trim().split(' ');
+          const firstName = nameParts[0] || 'Card';
+          const lastName = nameParts.slice(1).join(' ') || 'Holder';
+
+          const txResult = await chargeAuthorizeNet({
+            amount: total,
+            cardNumber: cleanCard,
+            expirationDate,
+            cardCode: (cardCvv || '').trim(),
+            firstName,
+            lastName,
+            email: currentUser.email,
+            description: `SANAB Order — ${resolvedItems.map(i => i.name).join(', ').slice(0, 60)}`,
+          });
+
+          paymentStatus = 'paid';
+          paymentDetails = {
+            method: 'authorize_net',
+            transactionId: txResult.transactionId,
+            authCode: txResult.authCode,
+            accountNumber: txResult.accountNumber,
+            message: txResult.message,
+            cardholderName: cardholderName || currentUser.name,
+            last4: cleanCard.slice(-4),
+            processedAt: new Date().toISOString(),
+          };
+        } catch (payErr: any) {
+          return err(`Payment failed: ${payErr.message || 'Card declined'}`, 402);
+        }
+      }
+
+      if (paymentMethod === 'razorpay') {
+        paymentDetails = { method: 'razorpay', razorpayOrderId: `rzp_mock_${Date.now()}`, status: 'initiated' };
+      }
+      if (paymentMethod === 'cod') {
+        paymentStatus = 'pending';
+        paymentDetails = { method: 'cod', note: 'Pay on delivery' };
+      }
+
+      // ── Persist order to PostgreSQL ──
       const order = await Order.create({
-        ...body,
         userId: currentUser.id,
         userEmail: currentUser.email,
+        items: resolvedItems,
+        subtotal,
+        tax,
+        shipping,
+        total,
+        couponCode: couponCode || null,
+        shippingAddress,
+        paymentMethod,
+        paymentStatus,
+        paymentDetails,
+        status: paymentMethod === 'authorize_net' ? 'processing' : 'pending',
       });
+
       return ok(order, 201);
-    } catch (e: any) { return err(e.message, 500); }
+    } catch (e: any) { return err(e.message || 'Order creation failed', 500); }
   }
 
   // GET /api/orders/:id
@@ -377,7 +486,9 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
       const { Order } = await getModels();
       const order = await Order.findById(id);
       if (!order) return err('Order not found', 404);
-      if (currentUser.role !== 'admin' && order.userId !== currentUser.id) return err('Access denied', 403);
+      // Allow access if admin, or if order belongs to user (by id OR email)
+      const isOwner = order.userId === currentUser.id || order.userEmail === currentUser.email;
+      if (currentUser.role !== 'admin' && !isOwner) return err('Access denied', 403);
       return ok(order);
     } catch (e: any) { return err(e.message, 500); }
   }
