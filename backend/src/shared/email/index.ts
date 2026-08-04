@@ -58,6 +58,47 @@ export class EmailService {
     return this.etherealTransporter;
   }
 
+  // ── Primary: Resend HTTP API (fastest — no SMTP socket overhead) ─────────────
+  private static async sendViaResend(options: {
+    to: string;
+    subject: string;
+    html: string;
+    fromName?: string;
+  }): Promise<boolean> {
+    const resendKey = process.env.RESEND_API_KEY || '';
+    if (!resendKey || resendKey.includes('PLACEHOLDER') || resendKey.includes('REPLACE')) {
+      return false; // Not configured
+    }
+
+    try {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: `${options.fromName || 'SANAB Luxury Atelier'} <onboarding@resend.dev>`,
+          to: [options.to],
+          subject: options.subject,
+          html: options.html,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json() as any;
+        logger.info(`[RESEND] ✅ Email delivered to ${options.to} | id: ${data?.id}`);
+        return true;
+      }
+      const errBody = await res.text();
+      logger.warn(`[RESEND] Failed (${res.status}): ${errBody}`);
+      return false;
+    } catch (err: any) {
+      logger.warn(`[RESEND] Request error: ${err?.message}`);
+      return false;
+    }
+  }
+
   private static async sendMailWithFallback(options: {
     to: string;
     subject: string;
@@ -65,9 +106,17 @@ export class EmailService {
     html: string;
   }): Promise<boolean> {
     const fromUser = env.SMTP_USER || process.env.MAIL_USERNAME || 'entitykart@gmail.com';
+    logger.info(`[EMAIL SERVICE] Sending to: ${options.to} | Subject: "${options.subject}"`);
 
-    logger.info(`[EMAIL SERVICE] Sending email to: ${options.to} | Subject: "${options.subject}"`);
+    // 1st: Try Resend (instant HTTP call — no SMTP socket penalty)
+    const resendOk = await this.sendViaResend({
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
+    });
+    if (resendOk) return true;
 
+    // 2nd: Try Gmail SMTP (Nodemailer)
     try {
       const transporter = this.getTransporter();
       const info = await transporter.sendMail({
@@ -77,33 +126,33 @@ export class EmailService {
         text: options.text,
         html: options.html,
       });
-
-      logger.info(`[EMAIL SERVICE SUCCESS] Delivered email directly to ${options.to}! MessageId: ${info.messageId}`);
+      logger.info(`[GMAIL SMTP] ✅ Delivered to ${options.to} | id: ${info.messageId}`);
       return true;
     } catch (err: any) {
-      logger.warn(`[EMAIL SMTP WARNING] Gmail/SMTP returned: ${err?.message || err}`);
-      logger.info(`[ETHREAL FALLBACK] Dispatching live test email via Ethereal Mailer...`);
-
-      try {
-        const ethereal = await this.getEtherealTransporter();
-        const etherealInfo = await ethereal.sendMail({
-          from: `"SANAB Luxury Atelier" <no-reply@sanab.com>`,
-          to: options.to,
-          subject: options.subject,
-          text: options.text,
-          html: options.html,
-        });
-
-        const previewUrl = nodemailer.getTestMessageUrl(etherealInfo);
-        logger.info(`[ETHEREAL SUCCESS] Email sent to Ethereal Inbox! View email online: ${previewUrl}`);
-      } catch (etherealErr) {
-        logger.error(`[ETHEREAL ERROR] Ethereal fallback error:`, etherealErr);
-      }
-
-      this.transporter = null;
-      return true;
+      logger.warn(`[GMAIL SMTP] Failed: ${err?.message || err}`);
+      this.transporter = null; // reset so next call retries fresh
     }
+
+    // 3rd: Ethereal (debug fallback — email visible at ethereal.email, not real inbox)
+    try {
+      logger.info(`[ETHEREAL FALLBACK] Gmail failed — routing via Ethereal test mailer...`);
+      const ethereal = await this.getEtherealTransporter();
+      const etherealInfo = await ethereal.sendMail({
+        from: `"SANAB Luxury Atelier" <no-reply@sanab.com>`,
+        to: options.to,
+        subject: options.subject,
+        text: options.text,
+        html: options.html,
+      });
+      const previewUrl = nodemailer.getTestMessageUrl(etherealInfo);
+      logger.info(`[ETHEREAL] Email sent — preview: ${previewUrl}`);
+    } catch (etherealErr) {
+      logger.error(`[ETHEREAL ERROR] All email fallbacks exhausted:`, etherealErr);
+    }
+
+    return true;
   }
+
 
   // ─── 1. Send OTP Verification Code ──────────────────────────────────────────
   static async sendOTP(email: string, otp: string): Promise<boolean> {
