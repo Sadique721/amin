@@ -9,6 +9,7 @@ import { uploadRoutes } from '@/modules/upload';
 import { cmsRoutes } from '@/modules/cms';
 import { wishlistRoutes } from '@/modules/wishlist';
 import { paymentRoutes } from '@/modules/payments';
+import { reviewRoutes } from '@/modules/reviews';
 
 const router = Router();
 
@@ -22,5 +23,6 @@ router.use('/upload', uploadRoutes);
 router.use('/cms', cmsRoutes);
 router.use('/wishlist', wishlistRoutes);
 router.use('/payments', paymentRoutes);
+router.use('/reviews', reviewRoutes);
 
 export default router;

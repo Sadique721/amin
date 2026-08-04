@@ -22,9 +22,9 @@ export class OrderService {
     : null;
 
   async createOrder(
-    userId: string,
-    itemsInput: { productId: string; sku: string; quantity: number }[],
-    shippingAddress: any,
+    userId?: string,
+    itemsInput: { productId: string; sku: string; quantity: number }[] = [],
+    shippingAddress: any = {},
     couponCode?: string,
     paymentMethod: 'razorpay' | 'cod' | 'authorize_net' | 'card' = 'cod',
     paymentDetailsInput?: any
@@ -70,6 +70,14 @@ export class OrderService {
     }
 
     const total = Math.max(0, subtotal - discount);
+
+    // COD eligibility check
+    if (paymentMethod === 'cod') {
+      const maxCodAmount = env.MAX_COD_AMOUNT || 5000;
+      if (total > maxCodAmount) {
+        throw new BadRequestException(`COD is not available for orders above ₹${maxCodAmount}. Please choose an online payment method.`);
+      }
+    }
     
     const isCardPayment = paymentMethod === 'authorize_net' || paymentMethod === 'card';
     const rawCardNum = paymentDetailsInput?.cardNumber || '';
@@ -103,7 +111,7 @@ export class OrderService {
     }
 
     const order = await this.repository.create({
-      user: userId as any,
+      user: userId ? (userId as any) : undefined,
       items,
       shippingAddress,
       paymentDetails,
@@ -149,7 +157,7 @@ export class OrderService {
       throw new NotFoundException('Order not found with this Razorpay order ID');
     }
 
-    if (userRole !== 'admin' && order.user.toString() !== userId) {
+    if (userRole !== 'admin' && order.user && order.user.toString() !== userId) {
       throw new ForbiddenException('You are not authorized to access this order');
     }
 
@@ -192,9 +200,11 @@ export class OrderService {
 
     // Dispatch Order Confirmation Email
     try {
-      const user = await User.findById(order.user);
-      if (user && user.email) {
-        await emailQueue.add({ type: 'order_placed', email: user.email, order });
+      if (order.user) {
+        const user = await User.findById(order.user);
+        if (user && user.email) {
+          await emailQueue.add({ type: 'order_placed', email: user.email, order });
+        }
       }
     } catch (e) {}
 
@@ -207,7 +217,7 @@ export class OrderService {
       throw new NotFoundException('Order not found');
     }
 
-    const orderUserId = (order.user as any)?._id ? (order.user as any)._id.toString() : order.user.toString();
+    const orderUserId = order.user ? ((order.user as any)?._id ? (order.user as any)._id.toString() : order.user.toString()) : '';
     if (userRole !== 'admin' && orderUserId !== userId.toString()) {
       throw new ForbiddenException('You are not authorized to access this order');
     }
@@ -231,9 +241,11 @@ export class OrderService {
 
     // Dispatch Order Confirmation Email
     try {
-      const user = await User.findById(order.user);
-      if (user && user.email) {
-        await emailQueue.add({ type: 'order_placed', email: user.email, order });
+      if (order.user) {
+        const user = await User.findById(order.user);
+        if (user && user.email) {
+          await emailQueue.add({ type: 'order_placed', email: user.email, order });
+        }
       }
     } catch (e) {}
 
@@ -244,7 +256,7 @@ export class OrderService {
     const order = await this.repository.findById(id);
     if (!order) throw new NotFoundException('Order not found');
 
-    if (userRole !== 'admin' && order.user.toString() !== userId) {
+    if (userRole !== 'admin' && order.user && order.user.toString() !== userId) {
       throw new ForbiddenException('You are not authorized to access this order');
     }
 

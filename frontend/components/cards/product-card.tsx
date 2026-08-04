@@ -1,1 +1,1 @@
-export default function ProductCard() { return <div>ProductCard</div>; }
+export { ProductCard, ProductCard as default } from '@/features/products/components/product-card';

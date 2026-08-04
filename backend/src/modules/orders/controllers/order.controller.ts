@@ -6,14 +6,14 @@ import { AuthenticatedRequest } from '@/middlewares/auth.middleware';
 export class OrderController {
   private service = new OrderService();
 
-  createOrder = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  createOrder = async (req: Request, res: Response, NextFunction: NextFunction): Promise<void> => {
     try {
       const { items, shippingAddress, couponCode, paymentMethod, paymentDetails } = req.body;
-      const userId = (req as AuthenticatedRequest).user!.id;
+      const userId = (req as AuthenticatedRequest).user?.id;
       const order = await this.service.createOrder(userId, items, shippingAddress, couponCode, paymentMethod, paymentDetails);
       res.status(201).json(new ApiResponse(201, order, 'Order created successfully'));
     } catch (error) {
-      next(error);
+      NextFunction(error);
     }
   };
 

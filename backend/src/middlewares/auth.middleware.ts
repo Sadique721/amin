@@ -57,3 +57,37 @@ export const authMiddleware = async (
     next(error);
   }
 };
+
+export const optionalAuthMiddleware = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return next();
+    }
+
+    const token = authHeader.split(' ')[1];
+    let payload: IJwtPayload;
+    try {
+      payload = verifyToken(token, env.JWT_SECRET) as unknown as IJwtPayload;
+    } catch {
+      return next();
+    }
+
+    const userId = payload.sub;
+    const user = await userRepository.findById(userId);
+    if (user && user.isActive) {
+      (req as AuthenticatedRequest).user = {
+        id: user.id,
+        role: user.role,
+      };
+    }
+
+    next();
+  } catch {
+    next();
+  }
+};

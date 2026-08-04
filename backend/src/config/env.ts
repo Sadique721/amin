@@ -50,6 +50,7 @@ const envSchema = z.object({
   ADMIN_EMAIL: z.string().optional(),
   ADMIN_PASSWORD: z.string().optional(),
   ALLOWED_ORIGINS: z.string().optional(),
+  MAX_COD_AMOUNT: z.coerce.number().default(5000),
 });
 
 const parseEnv = () => {

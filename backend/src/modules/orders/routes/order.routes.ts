@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { OrderController } from '../controllers/order.controller';
-import { authMiddleware } from '@/middlewares/auth.middleware';
+import { authMiddleware, optionalAuthMiddleware } from '@/middlewares/auth.middleware';
 import { adminMiddleware } from '@/middlewares/admin.middleware';
 import { validationMiddleware } from '@/middlewares/validation.middleware';
 import {
@@ -13,18 +13,18 @@ import {
 const router = Router();
 const controller = new OrderController();
 
-router.use(authMiddleware);
+// Guest / User Order Creation (optional auth)
+router.post('/', optionalAuthMiddleware, validationMiddleware(createOrderSchema), controller.createOrder);
 
-// User Order Actions
-router.post('/', validationMiddleware(createOrderSchema), controller.createOrder);
-router.post('/verify/razorpay', validationMiddleware(verifyRazorpayPaymentSchema), controller.verifyRazorpayPayment);
-router.post('/verify/cod', validationMiddleware(verifyCodPaymentSchema), controller.verifyCodPayment);
-router.get('/my-orders', controller.listUserOrders);
-router.get('/:id', controller.getOrderById);
+// Admin Order Actions (registered before /:id)
+router.get('/admin/list', authMiddleware, adminMiddleware, controller.listAllOrdersAdmin);
+router.patch('/admin/:id/status', authMiddleware, adminMiddleware, validationMiddleware(updateOrderStatusSchema), controller.updateOrderStatusAdmin);
+router.get('/admin/stats', authMiddleware, adminMiddleware, controller.getSalesStatsAdmin);
 
-// Admin Order Actions
-router.get('/admin/list', adminMiddleware, controller.listAllOrdersAdmin);
-router.patch('/admin/:id/status', adminMiddleware, validationMiddleware(updateOrderStatusSchema), controller.updateOrderStatusAdmin);
-router.get('/admin/stats', adminMiddleware, controller.getSalesStatsAdmin);
+// User Order Actions (require auth)
+router.post('/verify/razorpay', authMiddleware, validationMiddleware(verifyRazorpayPaymentSchema), controller.verifyRazorpayPayment);
+router.post('/verify/cod', authMiddleware, validationMiddleware(verifyCodPaymentSchema), controller.verifyCodPayment);
+router.get('/my-orders', authMiddleware, controller.listUserOrders);
+router.get('/:id', authMiddleware, controller.getOrderById);
 
 export default router;

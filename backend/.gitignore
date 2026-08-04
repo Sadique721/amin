@@ -27,6 +27,8 @@ storage/company/*
 !storage/company/.gitkeep
 storage/downloads/*
 !storage/downloads/.gitkeep
+storage/backups/*
+!storage/backups/.gitkeep
 
 # IDE Settings
 .vscode/

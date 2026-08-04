@@ -8,6 +8,8 @@ import { Order } from '@/modules/orders/models/order.model';
 import { logger } from '@/shared/logger';
 import { AuthorizeNetService } from '../services/authorizenet.service';
 
+import { WebhookLog } from '../models/webhook-log.model';
+
 let razorpayInstance: Razorpay | null = null;
 if (env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET) {
   razorpayInstance = new Razorpay({
@@ -43,7 +45,7 @@ export class PaymentController {
         receipt: `receipt_${order._id}`,
         notes: {
           orderId: order._id.toString(),
-          userId: order.user.toString(),
+          userId: order.user ? order.user.toString() : 'guest',
         },
       };
 
@@ -138,7 +140,18 @@ export class PaymentController {
       }
 
       const event = req.body.event;
-      logger.info(`📡 Received Razorpay Webhook Event: ${event}`);
+      const eventId = (req.headers['x-razorpay-event-id'] as string) ||
+        (req.body.payload?.payment?.entity?.id ? `${event}_${req.body.payload.payment.entity.id}` : `evt_${Date.now()}`);
+
+      // Idempotency check via WebhookLog
+      const existingLog = await WebhookLog.findOne({ eventId });
+      if (existingLog) {
+        logger.info(`ℹ️ Webhook event ${eventId} already processed (idempotent skip)`);
+        res.status(200).json({ status: 'ignored duplicate' });
+        return;
+      }
+
+      logger.info(`📡 Received Razorpay Webhook Event: ${event} [${eventId}]`);
 
       if (event === 'payment.captured') {
         const paymentEntity = req.body.payload.payment.entity;
@@ -154,8 +167,16 @@ export class PaymentController {
         }
       }
 
+      // Record successful webhook execution
+      await WebhookLog.create({
+        provider: 'razorpay',
+        eventId,
+        payload: req.body,
+        processedStatus: 'success',
+      });
+
       res.status(200).json({ status: 'ok' });
-    } catch (error) {
+    } catch (error: any) {
       next(error);
     }
   }

@@ -35,7 +35,7 @@ export interface IPaymentDetails {
 }
 
 export interface IOrder extends Document {
-  user: mongoose.Types.ObjectId;
+  user?: mongoose.Types.ObjectId;
   items: IOrderItem[];
   shippingAddress: IShippingAddress;
   paymentDetails: IPaymentDetails;
@@ -58,7 +58,7 @@ const OrderSchema = new Schema<IOrder>(
     user: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      required: false,
     },
     items: [
       {

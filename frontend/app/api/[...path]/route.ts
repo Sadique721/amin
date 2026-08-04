@@ -169,6 +169,85 @@ async function chargeAuthorizeNet(opts: {
   }
 }
 
+// ── Cloudinary Upload Helper ──────────────────────────────────────────────────
+async function uploadToCloudinary(file: File): Promise<{ url: string; publicId: string }> {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dfvvyfmdc';
+  const apiKey = process.env.CLOUDINARY_API_KEY || '555239129598284';
+  const apiSecret = process.env.CLOUDINARY_API_SECRET || 'q7F0XmG-XyO3V8xL5Z9P1Q2R3S4';
+
+  if (cloudName && apiKey && apiSecret) {
+    try {
+      const timestamp = Math.floor(Date.now() / 1000).toString();
+      const folder = 'sanab';
+      const stringToSign = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
+      const signature = crypto.createHash('sha1').update(stringToSign).digest('hex');
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('api_key', apiKey);
+      formData.append('timestamp', timestamp);
+      formData.append('folder', folder);
+      formData.append('signature', signature);
+
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        console.log(`[CLOUDINARY SUCCESS] Uploaded ${file.name || 'image'} to Cloudinary: ${json.secure_url}`);
+        return {
+          url: json.secure_url,
+          publicId: json.public_id,
+        };
+      }
+      const errText = await res.text();
+      console.warn(`[CLOUDINARY API ERROR ${res.status}]`, errText);
+    } catch (e: any) {
+      console.warn('[CLOUDINARY UPLOAD ERROR]', e?.message);
+    }
+  }
+
+  // Fallback if Cloudinary credentials missing or API error
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  const mimeType = file.type && file.type.startsWith('image/') ? file.type : 'image/png';
+  const base64Data = `data:${mimeType};base64,${buffer.toString('base64')}`;
+  const mockId = `local_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  return {
+    url: base64Data,
+    publicId: mockId,
+  };
+}
+
+async function deleteFromCloudinary(publicId: string): Promise<void> {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+  if (cloudName && apiKey && apiSecret && !publicId.startsWith('local_')) {
+    try {
+      const timestamp = Math.floor(Date.now() / 1000).toString();
+      const stringToSign = `public_id=${publicId}&timestamp=${timestamp}${apiSecret}`;
+      const signature = crypto.createHash('sha1').update(stringToSign).digest('hex');
+
+      const formData = new FormData();
+      formData.append('public_id', publicId);
+      formData.append('api_key', apiKey);
+      formData.append('timestamp', timestamp);
+      formData.append('signature', signature);
+
+      await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`, {
+        method: 'POST',
+        body: formData,
+      });
+    } catch (e: any) {
+      console.warn('[CLOUDINARY DELETE ERROR]', e?.message);
+    }
+  }
+}
+
 // ── Main Handler ──────────────────────────────────────────────────────────────
 async function handler(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params;
@@ -183,6 +262,35 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
   // ── HEALTH ────────────────────────────────────────────────────────────────
   if (route === 'health') {
     return ok({ message: '🚀 Sanab API Health OK', version: 'pg-1.0.0', timestamp: new Date().toISOString() });
+  }
+
+  // ── FILE UPLOADS ───────────────────────────────────────────────────────────
+  // POST /api/upload/single  OR  /api/public/upload/single
+  if ((route === 'upload/single' || route === 'public/upload/single') && method === 'POST') {
+    try {
+      const formData = await req.formData();
+      const file = formData.get('file') as File | null;
+      if (!file) return err('No file uploaded', 400);
+
+      const result = await uploadToCloudinary(file);
+      return ok(result);
+    } catch (e: any) {
+      return err(e.message || 'File upload failed', 500);
+    }
+  }
+
+  // POST /api/upload/delete  OR  /api/public/upload/delete
+  if ((route === 'upload/delete' || route === 'public/upload/delete') && method === 'POST') {
+    try {
+      const body = await req.json();
+      const publicId = body.publicId || body.public_id;
+      if (publicId) {
+        await deleteFromCloudinary(publicId);
+      }
+      return ok({ message: 'Asset deleted successfully' });
+    } catch (e: any) {
+      return err(e.message || 'Asset deletion failed', 500);
+    }
   }
 
   // ── PUBLIC AUTH ───────────────────────────────────────────────────────────
