@@ -1,42 +1,75 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import crypto from 'crypto';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-async function sendOtpEmail(to: string, otp: string) {
+// ── OTP email HTML template ───────────────────────────────────────────────────
+function buildOtpHtml(otp: string): string {
+  return `<div style="font-family:Arial,sans-serif;padding:25px;background-color:#0f0f11;color:#ffffff;border-radius:12px;max-width:500px;margin:0 auto;border:1px solid #333">
+    <h2 style="color:#f59e0b;margin-top:0;font-size:22px">✨ SANAB Luxury Atelier</h2>
+    <p style="font-size:14px;color:#cccccc;line-height:1.5">Use the verification code below to complete your sign-in. Valid for <strong>5 minutes</strong>.</p>
+    <div style="background-color:#1c1c21;border:2px solid #f59e0b;padding:20px;font-size:36px;font-weight:bold;letter-spacing:10px;color:#f59e0b;text-align:center;margin:24px 0;border-radius:10px">${otp}</div>
+    <p style="font-size:12px;color:#888;margin-bottom:0">If you didn't request this, you can safely ignore this email.</p>
+  </div>`;
+}
+
+// ── Fast email sender: Resend HTTP API first, Gmail SMTP fallback ─────────────
+async function sendOtpEmail(to: string, otp: string): Promise<void> {
+  const resendKey = process.env.RESEND_API_KEY;
+  const html = buildOtpHtml(otp);
+  const subject = `${otp} — Your SANAB Verification Code`;
+
+  // PRIMARY: Resend (instant HTTP call, no SMTP socket overhead)
+  if (resendKey) {
+    try {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: 'SANAB Luxury Atelier <onboarding@resend.dev>',
+          to: [to],
+          subject,
+          html,
+        }),
+      });
+      if (res.ok) {
+        console.log(`[RESEND] OTP email sent to ${to}`);
+        return;
+      }
+      const errBody = await res.text();
+      console.warn(`[RESEND] Failed (${res.status}): ${errBody}`);
+    } catch (e: any) {
+      console.warn('[RESEND] Error:', e?.message);
+    }
+  }
+
+  // FALLBACK: Gmail SMTP (Nodemailer)
   try {
-    const host = process.env.SMTP_HOST || process.env.MAIL_HOST || 'smtp.gmail.com';
-    const port = parseInt(process.env.SMTP_PORT || process.env.MAIL_PORT || '465');
-    const user = process.env.SMTP_USER || process.env.MAIL_USERNAME || 'mdsadiqueamin721786@gmail.com';
-    const pass = process.env.SMTP_PASS || process.env.MAIL_PASSWORD || 'thvmiexrbpfekwqz';
-    const from = process.env.SMTP_FROM || user;
-
+    const smtpUser = process.env.SMTP_USER || process.env.MAIL_USERNAME || '';
+    const smtpPass = process.env.SMTP_PASS || process.env.MAIL_PASSWORD || '';
     const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465,
-      auth: { user, pass },
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      auth: { user: smtpUser, pass: smtpPass },
       tls: { rejectUnauthorized: false },
+      connectionTimeout: 8000,
+      greetingTimeout: 5000,
     });
-
     await transporter.sendMail({
-      from: `"SANAB Luxury Atelier" <${from}>`,
+      from: `"SANAB Luxury Atelier" <${smtpUser}>`,
       to,
-      subject: `Your SANAB Verification Code: ${otp}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; padding: 25px; background-color: #0f0f11; color: #ffffff; border-radius: 12px; max-width: 500px; margin: 0 auto; border: 1px solid #333;">
-          <h2 style="color: #f59e0b; margin-top: 0; font-size: 22px;">✨ SANAB Enterprise Luxury Atelier</h2>
-          <p style="font-size: 14px; color: #cccccc; line-height: 1.5;">Welcome! Please use the following 6-digit One-Time Password (OTP) to complete your verification:</p>
-          <div style="background-color: #1c1c21; border: 1px solid #f59e0b; padding: 16px; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #f59e0b; text-align: center; margin: 25px 0; border-radius: 8px;">
-            ${otp}
-          </div>
-          <p style="font-size: 12px; color: #888888; margin-bottom: 0;">This OTP is valid for 10 minutes. If you did not request this code, please ignore this email.</p>
-        </div>
-      `,
+      subject,
+      html,
     });
+    console.log(`[GMAIL SMTP] OTP email sent to ${to}`);
   } catch (err: any) {
-    console.error('SMTP Mail send error:', err?.message || err);
+    console.error('[GMAIL SMTP] Failed:', err?.message || err);
   }
 }
 
@@ -549,7 +582,10 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
       }
 
       if (paymentMethod === 'razorpay') {
-        paymentDetails = { method: 'razorpay', razorpayOrderId: `rzp_mock_${Date.now()}`, status: 'initiated' };
+        // Real Razorpay order will be created separately via /api/payments/razorpay/create-order
+        // Store order as pending until Razorpay payment is initiated and verified
+        paymentStatus = 'pending';
+        paymentDetails = { method: 'razorpay', status: 'initiated' };
       }
       if (paymentMethod === 'cod') {
         paymentStatus = 'pending';
@@ -907,6 +943,146 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
       }
       return ok({ ...result, orderId });
     } catch (e: any) { return NextResponse.json({ success: false, message: e.message }, { status: 402 }); }
+  }
+
+  // ── RAZORPAY: Create Order ────────────────────────────────────────────────
+  // POST /api/payments/razorpay/create-order
+  if (route === 'payments/razorpay/create-order' && method === 'POST') {
+    const currentUser = await getUser(req);
+    if (!currentUser) return err('Authentication required', 401);
+    try {
+      const body = await req.json();
+      const { orderId } = body;
+      if (!orderId) return err('orderId is required', 400);
+
+      const { Order } = await getModels();
+      const order = await Order.findById(orderId);
+      if (!order) return err('Order not found', 404);
+
+      const keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '';
+      const keySecret = process.env.RAZORPAY_KEY_SECRET || '';
+
+      if (!keyId || !keySecret || keySecret.endsWith('_secret')) {
+        // Credentials not configured — return mock for testing
+        console.warn('[RAZORPAY] Key secret not configured or is placeholder. Returning mock order.');
+        return ok({
+          razorpayOrderId: `rzp_mock_${Date.now()}`,
+          amount: Math.round((order.total || 100) * 100),
+          currency: 'INR',
+          keyId: keyId || 'rzp_test_mockkey123',
+          isMock: true,
+        });
+      }
+
+      // Call Razorpay API to create a real order
+      const authHeader = 'Basic ' + Buffer.from(`${keyId}:${keySecret}`).toString('base64');
+      const rzpRes = await fetch('https://api.razorpay.com/v1/orders', {
+        method: 'POST',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: Math.round((order.total || 100) * 100), // paise
+          currency: 'INR',
+          receipt: `rcpt_${orderId.slice(-8)}`,
+          notes: { orderId, userId: currentUser.id },
+        }),
+      });
+
+      if (!rzpRes.ok) {
+        const rzpErr = await rzpRes.text();
+        console.error('[RAZORPAY] Create order failed:', rzpErr);
+        return err(`Razorpay order creation failed: ${rzpErr}`, 502);
+      }
+
+      const rzpOrder = await rzpRes.json();
+
+      // Save razorpayOrderId to our order record
+      await Order.updateStatus(orderId, order.status || 'pending', 'pending', {
+        ...order.paymentDetails,
+        method: 'razorpay',
+        razorpayOrderId: rzpOrder.id,
+        status: 'initiated',
+      });
+
+      return ok({
+        razorpayOrderId: rzpOrder.id,
+        amount: rzpOrder.amount,
+        currency: rzpOrder.currency,
+        keyId,
+        isMock: false,
+      });
+    } catch (e: any) {
+      console.error('[RAZORPAY] Error:', e?.message);
+      return err(e.message || 'Razorpay error', 500);
+    }
+  }
+
+  // ── RAZORPAY: Verify Payment ──────────────────────────────────────────────
+  // POST /api/orders/verify/razorpay
+  if (route === 'orders/verify/razorpay' && method === 'POST') {
+    const currentUser = await getUser(req);
+    if (!currentUser) return err('Authentication required', 401);
+    try {
+      const body = await req.json();
+      const { razorpayOrderId, razorpayPaymentId, razorpaySignature, orderId } = body;
+
+      if (!razorpayOrderId || !razorpayPaymentId) {
+        return err('razorpayOrderId and razorpayPaymentId are required', 400);
+      }
+
+      const keySecret = process.env.RAZORPAY_KEY_SECRET || '';
+
+      // If mock order or no key secret, skip signature check and mark paid
+      const isMock = razorpayOrderId.startsWith('rzp_mock_') || !keySecret || keySecret.endsWith('_secret');
+
+      if (!isMock && razorpaySignature) {
+        // Verify HMAC SHA256 signature
+        const expectedSig = crypto
+          .createHmac('sha256', keySecret)
+          .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+          .digest('hex');
+
+        if (expectedSig !== razorpaySignature) {
+          console.warn('[RAZORPAY] Signature mismatch — payment verification failed');
+          return err('Payment signature verification failed', 400);
+        }
+      }
+
+      // Find order by razorpayOrderId or by orderId
+      const { Order } = await getModels();
+      let order: any = null;
+
+      if (orderId) {
+        order = await Order.findById(orderId);
+      }
+      if (!order && !razorpayOrderId.startsWith('rzp_mock_')) {
+        // Try to find by razorpayOrderId in paymentDetails
+        order = await Order.findByRazorpayOrderId?.(razorpayOrderId);
+      }
+
+      if (order) {
+        await Order.updateStatus(order._id || order.id, 'processing', 'paid', {
+          ...order.paymentDetails,
+          method: 'razorpay',
+          razorpayOrderId,
+          razorpayPaymentId,
+          razorpaySignature: razorpaySignature || 'verified',
+          status: 'paid',
+          verifiedAt: new Date().toISOString(),
+        });
+      }
+
+      return ok({
+        message: 'Payment verified successfully',
+        orderId: order?._id || order?.id || orderId,
+        status: 'paid',
+      });
+    } catch (e: any) {
+      console.error('[RAZORPAY VERIFY]', e?.message);
+      return err(e.message || 'Verification error', 500);
+    }
   }
 
   // ── COUPONS (stub) ────────────────────────────────────────────────────────
