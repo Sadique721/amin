@@ -18,12 +18,19 @@ function buildOtpHtml(otp: string): string {
 // ── Fast email sender: Resend HTTP API first, Gmail SMTP fallback ─────────────
 async function sendOtpEmail(to: string, otp: string): Promise<void> {
   const resendKey = process.env.RESEND_API_KEY;
+  const isResendConfigured = resendKey &&
+    !resendKey.includes('REPLACE') &&
+    !resendKey.includes('PLACEHOLDER') &&
+    resendKey.startsWith('re_');
+
   const html = buildOtpHtml(otp);
   const subject = `${otp} — Your SANAB Verification Code`;
 
   // PRIMARY: Resend (instant HTTP call, no SMTP socket overhead)
-  if (resendKey) {
+  if (isResendConfigured) {
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -36,9 +43,11 @@ async function sendOtpEmail(to: string, otp: string): Promise<void> {
           subject,
           html,
         }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
       if (res.ok) {
-        console.log(`[RESEND] OTP email sent to ${to}`);
+        console.log(`[RESEND] ✅ OTP email sent to ${to}`);
         return;
       }
       const errBody = await res.text();
@@ -49,27 +58,37 @@ async function sendOtpEmail(to: string, otp: string): Promise<void> {
   }
 
   // FALLBACK: Gmail SMTP (Nodemailer)
+  // IMPORTANT: Must be awaited — Vercel terminates the serverless function
+  // immediately after returning a response, so fire-and-forget does NOT work.
   try {
     const smtpUser = process.env.SMTP_USER || process.env.MAIL_USERNAME || '';
     const smtpPass = process.env.SMTP_PASS || process.env.MAIL_PASSWORD || '';
+
+    if (!smtpUser || !smtpPass) {
+      console.error('[GMAIL SMTP] SMTP credentials not configured. Email not sent.');
+      return;
+    }
+
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 465,
       secure: true,
       auth: { user: smtpUser, pass: smtpPass },
       tls: { rejectUnauthorized: false },
-      connectionTimeout: 8000,
-      greetingTimeout: 5000,
+      connectionTimeout: 10000,
+      greetingTimeout: 8000,
+      socketTimeout: 10000,
     });
+
     await transporter.sendMail({
       from: `"SANAB Luxury Atelier" <${smtpUser}>`,
       to,
       subject,
       html,
     });
-    console.log(`[GMAIL SMTP] OTP email sent to ${to}`);
+    console.log(`[GMAIL SMTP] ✅ OTP email sent to ${to}`);
   } catch (err: any) {
-    console.error('[GMAIL SMTP] Failed:', err?.message || err);
+    console.error('[GMAIL SMTP] ❌ Failed to send OTP email:', err?.message || err);
   }
 }
 
@@ -316,8 +335,10 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
       const { Otp } = await getModels();
       await Otp.save(email, otpCode);
 
-      // Send email via Nodemailer SMTP asynchronously
-      sendOtpEmail(email, otpCode);
+      // Send email via SMTP — must be awaited!
+      // On Vercel serverless, fire-and-forget causes the lambda to terminate
+      // before the SMTP socket completes, resulting in delayed or missing emails.
+      await sendOtpEmail(email, otpCode);
 
       return ok({ message: 'Verification code sent to your email address' });
     } catch (e: any) {
