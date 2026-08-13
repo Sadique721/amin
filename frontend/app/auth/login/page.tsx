@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAppDispatch } from '@/hooks/redux';
 import { setCredentials } from '@/features/auth/store/authSlice';
-import { sendOtpApi, verifyOtpApi, googleLoginApi } from '@/features/auth/api/auth.api';
+import { sendOtpApi, verifyOtpApi, googleLoginApi, loginWithPasswordApi } from '@/features/auth/api/auth.api';
 import { loginSchema, emailSchema, otpSchema } from '@/features/auth/schemas/auth.schema';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -69,7 +69,7 @@ export default function LoginPage() {
     }
 
     try {
-      const response = await verifyOtpApi(email, password);
+      const response = await loginWithPasswordApi(email, password);
       const { user, accessToken, refreshToken } = response.data;
       
       const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');

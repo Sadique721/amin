@@ -17,3 +17,9 @@ export async function googleLoginApi(credential: string) {
   return response.data;
 }
 
+export async function loginWithPasswordApi(email: string, secret: string) {
+  const response = await api.post('/public/auth/password/login', { email, password: secret });
+  return response.data;
+}
+
+
