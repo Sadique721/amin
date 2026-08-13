@@ -4,9 +4,10 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  return NextResponse.json({
-    success: true,
-    message: '🚀 Sanab API Health OK',
-    timestamp: new Date().toISOString()
-  });
+    return NextResponse.json({
+          success: true,
+          message: 'Sanab API Health OK',
+          timestamp: new Date().toISOString(),
+          databaseUrl: process.env.DATABASE_URL
+    });
 }
