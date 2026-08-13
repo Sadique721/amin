@@ -1,8 +1,9 @@
 import axios from 'axios';
 
-// Base URL: NEXT_PUBLIC_API_URL must include /api/public for the auth endpoints to work
-// e.g. https://temp-sanab.vercel.app/api/public
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:10001/api/public';
+// NEXT_PUBLIC_API_URL must point to the Next.js /api/public base path.
+// Dev:  http://localhost:3000/api/public
+// Prod: https://temp-sanab.vercel.app/api/public  (or your custom domain)
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/public';
 
 export const api = axios.create({
   baseURL: API_URL,

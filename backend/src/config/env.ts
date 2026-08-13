@@ -17,6 +17,8 @@ const envSchema = z.object({
   POSTGRES_USER: z.string().optional(),
   POSTGRES_PASSWORD: z.string().optional(),
   POSTGRES_DB: z.string().optional(),
+  POSTGRES_CA_CERT: z.string().optional(),
+  POSTGRES_CA_PATH: z.string().optional(),
   MONGODB_URI: z.string().optional(),
   JWT_SECRET: z.string().min(1, 'JWT_SECRET is required'),
   JWT_EXPIRES_IN: z.string().default('1h'),

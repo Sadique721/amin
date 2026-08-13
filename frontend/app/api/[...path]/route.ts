@@ -81,9 +81,13 @@ async function getDb() {
 }
 
 // ── Authorize.net Sandbox ─────────────────────────────────────────────────────
-const AUTHNET_API_LOGIN_ID = process.env.AUTHORIZENET_API_LOGIN_ID || process.env.AUTHORIZE_NET_API_LOGIN_ID || '5KP3u95bQpv';
-const AUTHNET_TRANSACTION_KEY = process.env.AUTHORIZENET_TRANSACTION_KEY || process.env.AUTHORIZE_NET_TRANSACTION_KEY || '346HZ32z3fP4hTG2';
-const AUTHNET_ENDPOINT = 'https://apitest.authorize.net/xml/v1/request.api';
+const AUTHNET_API_LOGIN_ID = process.env.AUTHORIZENET_API_LOGIN_ID || process.env.AUTHORIZE_NET_API_LOGIN_ID || '';
+const AUTHNET_TRANSACTION_KEY = process.env.AUTHORIZENET_TRANSACTION_KEY || process.env.AUTHORIZE_NET_TRANSACTION_KEY || '';
+
+const isProductionAuthNet = process.env.AUTHORIZE_NET_ENVIRONMENT === 'PRODUCTION';
+const AUTHNET_ENDPOINT = isProductionAuthNet
+  ? 'https://api.authorize.net/xml/v1/request.api'
+  : 'https://apitest.authorize.net/xml/v1/request.api';
 
 // ── Response helpers ──────────────────────────────────────────────────────────
 function ok(data: any, status = 200) {
@@ -146,7 +150,10 @@ async function chargeAuthorizeNet(opts: {
     const errMsg = txRes?.errors?.[0]?.errorText || json?.messages?.message?.[0]?.text || 'Card payment declined';
     
     // In Sandbox mode, if sandbox credentials return an error for test cards, fall back to approved sandbox transaction
-    if (process.env.NODE_ENV !== 'production' || opts.cardNumber.startsWith('4007') || opts.cardNumber.startsWith('4111')) {
+    const isSandboxEnv = process.env.AUTHORIZE_NET_ENVIRONMENT !== 'PRODUCTION';
+    const isDevOrTest = process.env.NODE_ENV !== 'production';
+
+    if (isSandboxEnv && isDevOrTest && (opts.cardNumber.startsWith('4007') || opts.cardNumber.startsWith('4111'))) {
       return {
         transactionId: `authnet_sb_${Date.now()}`,
         authCode: 'SB6001',
@@ -157,7 +164,10 @@ async function chargeAuthorizeNet(opts: {
 
     throw new Error(errMsg);
   } catch (e: any) {
-    if (opts.cardNumber.startsWith('4007') || opts.cardNumber.startsWith('4111') || opts.cardNumber.startsWith('4242')) {
+    const isSandboxEnv = process.env.AUTHORIZE_NET_ENVIRONMENT !== 'PRODUCTION';
+    const isDevOrTest = process.env.NODE_ENV !== 'production';
+
+    if (isSandboxEnv && isDevOrTest && (opts.cardNumber.startsWith('4007') || opts.cardNumber.startsWith('4111') || opts.cardNumber.startsWith('4242'))) {
       return {
         transactionId: `authnet_sb_${Date.now()}`,
         authCode: 'SB6001',
@@ -171,54 +181,53 @@ async function chargeAuthorizeNet(opts: {
 
 // ── Cloudinary Upload Helper ──────────────────────────────────────────────────
 async function uploadToCloudinary(file: File): Promise<{ url: string; publicId: string }> {
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dfvvyfmdc';
-  const apiKey = process.env.CLOUDINARY_API_KEY || '555239129598284';
-  const apiSecret = process.env.CLOUDINARY_API_SECRET || 'q7F0XmG-XyO3V8xL5Z9P1Q2R3S4';
-
-  if (cloudName && apiKey && apiSecret) {
-    try {
-      const timestamp = Math.floor(Date.now() / 1000).toString();
-      const folder = 'sanab';
-      const stringToSign = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
-      const signature = crypto.createHash('sha1').update(stringToSign).digest('hex');
-
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('api_key', apiKey);
-      formData.append('timestamp', timestamp);
-      formData.append('folder', folder);
-      formData.append('signature', signature);
-
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (res.ok) {
-        const json = await res.json();
-        console.log(`[CLOUDINARY SUCCESS] Uploaded ${file.name || 'image'} to Cloudinary: ${json.secure_url}`);
-        return {
-          url: json.secure_url,
-          publicId: json.public_id,
-        };
-      }
-      const errText = await res.text();
-      console.warn(`[CLOUDINARY API ERROR ${res.status}]`, errText);
-    } catch (e: any) {
-      console.warn('[CLOUDINARY UPLOAD ERROR]', e?.message);
-    }
+  // Validate file type and size (F3)
+  const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  if (!allowedMimeTypes.includes(file.type)) {
+    throw new Error(`Invalid file type: ${file.type}. Only JPEG, PNG, GIF, and WEBP images are allowed.`);
+  }
+  const maxSizeBytes = 5 * 1024 * 1024; // 5 MB
+  if (file.size > maxSizeBytes) {
+    throw new Error('File size exceeds the limit of 5MB.');
   }
 
-  // Fallback if Cloudinary credentials missing or API error
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-  const mimeType = file.type && file.type.startsWith('image/') ? file.type : 'image/png';
-  const base64Data = `data:${mimeType};base64,${buffer.toString('base64')}`;
-  const mockId = `local_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-  return {
-    url: base64Data,
-    publicId: mockId,
-  };
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+  if (!cloudName || !apiKey || !apiSecret) {
+    throw new Error('Cloudinary is not properly configured. Missing environment variables.');
+  }
+
+  try {
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const folder = 'sanab';
+    const stringToSign = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
+    const signature = crypto.createHash('sha1').update(stringToSign).digest('hex');
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('api_key', apiKey);
+    formData.append('timestamp', timestamp);
+    formData.append('folder', folder);
+    formData.append('signature', signature);
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (res.ok) {
+      const json = await res.json();
+      console.log(`[CLOUDINARY SUCCESS] Uploaded ${file.name || 'image'} to Cloudinary: ${json.secure_url}`);
+      return { url: json.secure_url, publicId: json.public_id };
+    }
+    const text = await res.text();
+    throw new Error(`Cloudinary upload failed with status ${res.status}: ${text}`);
+  } catch (e: any) {
+    console.error('[CLOUDINARY] Upload error:', e?.message);
+    throw new Error(e.message || 'Image upload failed');
+  }
 }
 
 async function deleteFromCloudinary(publicId: string): Promise<void> {
@@ -622,16 +631,44 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
           if (!prod) prod = await Product.findBySlug(ci.productId);
         } catch {}
 
-        const price = prod?.salePrice || prod?.price || ci.price || 0;
-        const name = prod?.name || ci.name || 'Product';
-        const image = (prod?.images?.[0]) || ci.image || '';
+        if (!prod) {
+          return err(`Product with ID/slug "${ci.productId}" not found.`, 400);
+        }
+
         const qty = parseInt(ci.quantity) || 1;
+
+        // Check stock availability (C9)
+        let hasStock = false;
+        let availableStock = 0;
+        let matchedVariant = null;
+
+        if (Array.isArray(prod.variants) && prod.variants.length > 0) {
+          matchedVariant = prod.variants.find((v: any) => v.sku === ci.sku);
+          if (matchedVariant) {
+            availableStock = parseInt(matchedVariant.stock) || 0;
+            hasStock = availableStock >= qty;
+          } else {
+            availableStock = parseInt(prod.stock) || 0;
+            hasStock = availableStock >= qty;
+          }
+        } else {
+          availableStock = parseInt(prod.stock) || 0;
+          hasStock = availableStock >= qty;
+        }
+
+        if (!hasStock) {
+          return err(`Not enough stock for "${prod.name}" (SKU: ${ci.sku || prod.sku}). Available: ${availableStock}, requested: ${qty}.`, 400);
+        }
+
+        const price = prod.salePrice || prod.price;
+        const name = prod.name;
+        const image = prod.images?.[0] || '';
         subtotal += price * qty;
 
         resolvedItems.push({
-          productId: ci.productId,
+          productId: prod.id,
           name,
-          sku: ci.sku || prod?.sku || '',
+          sku: ci.sku || prod.sku || '',
           price,
           quantity: qty,
           image,
@@ -717,6 +754,11 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
         status: paymentMethod === 'authorize_net' ? 'processing' : 'pending',
       });
 
+      // Decrement stock upon successful order creation (C9)
+      for (const item of resolvedItems) {
+        await Product.deductStock(item.productId, item.sku, item.quantity);
+      }
+
       return ok(order, 201);
     } catch (e: any) { return err(e.message || 'Order creation failed', 500); }
   }
@@ -753,9 +795,10 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
   // GET /api/users/profile
   if ((route === 'users/profile' || route === 'public/users/profile') && method === 'GET') {
     const authHeader = req.headers.get('authorization');
-    if (authHeader?.startsWith('Bearer ')) {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (authHeader?.startsWith('Bearer ') && backendUrl) {
       try {
-        const backendRes = await fetch('http://localhost:2800/api/public/users/profile', {
+        const backendRes = await fetch(`${backendUrl}/api/public/users/profile`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -797,9 +840,10 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
   if (route === 'users/addresses' && method === 'POST') {
     const authHeader = req.headers.get('authorization');
     const body = await req.json();
-    if (authHeader?.startsWith('Bearer ')) {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (authHeader?.startsWith('Bearer ') && backendUrl) {
       try {
-        const backendRes = await fetch('http://localhost:2800/api/public/users/addresses', {
+        const backendRes = await fetch(`${backendUrl}/api/public/users/addresses`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -827,9 +871,10 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
   if (route.startsWith('users/addresses/') && method === 'DELETE') {
     const authHeader = req.headers.get('authorization');
     const addressId = path[path.length - 1];
-    if (authHeader?.startsWith('Bearer ')) {
+    const backendUrl = process.env.BACKEND_URL;
+    if (authHeader?.startsWith('Bearer ') && backendUrl) {
       try {
-        const backendRes = await fetch(`http://localhost:2800/api/public/users/addresses/${addressId}`, {
+        const backendRes = await fetch(`${backendUrl}/api/public/users/addresses/${addressId}`, {
           method: 'DELETE',
           headers: {
             Authorization: authHeader,
@@ -1008,32 +1053,23 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
     } catch (e: any) { return err(e.message, 500); }
   }
 
-  // ── IMAGE UPLOAD ──────────────────────────────────────────────────────────
+  // ── IMAGE UPLOAD (legacy route alias — delegates to uploadToCloudinary helper) ──
   if (route === 'upload' && method === 'POST') {
     const currentUser = await getUser(req);
     if (!currentUser || currentUser.role !== 'admin') return err('Admin access required', 403);
     try {
+      const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
+      const API_KEY = process.env.CLOUDINARY_API_KEY;
+      const API_SECRET = process.env.CLOUDINARY_API_SECRET;
+      if (!CLOUD_NAME || !API_KEY || !API_SECRET) {
+        return err('Cloudinary is not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET environment variables.', 503);
+      }
       const formData = await req.formData();
       const file = formData.get('file') as File;
       if (!file) return err('No file provided');
-      const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || 'ddwrdkpkv';
-      const API_KEY = process.env.CLOUDINARY_API_KEY || '283771221969341';
-      const API_SECRET = process.env.CLOUDINARY_API_SECRET || 'Gp1ngeDJTKuP6sDsewz-cDOwflc';
-      const timestamp = Math.round(Date.now() / 1000);
-      const crypto = await import('crypto');
-      const signature = crypto.createHash('sha1').update(`timestamp=${timestamp}${API_SECRET}`).digest('hex');
-      const uploadForm = new FormData();
-      uploadForm.append('file', file);
-      uploadForm.append('api_key', API_KEY);
-      uploadForm.append('timestamp', timestamp.toString());
-      uploadForm.append('signature', signature);
-      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
-        method: 'POST', body: uploadForm,
-      });
-      const uploadData = await uploadRes.json();
-      if (uploadData.error) return err(uploadData.error.message || 'Upload failed');
-      return ok({ url: uploadData.secure_url, publicId: uploadData.public_id });
-    } catch (e: any) { return err(e.message, 500); }
+      const result = await uploadToCloudinary(file);
+      return ok({ url: result.url, publicId: result.publicId });
+    } catch (e: any) { return err(e.message || 'File upload failed', 500); }
   }
 
   // ── AUTHORIZE.NET PAYMENT ─────────────────────────────────────────────────
@@ -1141,11 +1177,13 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
       }
 
       const keySecret = process.env.RAZORPAY_KEY_SECRET || '';
+      const isProduction = process.env.NODE_ENV === 'production';
+      const isMock = !isProduction && (razorpayOrderId.startsWith('rzp_mock_') || !keySecret || keySecret.endsWith('_secret'));
 
-      // If mock order or no key secret, skip signature check and mark paid
-      const isMock = razorpayOrderId.startsWith('rzp_mock_') || !keySecret || keySecret.endsWith('_secret');
-
-      if (!isMock && razorpaySignature) {
+      if (!isMock) {
+        if (!razorpaySignature) {
+          return err('Payment signature (razorpaySignature) is required', 400);
+        }
         // Verify HMAC SHA256 signature
         const expectedSig = crypto
           .createHmac('sha256', keySecret)
@@ -1193,9 +1231,31 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
     }
   }
 
-  // ── COUPONS (stub) ────────────────────────────────────────────────────────
+  // ── COUPONS validate ─────────────────────────────────────────────────────
+  // TODO(P2-A): Replace with a DB-backed Coupon module query once the backend
+  // consolidation (Section 3 of the audit) is complete. Until then, this must
+  // agree exactly with the codes checked in the order-creation handler above.
   if (route === 'coupons/validate' && method === 'POST') {
-    return ok({ valid: false, message: 'No active coupons available' });
+    try {
+      const body = await req.json();
+      const code = (body.couponCode || body.code || '').toString().trim().toUpperCase();
+      const COUPONS: Record<string, { discount: number; type: 'percent'; description: string }> = {
+        'SANAB10':   { discount: 10, type: 'percent', description: '10% off your order' },
+        'WELCOME20': { discount: 20, type: 'percent', description: '20% off your order' },
+      };
+      const coupon = COUPONS[code];
+      if (!coupon) {
+        return ok({ valid: false, message: 'Coupon code is invalid or has expired.' });
+      }
+      return ok({
+        valid: true,
+        code,
+        discount: coupon.discount,
+        discountType: coupon.type,
+        description: coupon.description,
+        message: `Coupon applied: ${coupon.description}`,
+      });
+    } catch (e: any) { return err(e.message, 500); }
   }
 
   // ── ADMIN STATS (legacy route alias) ─────────────────────────────────────

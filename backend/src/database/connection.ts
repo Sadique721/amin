@@ -15,19 +15,34 @@ export const connectDB = async (): Promise<void> => {
       // Strip sslmode from URL to avoid conflict with explicit ssl config
       const cleanUrl = dbUrl ? dbUrl.replace(/[?&]sslmode=[^&]*/g, '').replace(/\?$/, '') : undefined;
 
+      const dbUrlString = cleanUrl || '';
+      const useSsl = dbUrlString.includes('sslmode=require') || dbUrlString.includes('ssl=true') || dbUrlString.includes('aivencloud.com') || (env.POSTGRES_HOST && env.POSTGRES_HOST.includes('aivencloud.com'));
+      let ssl: any = false;
+      if (useSsl) {
+        ssl = {
+          rejectUnauthorized: true,
+        };
+        if (env.POSTGRES_CA_CERT) {
+          ssl.ca = env.POSTGRES_CA_CERT;
+        } else if (env.POSTGRES_CA_PATH) {
+          const fs = require('fs');
+          ssl.ca = fs.readFileSync(env.POSTGRES_CA_PATH).toString();
+        }
+      }
+
       pgPool = new Pool(
         cleanUrl
           ? {
               connectionString: cleanUrl,
-              ssl: { rejectUnauthorized: false },
+              ssl,
             }
           : {
               host: env.POSTGRES_HOST || 'localhost',
-              port: env.POSTGRES_PORT || 2543,
-              user: env.POSTGRES_USER || 'sanab_admin',
-              password: env.POSTGRES_PASSWORD || 'sanab_password_123',
+              port: env.POSTGRES_PORT || 5432,
+              user: env.POSTGRES_USER,
+              password: env.POSTGRES_PASSWORD,
               database: env.POSTGRES_DB || 'defaultdb',
-              ssl: { rejectUnauthorized: false },
+              ssl,
             }
       );
       const client = await pgPool.connect();

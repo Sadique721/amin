@@ -13,7 +13,18 @@ export function getPool(): Pool {
   if (!pool) {
     const dbUrl = process.env.DATABASE_URL || '';
     const useSsl = dbUrl.includes('sslmode=require') || dbUrl.includes('ssl=true') || dbUrl.includes('aivencloud.com');
-    const ssl = useSsl ? { rejectUnauthorized: false } : false;
+    let ssl: any = false;
+    if (useSsl) {
+      ssl = {
+        rejectUnauthorized: true,
+      };
+      if (process.env.POSTGRES_CA_CERT) {
+        ssl.ca = process.env.POSTGRES_CA_CERT;
+      } else if (process.env.POSTGRES_CA_PATH) {
+        const fs = require('fs');
+        ssl.ca = fs.readFileSync(process.env.POSTGRES_CA_PATH).toString();
+      }
+    }
     let config: any = {};
     try {
       const parsed = new URL(dbUrl);
@@ -198,17 +209,29 @@ async function initDB(p: Pool) {
   }
 
   // Seed admin & demo users if missing
-  const _bcrypt = await getBcrypt();
-  const adminHash = await _bcrypt.hash('Sadique@123', 10);
-  const sanabAdminHash = await _bcrypt.hash('adminpassword123', 10);
-  const customerHash = await _bcrypt.hash('Amin@123', 10);
-  await p.query(`
-    INSERT INTO users (name, email, password, role, is_active) VALUES
-    ('Sadique Admin', 'mdsadiqueamin721786@gmail.com', $1, 'admin', true),
-    ('Sanab Admin', 'admin@sanab.com', $2, 'admin', true),
-    ('Md Sadique', 'mdsadiqueamin721721@gmail.com', $3, 'user', true)
-    ON CONFLICT (email) DO NOTHING;
-  `, [adminHash, sanabAdminHash, customerHash]);
+  const adminEmail = process.env.ADMIN_EMAIL;
+  const adminPassword = process.env.ADMIN_PASSWORD;
+
+  if (adminEmail && adminPassword) {
+    const _bcrypt = await getBcrypt();
+    const adminHash = await _bcrypt.hash(adminPassword, 10);
+    await p.query(`
+      INSERT INTO users (name, email, password, role, is_active) VALUES
+      ('Admin User', $1, $2, 'admin', true)
+      ON CONFLICT (email) DO NOTHING;
+    `, [adminEmail.toLowerCase().trim(), adminHash]);
+  }
+
+  // Seed sample customer in non-production environments
+  if (process.env.NODE_ENV !== 'production') {
+    const _bcrypt = await getBcrypt();
+    const customerHash = await _bcrypt.hash('Amin@123', 10);
+    await p.query(`
+      INSERT INTO users (name, email, password, role, is_active) VALUES
+      ('Dev User', 'dev.user@example.com', $1, 'user', true)
+      ON CONFLICT (email) DO NOTHING;
+    `, [customerHash]);
+  }
 
   // Seed sample products if empty
   const prodCount = await p.query('SELECT COUNT(*) FROM products');
@@ -251,8 +274,30 @@ async function seedSampleProducts(p: Pool) {
 }
 
 // ── JWT helpers ────────────────────────────────────────────────────────────────
-const JWT_SECRET = process.env.JWT_SECRET || 'sanab_enterprise_jwt_secret_2026_xK9mP2qR';
-const JWT_REFRESH = process.env.JWT_REFRESH_SECRET || 'sanab_enterprise_refresh_2026_xL8nQ3rT';
+const getJwtSecret = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('FATAL SECURITY ERROR: JWT_SECRET environment variable is missing in production!');
+    }
+    return 'dev_only_jwt_secret_do_not_use_in_production_12345';
+  }
+  return secret;
+};
+
+const getJwtRefreshSecret = () => {
+  const secret = process.env.JWT_REFRESH_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('FATAL SECURITY ERROR: JWT_REFRESH_SECRET environment variable is missing in production!');
+    }
+    return 'dev_only_refresh_secret_do_not_use_in_production_12345';
+  }
+  return secret;
+};
+
+const JWT_SECRET = getJwtSecret();
+const JWT_REFRESH = getJwtRefreshSecret();
 
 const isUuid = (val?: string | null): boolean =>
   !!val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
@@ -278,10 +323,6 @@ export async function verifyAccess(token: string) {
   try {
     return jwt.verify(token, JWT_SECRET) as any;
   } catch {
-    const decoded = jwt.decode(token) as any;
-    if (decoded && (decoded.sub || decoded.id || decoded._id)) {
-      return decoded;
-    }
     return null;
   }
 }
@@ -534,6 +575,27 @@ export async function getModels() {
     count: async () => {
       const r = await p.query('SELECT COUNT(*) FROM products WHERE is_active=true');
       return parseInt(r.rows[0].count);
+    },
+    deductStock: async (id: string, sku: string, quantity: number) => {
+      const r = await p.query('SELECT id, stock, variants FROM products WHERE id=$1', [id]);
+      const prod = r.rows[0];
+      if (!prod) return false;
+
+      const currentStock = parseInt(prod.stock) || 0;
+      const newStock = Math.max(0, currentStock - quantity);
+
+      let variants = typeof prod.variants === 'string' ? JSON.parse(prod.variants) : (prod.variants || []);
+      if (Array.isArray(variants)) {
+        variants = variants.map((v: any) => {
+          if (v.sku === sku) {
+            return { ...v, stock: Math.max(0, (parseInt(v.stock) || 0) - quantity) };
+          }
+          return v;
+        });
+      }
+
+      await p.query('UPDATE products SET stock=$1, variants=$2, updated_at=NOW() WHERE id=$3', [newStock, JSON.stringify(variants), id]);
+      return true;
     }
   };
 
@@ -707,7 +769,6 @@ export async function getModels() {
     verify: async (email: string, code: string) => {
       const cleanEmail = email.toLowerCase().trim();
       const cleanCode = code.trim();
-      if (cleanCode === '123456' || cleanCode === '721786') return true;
       const r = await p.query(`
         SELECT * FROM otps WHERE email = $1 AND code = $2 AND expires_at > NOW()
       `, [cleanEmail, cleanCode]);

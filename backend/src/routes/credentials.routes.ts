@@ -7,6 +7,8 @@ import { env } from '@/config/env';
 import { logger } from '@/shared/logger';
 import { AuthorizeNetService } from '@/modules/payments/services/authorizenet.service';
 import { TwilioSMSService } from '@/shared/sms';
+import { authMiddleware } from '@/middlewares/auth.middleware';
+import { adminMiddleware } from '@/middlewares/admin.middleware';
 
 const router = Router();
 
@@ -15,7 +17,11 @@ const router = Router();
  * Verifies all configured credentials and returns their status.
  * This route is for development/admin use only.
  */
-router.get('/verify', async (req: Request, res: Response) => {
+router.get('/verify', authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+  if (process.env.NODE_ENV === 'production') {
+    res.status(403).json({ success: false, message: 'Not available in production' });
+    return;
+  }
   const results: Record<string, any> = {};
 
   // ─── 1. PostgreSQL ───────────────────────────────────────────────────────
@@ -26,14 +32,26 @@ router.get('/verify', async (req: Request, res: Response) => {
       `postgres://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`;
     const pgUrl = rawPgUrl.replace(/[?&]sslmode=[^&]*/g, '').replace(/\?$/, '');
     
-    const pool = new Pool({ connectionString: pgUrl, ssl: { rejectUnauthorized: false } });
+    const poolConfig: any = { connectionString: pgUrl };
+    if (pgUrl.includes('sslmode=require') || pgUrl.includes('ssl=true') || pgUrl.includes('aivencloud.com')) {
+      poolConfig.ssl = {
+        rejectUnauthorized: true,
+      };
+      if (env.POSTGRES_CA_CERT) {
+        poolConfig.ssl.ca = env.POSTGRES_CA_CERT;
+      } else if (env.POSTGRES_CA_PATH) {
+        const fs = require('fs');
+        poolConfig.ssl.ca = fs.readFileSync(env.POSTGRES_CA_PATH).toString();
+      }
+    }
+    const pool = new Pool(poolConfig);
     const client = await pool.connect();
     const { rows } = await client.query('SELECT version()');
     client.release();
     await pool.end();
     results.postgresql = {
       status: '✅ Connected',
-      host: process.env.DB_HOST || 'pg-3383bbf0-entitykart.l.aivencloud.com',
+      host: process.env.DB_HOST || '(host from DATABASE_URL)',
       database: process.env.DB_NAME || 'defaultdb',
       version: rows[0]?.version?.split(' ').slice(0, 2).join(' '),
     };
@@ -96,8 +114,8 @@ router.get('/verify', async (req: Request, res: Response) => {
 
   // ─── 5. SMTP / Gmail ────────────────────────────────────────────────────
   try {
-    const smtpUser = env.SMTP_USER || process.env.MAIL_USERNAME || 'entitykart@gmail.com';
-    const smtpPass = env.SMTP_PASS || process.env.MAIL_PASSWORD || 'lfcpgirrjhnsiurr';
+    const smtpUser = env.SMTP_USER || process.env.MAIL_USERNAME;
+    const smtpPass = env.SMTP_PASS || process.env.MAIL_PASSWORD;
     const smtpTransport = nodemailer.createTransport({
       service: 'gmail',
       auth: { user: smtpUser, pass: smtpPass },

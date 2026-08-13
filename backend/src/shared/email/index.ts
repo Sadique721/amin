@@ -16,8 +16,8 @@ export class EmailService {
     if (!this.transporter) {
       const host = (env.SMTP_HOST || process.env.MAIL_HOST || 'smtp.gmail.com').toLowerCase();
       const port = Number(env.SMTP_PORT || process.env.MAIL_PORT || 465);
-      const user = (env.SMTP_USER || process.env.MAIL_USERNAME || 'mdsadiqueamin721786@gmail.com').trim();
-      const pass = (env.SMTP_PASS || process.env.MAIL_PASSWORD || 'thvmiexrbpfekwqz').trim();
+      const user = (env.SMTP_USER || process.env.MAIL_USERNAME || '').trim();
+      const pass = (env.SMTP_PASS || process.env.MAIL_PASSWORD || '').trim();
 
 
       if (host.includes('gmail') || user.endsWith('@gmail.com')) {
