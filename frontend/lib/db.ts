@@ -233,9 +233,9 @@ async function initDB(p: Pool) {
     `, [customerHash]);
   }
 
-  // Seed sample products if empty
+  // Seed sample products if less than 50
   const prodCount = await p.query('SELECT COUNT(*) FROM products');
-  if (parseInt(prodCount.rows[0].count) === 0) {
+  if (parseInt(prodCount.rows[0].count) < 50) {
     await seedSampleProducts(p);
   }
 }
@@ -599,15 +599,21 @@ export async function getModels() {
       await p.query('DELETE FROM products WHERE id=$1', [id]);
     },
     facets: async (type?: string) => {
-      const conditions: string[] = ['is_active=true'];
+      const conditions: string[] = ['p.is_active=true'];
       const vals: any[] = [];
-      if (type) { conditions.push(`type=$1`); vals.push(type); }
+      if (type) { conditions.push(`p.type=$1`); vals.push(type); }
       const where = `WHERE ${conditions.join(' AND ')}`;
-      const [brands, priceRange] = await Promise.all([
-        p.query(`SELECT DISTINCT brand FROM products ${where} ORDER BY brand`, vals),
-        p.query(`SELECT MIN(price) as min, MAX(price) as max FROM products ${where}`, vals)
+      const [brands, priceRange, categories] = await Promise.all([
+        p.query(`SELECT DISTINCT p.brand FROM products p ${where} ORDER BY p.brand`, vals),
+        p.query(`SELECT MIN(p.price) as min, MAX(p.price) as max FROM products p ${where}`, vals),
+        p.query(`SELECT DISTINCT c.id, c.name, c.slug, COUNT(p.id) as count FROM products p JOIN categories c ON p.category_id=c.id ${where} GROUP BY c.id, c.name, c.slug ORDER BY c.name`, vals),
       ]);
-      return { brands: brands.rows.map((r: any) => r.brand), minPrice: priceRange.rows[0]?.min || 0, maxPrice: priceRange.rows[0]?.max || 50000 };
+      return {
+        brands: brands.rows.map((r: any) => r.brand),
+        minPrice: parseFloat(priceRange.rows[0]?.min || 0),
+        maxPrice: parseFloat(priceRange.rows[0]?.max || 50000),
+        categories: categories.rows.map((r: any) => ({ id: r.id, name: r.name, slug: r.slug, count: parseInt(r.count) }))
+      };
     },
     count: async () => {
       const r = await p.query('SELECT COUNT(*) FROM products WHERE is_active=true');

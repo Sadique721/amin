@@ -744,6 +744,47 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
     return ok({ message: '🚀 Amin API Health OK', version: 'pg-1.0.0', timestamp: new Date().toISOString() });
   }
 
+  // ── COUPONS VALIDATION ────────────────────────────────────────────────────
+  // POST /api/coupons/validate  OR  /api/public/coupons/validate
+  if ((route === 'coupons/validate' || route === 'public/coupons/validate') && method === 'POST') {
+    try {
+      const body = await req.json();
+      const code = (body.code || body.couponCode || '').toUpperCase().trim();
+      const subtotal = Number(body.subtotal || body.amount || 0);
+
+      const validCoupons: Record<string, { discount: number; type: 'percent' | 'fixed'; minOrder: number; description: string }> = {
+        'AMIN10': { discount: 10, type: 'percent', minOrder: 0, description: '10% VIP Privilege Discount' },
+        'AMIN20': { discount: 20, type: 'percent', minOrder: 5000, description: '20% Grand Privilege Discount on orders above ₹5,000' },
+        'WELCOME': { discount: 10, type: 'percent', minOrder: 0, description: '10% Welcome to AMIN Circle' },
+        'SANAB10': { discount: 10, type: 'percent', minOrder: 0, description: '10% Legacy Discount' },
+      };
+
+      const coupon = validCoupons[code];
+      if (!coupon) {
+        return err('Invalid or expired coupon code', 400);
+      }
+
+      if (subtotal < coupon.minOrder) {
+        return err(`This coupon requires a minimum purchase of ₹${coupon.minOrder.toLocaleString('en-IN')}`, 400);
+      }
+
+      const discountAmount = coupon.type === 'percent'
+        ? Math.round(subtotal * (coupon.discount / 100))
+        : Math.min(subtotal, coupon.discount);
+
+      return ok({
+        code,
+        discount: discountAmount,
+        discountAmount,
+        percentage: coupon.type === 'percent' ? coupon.discount : null,
+        description: coupon.description,
+        finalTotal: Math.max(0, subtotal - discountAmount),
+      });
+    } catch (e: any) {
+      return err(e.message || 'Coupon validation failed', 500);
+    }
+  }
+
   // ── FILE UPLOADS ───────────────────────────────────────────────────────────
   // POST /api/upload/single  OR  /api/public/upload/single
   if ((route === 'upload/single' || route === 'public/upload/single') && method === 'POST') {
