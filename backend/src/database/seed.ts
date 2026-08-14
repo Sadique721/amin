@@ -11,7 +11,7 @@ import { hashPassword as bcryptHashPassword } from '@/shared/auth/password';
 
 export const seedDefaultAdmin = async (): Promise<void> => {
   try {
-    const adminEmail = env.ADMIN_EMAIL || 'admin@sanab.com';
+    const adminEmail = env.ADMIN_EMAIL || 'admin@amin.com';
     const adminPassword = env.ADMIN_PASSWORD;
 
     if (!adminPassword) {
@@ -24,7 +24,7 @@ export const seedDefaultAdmin = async (): Promise<void> => {
     
     if (!existingAdmin) {
       await User.create({
-        name: 'Sanab Admin',
+        name: 'Amin Admin',
         email: adminEmail.toLowerCase(),
         role: 'admin',
         password: adminPassHash,
@@ -528,7 +528,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Velvet Crimson Matte Lipstick',
         category: catMap['Matte Lipsticks'],
-        brand: 'SANAB Beauty',
+        brand: 'AMIN Beauty',
         type: 'cosmetics',
         description: 'A highly pigmented, non-drying matte lipstick that provides a luxurious velvet texture and lasts up to 12 hours.',
         images: ['https://images.unsplash.com/photo-1586495777744-4413f21062fa?q=80&w=600&auto=format&fit=crop'],
@@ -540,7 +540,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Flawless Dewy Skin Foundation',
         category: catMap['Liquid Foundations'],
-        brand: 'SANAB Beauty',
+        brand: 'AMIN Beauty',
         type: 'cosmetics',
         description: 'A lightweight liquid foundation that provides buildable medium-to-full coverage with a natural, hydrated glow.',
         images: ['https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=600&auto=format&fit=crop'],
@@ -552,7 +552,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Dermal Hydration Barrier Cream',
         category: catMap['Natural Skin Creams'],
-        brand: 'SANAB Beauty',
+        brand: 'AMIN Beauty',
         type: 'cosmetics',
         description: 'Infused with double ceramides and hyaluronic acid to instantly calm skin irritation and lock in hydration for 48 hours.',
         images: ['https://images.unsplash.com/photo-1608248597481-496100c80836?q=80&w=600&auto=format&fit=crop'],
@@ -563,7 +563,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Gilded Bronze Eyeshadow Palette',
         category: catMap['Eye Shadow Palettes'],
-        brand: 'SANAB Beauty',
+        brand: 'AMIN Beauty',
         type: 'cosmetics',
         description: 'A curated 9-shade palette featuring creamy mattes and high-foil metallic shimmers in rich warm bronze tones.',
         images: ['https://images.unsplash.com/photo-1596462502278-27bfdc403348?q=80&w=600&auto=format&fit=crop'],
@@ -574,7 +574,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Satin Plump Lip Gloss',
         category: catMap['Matte Lipsticks'],
-        brand: 'SANAB Beauty',
+        brand: 'AMIN Beauty',
         type: 'cosmetics',
         description: 'An advanced lip-plumping gloss containing active peptides for instant volume and high-shine crystalline finish.',
         images: ['https://images.unsplash.com/photo-1586495777744-4413f21062fa?q=80&w=600&auto=format&fit=crop'],
@@ -585,7 +585,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Brightening Vitamin C Gel',
         category: catMap['Natural Skin Creams'],
-        brand: 'SANAB Beauty',
+        brand: 'AMIN Beauty',
         type: 'cosmetics',
         description: 'Formulated with Kakadu Plum extracts and 10% pure Vitamin C to reduce hyperpigmentation and reveal radiant skin.',
         images: ['https://images.unsplash.com/photo-1608248597481-496100c80836?q=80&w=600&auto=format&fit=crop'],
@@ -596,7 +596,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Matte Clay Pore Purifying Mask',
         category: catMap['Natural Skin Creams'],
-        brand: 'SANAB Beauty',
+        brand: 'AMIN Beauty',
         type: 'cosmetics',
         description: 'Kaolin and Bentonite clay mask blended with tea tree oil to extract deep impurities and control excess oil production.',
         images: ['https://images.unsplash.com/photo-1608248597481-496100c80836?q=80&w=600&auto=format&fit=crop'],
@@ -607,7 +607,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Mineral Tinted Sunscreen SPF 50',
         category: catMap['Liquid Foundations'],
-        brand: 'SANAB Beauty',
+        brand: 'AMIN Beauty',
         type: 'cosmetics',
         description: 'Broad-spectrum zinc oxide sunscreen that leaves zero white cast while giving a light skin-blurring tint.',
         images: ['https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=600&auto=format&fit=crop'],
@@ -618,7 +618,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Nude Harmony Lip Liner',
         category: catMap['Matte Lipsticks'],
-        brand: 'SANAB Beauty',
+        brand: 'AMIN Beauty',
         type: 'cosmetics',
         description: 'An ultra-smooth wooden lip pencil designed to outline, define, and prevent lip colors from feathering.',
         images: ['https://images.unsplash.com/photo-1586495777744-4413f21062fa?q=80&w=600&auto=format&fit=crop'],
@@ -629,7 +629,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Precision Waterproof Eyeliner',
         category: catMap['Eye Shadow Palettes'],
-        brand: 'SANAB Beauty',
+        brand: 'AMIN Beauty',
         type: 'cosmetics',
         description: 'A calligraphy-tip liquid eyeliner in deep carbon black. Smudge-proof and sweat-proof for 24 hours.',
         images: ['https://images.unsplash.com/photo-1596462502278-27bfdc403348?q=80&w=600&auto=format&fit=crop'],
@@ -640,7 +640,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Nourishing Rosehip Night Oil',
         category: catMap['Natural Skin Creams'],
-        brand: 'SANAB Beauty',
+        brand: 'AMIN Beauty',
         type: 'cosmetics',
         description: '100% organic cold-pressed rosehip seed oil rich in fatty acids and Vitamin A to rejuvenate skin cells overnight.',
         images: ['https://images.unsplash.com/photo-1608248597481-496100c80836?q=80&w=600&auto=format&fit=crop'],
@@ -651,7 +651,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Volume Boost Volumizing Mascara',
         category: catMap['Eye Shadow Palettes'],
-        brand: 'SANAB Beauty',
+        brand: 'AMIN Beauty',
         type: 'cosmetics',
         description: 'Specially designed hourglass brush coats every lash, delivering dramatic length and panoramic volume without clumping.',
         images: ['https://images.unsplash.com/photo-1596462502278-27bfdc403348?q=80&w=600&auto=format&fit=crop'],
@@ -662,7 +662,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Luminous Powder Highlighter',
         category: catMap['Liquid Foundations'],
-        brand: 'SANAB Beauty',
+        brand: 'AMIN Beauty',
         type: 'cosmetics',
         description: 'A micro-milled powder highlighter that diffuses light, creating a seamless, wet-looking skin glow.',
         images: ['https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=600&auto=format&fit=crop'],
@@ -673,7 +673,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Peachy Dew Liquid Blush',
         category: catMap['Liquid Foundations'],
-        brand: 'SANAB Beauty',
+        brand: 'AMIN Beauty',
         type: 'cosmetics',
         description: 'A featherlight liquid gel blush that blends effortlessly on skin, leaving a natural flush of colour.',
         images: ['https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=600&auto=format&fit=crop'],
@@ -684,7 +684,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Rosewater Soothing Face Mist',
         category: catMap['Natural Skin Creams'],
-        brand: 'SANAB Beauty',
+        brand: 'AMIN Beauty',
         type: 'cosmetics',
         description: 'Distilled organic Bulgarian roses blended with aloe vera extracts to refresh skin and lock in moisture.',
         images: ['https://images.unsplash.com/photo-1608248597481-496100c80836?q=80&w=600&auto=format&fit=crop'],

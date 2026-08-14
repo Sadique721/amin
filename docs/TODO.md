@@ -1,6 +1,6 @@
-# Sanab Project Execution TODO List
+# AMIN (Fine Jewellery & PRAO Cosmetics) Project Execution TODO List
 
-This document lists the tasks required to implement the Jewellery & Cosmetics E-commerce Web App (Sanab). It will be updated as work progresses.
+This document lists the tasks required to implement the Luxury Fine Jewellery & PRAO Cosmetics E-commerce Web App (AMIN). It is updated as work progresses.
 
 ---
 

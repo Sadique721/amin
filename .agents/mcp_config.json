@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "omniroute": {
+      "command": "node",
+      "args": [
+        "C:\\Users\\MD SADIQUE AMIN\\AppData\\Roaming\\npm\\node_modules\\omniroute\\bin\\omniroute.mjs",
+        "mcp"
+      ],
+      "env": {
+        "OMNIROUTE_BASE_URL": "http://localhost:20128"
+      }
+    }
+  }
+}

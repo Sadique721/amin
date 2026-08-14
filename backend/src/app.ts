@@ -35,7 +35,7 @@ app.use(morgan('dev'));
 app.get('/', (req, res) => {
   res.status(200).json({
     success: true,
-    message: '✨ SANAB Luxury Atelier REST API Service is running',
+    message: '✨ AMIN Luxury Atelier REST API Service is running',
     version: '1.0.0',
     documentation: '/api/health',
     timestamp: new Date().toISOString(),
