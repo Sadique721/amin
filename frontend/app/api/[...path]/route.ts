@@ -816,7 +816,7 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
 
   // ── PUBLIC AUTH ───────────────────────────────────────────────────────────
   // POST /api/public/auth/otp/send
-  if ((route === 'public/auth/otp/send' || route === 'auth/otp/send') && method === 'POST') {
+  if ((route === 'public/auth/otp/send' || route === 'auth/otp/send' || route === 'public/public/auth/otp/send') && method === 'POST') {
     try {
       const body = await req.json();
       const email = (body.email || '').toLowerCase().trim();
@@ -829,8 +829,6 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
       await Otp.save(email, otpCode);
 
       // Send email via SMTP — must be awaited!
-      // On Vercel serverless, fire-and-forget causes the lambda to terminate
-      // before the SMTP socket completes, resulting in delayed or missing emails.
       await sendOtpEmail(email, otpCode);
 
       return ok({ message: 'Verification code sent to your email address' });
@@ -840,7 +838,7 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
   }
 
   // POST /api/public/auth/otp/verify
-  if ((route === 'public/auth/otp/verify' || route === 'auth/otp/verify') && method === 'POST') {
+  if ((route === 'public/auth/otp/verify' || route === 'auth/otp/verify' || route === 'public/public/auth/otp/verify') && method === 'POST') {
     try {
       const body = await req.json();
       const email = (body.email || '').toLowerCase().trim();
@@ -897,7 +895,7 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
 
 
   // POST /api/public/auth/password/login  (alias for OTP/verify)
-  if ((route === 'public/auth/password/login' || route === 'auth/login') && method === 'POST') {
+  if ((route === 'public/auth/password/login' || route === 'auth/login' || route === 'public/auth/login' || route === 'public/public/auth/password/login') && method === 'POST') {
     try {
       const body = await req.json();
       const email = (body.email || '').toLowerCase().trim();

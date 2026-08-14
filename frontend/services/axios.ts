@@ -1,9 +1,7 @@
 import axios from 'axios';
 
-// NEXT_PUBLIC_API_URL must point to the Next.js /api/public base path.
-// Dev:  http://localhost:3000/api/public
-// Prod: https://amin.vercel.app/api/public  (or your custom domain)
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/public';
+// Default relative /api so all client requests hit local or remote domain seamlessly
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export const api = axios.create({
   baseURL: API_URL,
