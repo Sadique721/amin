@@ -5,9 +5,9 @@ import { validateCouponApi } from '../api/cart.api';
 const loadCartState = () => {
   if (typeof window === 'undefined') return { items: [], coupon: null, discountAmount: 0 };
   try {
-    const items = localStorage.getItem('sanab_cart_items');
-    const coupon = localStorage.getItem('sanab_cart_coupon');
-    const discountAmount = localStorage.getItem('sanab_cart_discount');
+    const items = localStorage.getItem('amin_cart_items');
+    const coupon = localStorage.getItem('amin_cart_coupon');
+    const discountAmount = localStorage.getItem('amin_cart_discount');
     return {
       items: items ? JSON.parse(items) : [],
       coupon: coupon ? JSON.parse(coupon) : null,
@@ -47,13 +47,13 @@ const calculateDiscount = (coupon: ICoupon, subtotal: number): number => {
 const saveState = (items: ICartItem[], coupon: ICoupon | null, discountAmount: number) => {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem('sanab_cart_items', JSON.stringify(items));
+    localStorage.setItem('amin_cart_items', JSON.stringify(items));
     if (coupon) {
-      localStorage.setItem('sanab_cart_coupon', JSON.stringify(coupon));
-      localStorage.setItem('sanab_cart_discount', String(discountAmount));
+      localStorage.setItem('amin_cart_coupon', JSON.stringify(coupon));
+      localStorage.setItem('amin_cart_discount', String(discountAmount));
     } else {
-      localStorage.removeItem('sanab_cart_coupon');
-      localStorage.removeItem('sanab_cart_discount');
+      localStorage.removeItem('amin_cart_coupon');
+      localStorage.removeItem('amin_cart_discount');
     }
   } catch (err) {
     console.error('Failed to save cart to storage:', err);

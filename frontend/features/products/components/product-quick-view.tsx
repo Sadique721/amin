@@ -104,11 +104,11 @@ export function ProductQuickView({ product, onClose }: ProductQuickViewProps) {
       await api.post('/wishlist', { productId: product._id });
     } catch {}
     try {
-      const stored = localStorage.getItem('sanab_local_wishlist');
+      const stored = localStorage.getItem('amin_local_wishlist');
       const list = stored ? JSON.parse(stored) : [];
       if (!list.some((item: any) => item._id === product._id)) {
         list.push(product);
-        localStorage.setItem('sanab_local_wishlist', JSON.stringify(list));
+        localStorage.setItem('amin_local_wishlist', JSON.stringify(list));
       }
     } catch {}
     setWishlisted(true);

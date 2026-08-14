@@ -1,5 +1,5 @@
 {
-  "name": "sanab-backend",
+  "name": "amin-backend",
   "version": "0.0.1",
   "description": "Jewellery & Cosmetics E-commerce REST API",
   "main": "dist/server.js",

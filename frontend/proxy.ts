@@ -14,7 +14,7 @@ function getJwtSecretBytes(): Uint8Array {
 
 // Next.js 16 requires the exported function to be named `proxy` or default export
 export async function proxy(request: NextRequest) {
-  const tokenCookie = request.cookies.get('sanab_accessToken')?.value;
+  const tokenCookie = request.cookies.get('amin_accessToken')?.value;
   const { pathname } = request.nextUrl;
 
   const isAdminRoute    = pathname.startsWith('/admin');

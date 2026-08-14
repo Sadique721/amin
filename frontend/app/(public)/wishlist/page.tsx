@@ -56,7 +56,7 @@ export default function WishlistPage() {
     // Merge with local storage fallback
     let localProducts: ProductItem[] = [];
     try {
-      const stored = localStorage.getItem('sanab_local_wishlist');
+      const stored = localStorage.getItem('amin_local_wishlist');
       if (stored) {
         localProducts = JSON.parse(stored);
       }
@@ -91,7 +91,7 @@ export default function WishlistPage() {
       setProducts((prev) => {
         const updated = prev.filter((p) => p._id !== productId);
         try {
-          localStorage.setItem('sanab_local_wishlist', JSON.stringify(updated));
+          localStorage.setItem('amin_local_wishlist', JSON.stringify(updated));
         } catch (e) {}
         return updated;
       });

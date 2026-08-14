@@ -5,14 +5,68 @@ import crypto from 'crypto';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// ── OTP email HTML template ───────────────────────────────────────────────────
+// ── Transactional Email Templates (R3) ───────────────────────────────────────
 function buildOtpHtml(otp: string): string {
-  return `<div style="font-family:Arial,sans-serif;padding:25px;background-color:#0f0f11;color:#ffffff;border-radius:12px;max-width:500px;margin:0 auto;border:1px solid #333">
-    <h2 style="color:#f59e0b;margin-top:0;font-size:22px">✨ SANAB Luxury Atelier</h2>
-    <p style="font-size:14px;color:#cccccc;line-height:1.5">Use the verification code below to complete your sign-in. Valid for <strong>5 minutes</strong>.</p>
-    <div style="background-color:#1c1c21;border:2px solid #f59e0b;padding:20px;font-size:36px;font-weight:bold;letter-spacing:10px;color:#f59e0b;text-align:center;margin:24px 0;border-radius:10px">${otp}</div>
-    <p style="font-size:12px;color:#888;margin-bottom:0">If you didn't request this, you can safely ignore this email.</p>
+  return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:32px 24px;background-color:#0f172a;color:#ffffff;border-radius:16px;max-width:520px;margin:0 auto;border:1px solid #334155">
+    <div style="text-align:center;padding-bottom:20px;border-bottom:1px solid #1e293b;margin-bottom:24px">
+      <span style="color:#f59e0b;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:3px">✨ AMIN LUXURY ATELIER</span>
+      <h2 style="color:#ffffff;font-size:26px;font-weight:900;margin:6px 0 0 0;font-family:Georgia,serif">AMIN</h2>
+    </div>
+    <h3 style="color:#f8fafc;font-size:18px;font-weight:700;margin-top:0;margin-bottom:8px">Security Verification Code</h3>
+    <p style="font-size:14px;color:#cbd5e1;line-height:1.6;margin-top:0;margin-bottom:20px">Use the 6-digit code below to verify your sign-in to AMIN Luxury Atelier. Valid for <strong>5 minutes</strong>.</p>
+    <div style="background:linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(244, 63, 94, 0.15) 100%);border:2px dashed #f59e0b;padding:22px;font-size:38px;font-weight:900;letter-spacing:10px;color:#ffffff;text-align:center;margin:24px 0;border-radius:14px;font-family:monospace;text-shadow:0 2px 10px rgba(245, 158, 11, 0.4)">${otp}</div>
+    <p style="font-size:12px;color:#64748b;margin-bottom:0;text-align:center">If you didn't request this verification code, please ignore this email.</p>
   </div>`;
+}
+
+function buildWelcomeHtml(name: string): string {
+  const FRONTEND_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://temp-sanab.vercel.app';
+  return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:32px 24px;background-color:#0f172a;color:#ffffff;border-radius:16px;max-width:540px;margin:0 auto;border:1px solid #334155">
+    <div style="text-align:center;padding-bottom:20px;border-bottom:1px solid #1e293b;margin-bottom:24px">
+      <span style="color:#f59e0b;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:3px">✨ AMIN LUXURY ATELIER</span>
+      <h2 style="color:#ffffff;font-size:28px;font-weight:900;margin:6px 0 0 0;font-family:Georgia,serif">Welcome to AMIN</h2>
+    </div>
+    <h3 style="color:#f59e0b;font-size:22px;font-weight:800;margin-top:0;margin-bottom:12px">Welcome, ${name}! ✨</h3>
+    <p style="font-size:14px;color:#cbd5e1;line-height:1.6;margin-top:0;margin-bottom:24px">We are thrilled to welcome you to our luxury circle. Explore our handcrafted <strong>BIS Hallmarked Fine Jewellery</strong>, revolutionary <strong>Anti-Tarnish Collection</strong>, and premium cosmetics.</p>
+    <div style="background-color:#1e293b;border-left:4px solid #f59e0b;border-radius:0 12px 12px 0;padding:20px;margin-bottom:28px">
+      <h4 style="color:#ffffff;font-size:15px;font-weight:700;margin:0 0 8px 0">Your Privileges Include:</h4>
+      <ul style="color:#94a3b8;font-size:13px;line-height:1.8;margin:0;padding-left:20px">
+        <li><strong>✨ Lifetime Anti-Tarnish Guarantee:</strong> Waterproof & sweat-proof everyday wear.</li>
+        <li><strong>🏆 Certified Gold & Diamonds:</strong> 100% BIS Hallmarked.</li>
+        <li><strong>🚚 Express Delivery:</strong> Insured shipping across India.</li>
+      </ul>
+    </div>
+    <div style="text-align:center;margin:28px 0">
+      <a href="${FRONTEND_URL}/shop" style="background:linear-gradient(135deg, #f59e0b 0%, #f43f5e 100%);color:#020617;font-size:15px;font-weight:800;text-decoration:none;padding:14px 32px;border-radius:9999px;display:inline-block">Explore Collections →</a>
+    </div>
+  </div>`;
+}
+
+async function sendWelcomeEmail(to: string, name: string): Promise<void> {
+  const resendKey = process.env.RESEND_API_KEY;
+  const html = buildWelcomeHtml(name);
+  const subject = `Welcome to AMIN Luxury Atelier, ${name}! ✨`;
+  if (resendKey && resendKey.startsWith('re_')) {
+    try {
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from: 'AMIN Luxury Atelier <onboarding@resend.dev>', to: [to], subject, html }),
+      });
+      console.log(`[RESEND] ✅ Welcome email sent to ${to}`);
+      return;
+    } catch (e: any) { console.warn('[RESEND] Welcome email error:', e?.message); }
+  }
+  try {
+    const smtpUser = process.env.SMTP_USER || process.env.MAIL_USERNAME || '';
+    const smtpPass = process.env.SMTP_PASS || process.env.MAIL_PASSWORD || '';
+    if (!smtpUser || !smtpPass) return;
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com', port: 465, secure: true, auth: { user: smtpUser, pass: smtpPass }, tls: { rejectUnauthorized: false }
+    });
+    await transporter.sendMail({ from: `"AMIN Luxury Atelier" <${smtpUser}>`, to, subject, html });
+    console.log(`[GMAIL SMTP] ✅ Welcome email sent to ${to}`);
+  } catch (err: any) { console.error('[GMAIL SMTP] ❌ Failed welcome email:', err?.message); }
 }
 
 // ── Fast email sender: Resend HTTP API first, Gmail SMTP fallback ─────────────
@@ -368,16 +422,21 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
 
       // Check if user exists, else auto-create user
       let user = await User.findByEmail(email);
+      let isNewUser = false;
       if (!user) {
+        isNewUser = true;
         const rawName = email.split('@')[0].replace(/[^a-zA-Z0-9]+/g, ' ');
         const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
-        const defaultPassword = await bcrypt.hash('SanabUser@123', 10);
+        const randomPass = crypto.randomBytes(32).toString('hex');
+        const defaultPassword = await bcrypt.hash(randomPass, 10);
         user = await User.create({
           name: formattedName,
           email,
           password: defaultPassword,
           role: 'user',
         });
+        // Send welcome email on first account creation (R4)
+        await sendWelcomeEmail(email, formattedName);
       }
 
       const payload = { id: user._id, email: user.email, role: user.role, name: user.name };

@@ -21,9 +21,9 @@ export interface AuthState {
 const getInitialState = (): AuthState => {
   if (typeof window !== 'undefined') {
     try {
-      const user = localStorage.getItem('sanab_user');
-      const accessToken = localStorage.getItem('sanab_accessToken');
-      const refreshToken = localStorage.getItem('sanab_refreshToken');
+      const user = localStorage.getItem('amin_user');
+      const accessToken = localStorage.getItem('amin_accessToken');
+      const refreshToken = localStorage.getItem('amin_refreshToken');
       return {
         user: user ? JSON.parse(user) : null,
         accessToken,
@@ -61,13 +61,13 @@ const authSlice = createSlice({
       state.error = null;
       
       if (typeof window !== 'undefined') {
-        localStorage.setItem('sanab_user', JSON.stringify(user));
-        localStorage.setItem('sanab_accessToken', accessToken);
-        localStorage.setItem('sanab_refreshToken', refreshToken);
+        localStorage.setItem('amin_user', JSON.stringify(user));
+        localStorage.setItem('amin_accessToken', accessToken);
+        localStorage.setItem('amin_refreshToken', refreshToken);
 
         // Sync cookies for Next.js proxy middleware server-side protection
-        document.cookie = `sanab_accessToken=${accessToken}; path=/; max-age=86400; SameSite=Lax`;
-        document.cookie = `sanab_role=${user.role}; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `amin_accessToken=${accessToken}; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `amin_role=${user.role}; path=/; max-age=86400; SameSite=Lax`;
       }
     },
     logout(state) {
@@ -77,16 +77,16 @@ const authSlice = createSlice({
       state.error = null;
       
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('sanab_user');
-        localStorage.removeItem('sanab_accessToken');
-        localStorage.removeItem('sanab_refreshToken');
-        localStorage.removeItem('sanab_local_wishlist');
-        localStorage.removeItem('sanab_cart_items');
-        localStorage.removeItem('sanab_cart_coupon');
-        localStorage.removeItem('sanab_cart_discount');
+        localStorage.removeItem('amin_user');
+        localStorage.removeItem('amin_accessToken');
+        localStorage.removeItem('amin_refreshToken');
+        localStorage.removeItem('amin_local_wishlist');
+        localStorage.removeItem('amin_cart_items');
+        localStorage.removeItem('amin_cart_coupon');
+        localStorage.removeItem('amin_cart_discount');
 
-        document.cookie = 'sanab_accessToken=; path=/; max-age=0; SameSite=Lax';
-        document.cookie = 'sanab_role=; path=/; max-age=0; SameSite=Lax';
+        document.cookie = 'amin_accessToken=; path=/; max-age=0; SameSite=Lax';
+        document.cookie = 'amin_role=; path=/; max-age=0; SameSite=Lax';
       }
     },
     setLoading(state, action: PayloadAction<boolean>) {

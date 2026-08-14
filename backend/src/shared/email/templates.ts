@@ -16,26 +16,28 @@ const BASE_STYLES = `
   width: 100%;
 `;
 
+const FRONTEND_URL = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://temp-sanab.vercel.app';
+
 const BRAND_HEADER = `
   <div style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #451a03 100%); padding: 36px 24px; text-align: center; border-bottom: 2px solid #f59e0b;">
     <div style="display: inline-block; padding: 8px 16px; border-radius: 9999px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); margin-bottom: 12px;">
-      <span style="color: #f59e0b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 3px;">✨ SANAB & PRAO PARIS</span>
+      <span style="color: #f59e0b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 3px;">✨ AMIN LUXURY ATELIER</span>
     </div>
-    <h1 style="color: #ffffff; font-size: 32px; font-weight: 900; margin: 0; font-family: Georgia, serif; letter-spacing: -0.5px;">SANAB</h1>
-    <p style="color: #cbd5e1; font-size: 13px; margin: 6px 0 0 0; letter-spacing: 1px;">FINE JEWELLERY • PRAO ANTI-TARNISH • COSMETICS</p>
+    <h1 style="color: #ffffff; font-size: 32px; font-weight: 900; margin: 0; font-family: Georgia, serif; letter-spacing: -0.5px;">AMIN</h1>
+    <p style="color: #cbd5e1; font-size: 13px; margin: 6px 0 0 0; letter-spacing: 1px;">FINE JEWELLERY • ANTI-TARNISH • COSMETICS</p>
   </div>
 `;
 
 const BRAND_FOOTER = `
   <div style="background-color: #020617; padding: 28px 24px; text-align: center; border-top: 1px solid #334155; color: #64748b; font-size: 12px;">
-    <p style="margin: 0 0 8px 0; color: #94a3b8; font-weight: 600;">SANAB Luxury E-Commerce Platform</p>
-    <p style="margin: 0 0 12px 0;">100% BIS Hallmarked Gold • PRAO Anti-Tarnish Lifetime Guarantee • Express Delivery</p>
+    <p style="margin: 0 0 8px 0; color: #94a3b8; font-weight: 600;">AMIN Luxury E-Commerce Platform</p>
+    <p style="margin: 0 0 12px 0;">100% BIS Hallmarked Gold • Anti-Tarnish Lifetime Guarantee • Express Delivery</p>
     <div style="margin: 16px 0; border-top: 1px dashed #334155; padding-top: 16px;">
-      <a href="http://localhost:3000/shop" style="color: #f59e0b; text-decoration: none; font-weight: 700; margin: 0 12px;">Collections</a> •
-      <a href="http://localhost:3000/about" style="color: #f59e0b; text-decoration: none; font-weight: 700; margin: 0 12px;">About Atelier</a> •
-      <a href="http://localhost:3000/contact" style="color: #f59e0b; text-decoration: none; font-weight: 700; margin: 0 12px;">Concierge Support</a>
+      <a href="${FRONTEND_URL}/shop" style="color: #f59e0b; text-decoration: none; font-weight: 700; margin: 0 12px;">Collections</a> •
+      <a href="${FRONTEND_URL}/about" style="color: #f59e0b; text-decoration: none; font-weight: 700; margin: 0 12px;">About Atelier</a> •
+      <a href="${FRONTEND_URL}/contact" style="color: #f59e0b; text-decoration: none; font-weight: 700; margin: 0 12px;">Concierge Support</a>
     </div>
-    <p style="margin: 0; font-size: 11px; color: #475569;">&copy; ${new Date().getFullYear()} SANAB Platform. All rights reserved. Confidential transaction communication.</p>
+    <p style="margin: 0; font-size: 11px; color: #475569;">&copy; ${new Date().getFullYear()} AMIN Platform. All rights reserved. Confidential transaction communication.</p>
   </div>
 `;
 

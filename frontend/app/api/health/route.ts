@@ -6,8 +6,8 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
     return NextResponse.json({
           success: true,
-          message: 'Sanab API Health OK',
+          message: 'Amin API Health OK',
+          status: 'ok',
           timestamp: new Date().toISOString(),
-          databaseUrl: process.env.DATABASE_URL
     });
 }

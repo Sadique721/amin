@@ -14,7 +14,7 @@ export class AuthService {
 
   async requestOtp(email: string): Promise<{ hasPassword: boolean }> {
     const formattedEmail = email.toLowerCase().trim();
-    const adminEmail = env.ADMIN_EMAIL ? env.ADMIN_EMAIL.toLowerCase().trim() : 'admin@sanab.com';
+    const adminEmail = env.ADMIN_EMAIL ? env.ADMIN_EMAIL.toLowerCase().trim() : '';
     
     const user = await this.userRepository.findByEmail(formattedEmail);
     const hasPassword = !!(user?.password) || !!(adminEmail && formattedEmail === adminEmail);

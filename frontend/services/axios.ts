@@ -16,7 +16,7 @@ export const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('sanab_accessToken');
+      const token = localStorage.getItem('amin_accessToken');
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -37,10 +37,10 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('sanab_user');
-        localStorage.removeItem('sanab_accessToken');
-        localStorage.removeItem('sanab_refreshToken');
-        document.cookie = 'sanab_accessToken=; Max-Age=0; path=/;';
+        localStorage.removeItem('amin_user');
+        localStorage.removeItem('amin_accessToken');
+        localStorage.removeItem('amin_refreshToken');
+        document.cookie = 'amin_accessToken=; Max-Age=0; path=/;';
       }
     }
     return Promise.reject(error);
