@@ -804,6 +804,9 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
       // Check if user exists, else auto-create user
       let user = await User.findByEmail(email);
       let isNewUser = false;
+      const adminEmail = (process.env.ADMIN_EMAIL || 'mdsadiqueamin721786@gmail.com').toLowerCase().trim();
+      const isAdminEmail = email === adminEmail;
+
       if (!user) {
         isNewUser = true;
         const rawName = email.split('@')[0].replace(/[^a-zA-Z0-9]+/g, ' ');
@@ -814,10 +817,14 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
           name: formattedName,
           email,
           password: defaultPassword,
-          role: 'user',
+          role: isAdminEmail ? 'admin' : 'user',
         });
         // Send welcome email on first account creation (R4)
         await sendWelcomeEmail(email, formattedName);
+      } else if (isAdminEmail && user.role !== 'admin') {
+        // Ensure admin email always has admin role
+        user.role = 'admin';
+        await User.update(user._id || user.id, { role: 'admin' });
       }
 
       const payload = { id: user._id, email: user.email, role: user.role, name: user.name };

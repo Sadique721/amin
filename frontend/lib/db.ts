@@ -1,5 +1,5 @@
 // ── PostgreSQL Connection (Aiven) ─────────────────────────────────────────────
-import { Pool, PoolClient } from 'pg';
+import { Pool, type PoolClient } from 'pg';
 
 // DATABASE_URL must be set as an environment variable (Vercel / .env)
 // Format: postgres://user:password@host:port/dbname?sslmode=require
