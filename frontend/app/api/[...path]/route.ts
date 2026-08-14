@@ -963,8 +963,8 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
   }
 
   // ── PRODUCTS (public + admin, same URL) ───────────────────────────────────
-  // GET /api/products
-  if (route === 'products' && method === 'GET') {
+  // GET /api/products OR /api/public/products
+  if ((route === 'products' || route === 'public/products') && method === 'GET') {
     try {
       const { searchParams } = new URL(req.url);
       const { Product } = await getModels();
@@ -995,7 +995,7 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
   }
 
   // POST /api/products (admin only — create product)
-  if (route === 'products' && method === 'POST') {
+  if ((route === 'products' || route === 'public/products') && method === 'POST') {
     const currentUser = await getUser(req);
     if (!currentUser || currentUser.role !== 'admin') return err('Admin access required', 403);
     try {
@@ -1006,8 +1006,8 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
     } catch (e: any) { return err(e.message, 500); }
   }
 
-  // GET /api/products/facets
-  if (route === 'products/facets' && method === 'GET') {
+  // GET /api/products/facets OR /api/public/products/facets
+  if ((route === 'products/facets' || route === 'public/products/facets') && method === 'GET') {
     try {
       const { searchParams } = new URL(req.url);
       const { Product } = await getModels();
@@ -1016,10 +1016,10 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
     } catch (e: any) { return err(e.message, 500); }
   }
 
-  // GET /api/products/slug/:slug
-  if (route.startsWith('products/slug/') && method === 'GET') {
+  // GET /api/products/slug/:slug OR /api/public/products/slug/:slug
+  if ((route.startsWith('products/slug/') || route.startsWith('public/products/slug/')) && method === 'GET') {
     try {
-      const slug = route.replace('products/slug/', '');
+      const slug = route.replace('public/products/slug/', '').replace('products/slug/', '');
       const { Product } = await getModels();
       const prod = await Product.findBySlug(slug);
       if (!prod) return err('Product not found', 404);
@@ -1027,8 +1027,8 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
     } catch (e: any) { return err(e.message, 500); }
   }
 
-  // GET /api/products/:id
-  if (route.startsWith('products/') && !route.includes('/slug/') && method === 'GET') {
+  // GET /api/products/:id OR /api/public/products/:id
+  if ((route.startsWith('products/') || route.startsWith('public/products/')) && !route.includes('/slug/') && !route.includes('/facets') && method === 'GET') {
     try {
       const id = path[path.length - 1];
       const { Product } = await getModels();
