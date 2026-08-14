@@ -39,7 +39,7 @@
 
 ### 🔐 Security & Validation Fixes
 - **Express Validation Middleware**: Enhanced `validationMiddleware` to preserve Express `req.params`, eliminating parameter casting errors (`could not determine data type of parameter $1`) on status updates.
-- **Dual Database Fallback**: Primary cloud database (Aiven PostgreSQL / MongoDB Atlas) with automatic local DB fallbacks.
+- **Unified Database Architecture**: Consolidated production MongoDB service layer with high-reliability Next.js API proxy routes.
 
 ---
 
