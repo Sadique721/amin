@@ -230,8 +230,7 @@ async function sendEmailCore(to: string, subject: string, html: string, text?: s
       html,
       text,
       headers: {
-        'X-Entity-Ref-ID': `amin-otp-${timestamp}`,
-        'X-Priority': '1',
+        'X-Entity-Ref-ID': `amin-${timestamp}`,
       },
     });
     console.log(`[GMAIL SMTP] ✅ Email delivered to ${to} ("${subject}")`);
@@ -242,7 +241,7 @@ async function sendEmailCore(to: string, subject: string, html: string, text?: s
 
 // ── Specific Transactional Senders ────────────────────────────────────────────
 async function sendOtpEmail(to: string, otp: string): Promise<void> {
-  const subject = `🔒 ${otp} — Your AMIN Verification Code`;
+  const subject = `Your AMIN Verification Code: ${otp}`;
   const text = `AMIN Security Verification Code: ${otp}\n\nEnter the 6-digit verification code below to sign in or confirm your security authorization on AMIN.\nThis code expires in 5 minutes.\n\nNever share your OTP code with anyone. AMIN support will never ask for your verification code.`;
 
   const contentHtml = `
