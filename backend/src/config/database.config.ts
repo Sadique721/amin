@@ -1,1 +1,1 @@
-export const dbConfig = { uri: process.env.MONGODB_URI || 'mongodb://localhost:27017/sanab' };
+export const dbConfig = { uri: process.env.MONGODB_URI || 'mongodb://localhost:27017/amin' };

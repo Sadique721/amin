@@ -83,8 +83,8 @@ export default function AdminProductsPage() {
     let currentUser = user;
     if (typeof window !== 'undefined' && (!currentToken || !currentUser)) {
       try {
-        const storedUser = localStorage.getItem('sanab_user');
-        const storedToken = localStorage.getItem('sanab_accessToken');
+        const storedUser = localStorage.getItem('amin_user');
+        const storedToken = localStorage.getItem('amin_accessToken');
         if (storedUser) currentUser = JSON.parse(storedUser);
         if (storedToken) currentToken = storedToken;
       } catch (e) {}

@@ -4,18 +4,18 @@ services:
   # 1. PostgreSQL Database (Internal & External Port: 2543)
   postgres:
     image: postgres:17-alpine
-    container_name: sanab_postgres
+    container_name: amin_postgres
     command: ["postgres", "-p", "2543"]
     environment:
       POSTGRES_DB: defaultdb
-      POSTGRES_USER: sanab_admin
-      POSTGRES_PASSWORD: sanab_password_123
+      POSTGRES_USER: amin_admin
+      POSTGRES_PASSWORD: amin_password_123
     ports:
       - "2543:2543"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sanab_admin -d defaultdb -p 2543"]
+      test: ["CMD-SHELL", "pg_isready -U amin_admin -d defaultdb -p 2543"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -24,7 +24,7 @@ services:
   # 2. Redis Cache & Job Queue (Internal & External Port: 2637)
   redis:
     image: redis:7-alpine
-    container_name: sanab_redis
+    container_name: amin_redis
     command: ["redis-server", "--port", "2637"]
     ports:
       - "2637:2637"
@@ -40,7 +40,7 @@ services:
   # 3. Apache Kafka Broker (Official Apache Image - KRaft Mode) (Internal & External Port: 2909)
   kafka:
     image: apache/kafka:latest
-    container_name: sanab_kafka
+    container_name: amin_kafka
     ports:
       - "2909:2909"
     environment:
@@ -66,41 +66,41 @@ services:
   # 4. Kafka UI Web Management Dashboard (Internal & External Port: 2808)
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
-    container_name: sanab_kafka_ui
+    container_name: amin_kafka_ui
     ports:
       - "2808:8080"
     environment:
-      KAFKA_CLUSTERS_0_NAME: sanab-cluster
+      KAFKA_CLUSTERS_0_NAME: amin-cluster
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:2909
     depends_on:
       - kafka
     restart: always
 
-  # 5. SANAB Express Backend Server (Internal & External Port: 2800)
+  # 5. AMIN Express Backend Server (Internal & External Port: 2800)
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: sanab_backend
+    container_name: amin_backend
     ports:
       - "2800:2800"
     environment:
       - PORT=2800
       - NODE_ENV=production
-      - DATABASE_URL=postgres://sanab_admin:sanab_password_123@postgres:2543/defaultdb
+      - DATABASE_URL=postgres://amin_admin:amin_password_123@postgres:2543/defaultdb
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=2543
-      - POSTGRES_USER=sanab_admin
-      - POSTGRES_PASSWORD=sanab_password_123
+      - POSTGRES_USER=amin_admin
+      - POSTGRES_PASSWORD=amin_password_123
       - POSTGRES_DB=defaultdb
       - REDIS_HOST=redis
       - REDIS_PORT=2637
       - REDIS_URL=redis://redis:2637
       - KAFKA_BROKERS=kafka:2909
-      - KAFKA_CLIENT_ID=sanab-backend
-      - KAFKA_GROUP_ID=sanab-consumers
-      - JWT_SECRET=sanab_enterprise_jwt_secret_2026_xK9mP2qR
-      - JWT_REFRESH_SECRET=sanab_enterprise_refresh_2026_xL8nQ3rT
+      - KAFKA_CLIENT_ID=amin-backend
+      - KAFKA_GROUP_ID=amin-consumers
+      - JWT_SECRET=amin_enterprise_jwt_secret_2026_xK9mP2qR
+      - JWT_REFRESH_SECRET=amin_enterprise_refresh_2026_xL8nQ3rT
     depends_on:
       postgres:
         condition: service_healthy
@@ -115,17 +115,17 @@ services:
       retries: 3
     restart: always
 
-  # 6. SANAB Next.js Storefront UI (Internal & External Port: 3000)
+  # 6. AMIN Next.js Storefront UI (Internal & External Port: 3000)
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: sanab_frontend
+    container_name: amin_frontend
     ports:
       - "3000:3000"
     environment:
       - PORT=3000
-      - DATABASE_URL=postgres://sanab_admin:sanab_password_123@postgres:2543/defaultdb
+      - DATABASE_URL=postgres://amin_admin:amin_password_123@postgres:2543/defaultdb
       - NEXT_PUBLIC_API_URL=http://localhost:2800/api/public
     depends_on:
       - backend

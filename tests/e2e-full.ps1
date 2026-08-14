@@ -1,5 +1,5 @@
 ###############################################################
-# SANAB E2E - COMPLETE API + FLOW VERIFICATION v2
+# AMIN E2E - COMPLETE API + FLOW VERIFICATION v2
 # All field names corrected, full coverage
 ###############################################################
 
@@ -45,7 +45,7 @@ function Get-Token($email) {
 
 Write-Host ""
 Write-Host "============================================================"
-Write-Host "  SANAB - COMPLETE E2E API & FLOW VERIFICATION v2"
+Write-Host "  AMIN - COMPLETE E2E API & FLOW VERIFICATION v2"
 Write-Host "============================================================"
 
 #################################################################

@@ -83,8 +83,8 @@ export default function LoginPage() {
       }
 
       if (typeof window !== 'undefined') {
-        document.cookie = `sanab_accessToken=${accessToken}; path=/; max-age=86400; SameSite=Lax`;
-        document.cookie = `sanab_role=${user?.role || 'customer'}; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `amin_accessToken=${accessToken}; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `amin_role=${user?.role || 'customer'}; path=/; max-age=86400; SameSite=Lax`;
       }
 
       dispatch(setCredentials({ user, accessToken, refreshToken }));
@@ -161,8 +161,8 @@ export default function LoginPage() {
       }
 
       if (typeof window !== 'undefined') {
-        document.cookie = `sanab_accessToken=${accessToken}; path=/; max-age=86400; SameSite=Lax`;
-        document.cookie = `sanab_role=${user?.role || 'customer'}; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `amin_accessToken=${accessToken}; path=/; max-age=86400; SameSite=Lax`;
+        document.cookie = `amin_role=${user?.role || 'customer'}; path=/; max-age=86400; SameSite=Lax`;
       }
 
       dispatch(setCredentials({ user, accessToken, refreshToken }));

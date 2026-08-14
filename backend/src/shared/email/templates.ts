@@ -1,5 +1,5 @@
 /**
- * SANAB Luxury E-Commerce Email Templates
+ * AMIN Luxury E-Commerce Email Templates
  * Premium HTML & CSS responsive templates for:
  * 1. OTP Verification Email
  * 2. Welcome Email
@@ -53,7 +53,7 @@ export function getOtpEmailTemplate(otp: string): string {
         <div style="padding: 36px 32px; background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.08), transparent 70%);">
           <h2 style="color: #f8fafc; font-size: 22px; font-weight: 800; margin-top: 0; margin-bottom: 8px; font-family: Georgia, serif;">Verification Code Required</h2>
           <p style="color: #94a3b8; font-size: 14px; line-height: 1.6; margin-top: 0; margin-bottom: 24px;">
-            Enter the 6-digit verification code below to sign in or confirm your security authorization on SANAB.
+            Enter the 6-digit verification code below to sign in or confirm your security authorization on AMIN.
           </p>
 
           <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(244, 63, 94, 0.15) 100%); border: 2px dashed #f59e0b; border-radius: 16px; padding: 24px; text-align: center; margin: 28px 0;">
@@ -63,7 +63,7 @@ export function getOtpEmailTemplate(otp: string): string {
 
           <div style="background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;">
             <p style="color: #f59e0b; font-size: 13px; font-weight: 700; margin: 0 0 4px 0;">⏱️ Code Expires in 5 Minutes</p>
-            <p style="color: #64748b; font-size: 12px; margin: 0;">Do not share this OTP code with anyone. SANAB support will never ask for your verification code.</p>
+            <p style="color: #64748b; font-size: 12px; margin: 0;">Do not share this OTP code with anyone. AMIN support will never ask for your verification code.</p>
           </div>
 
           <p style="color: #64748b; font-size: 13px; line-height: 1.5; margin: 0;">
@@ -88,7 +88,7 @@ export function getWelcomeEmailTemplate(name: string, email: string): string {
       <div style="max-width: 600px; margin: 24px auto; background-color: #0f172a; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); border: 1px solid #334155;">
         ${BRAND_HEADER}
         <div style="padding: 40px 32px; background: radial-gradient(circle at top left, rgba(245, 158, 11, 0.12), transparent 70%);">
-          <h2 style="color: #f59e0b; font-size: 26px; font-weight: 900; margin-top: 0; margin-bottom: 12px; font-family: Georgia, serif;">Welcome to SANAB, ${displayName}! ✨</h2>
+          <h2 style="color: #f59e0b; font-size: 26px; font-weight: 900; margin-top: 0; margin-bottom: 12px; font-family: Georgia, serif;">Welcome to AMIN, ${displayName}! ✨</h2>
           <p style="color: #cbd5e1; font-size: 15px; line-height: 1.6; margin: 0 0 24px 0;">
             We are thrilled to welcome you to our luxury circle. Explore our handcrafted <strong>BIS Hallmarked Fine Jewellery</strong>, revolutionary <strong>PRAO Paris Anti-Tarnish 18K Gold Plated Collection</strong>, and dermatologically clinically-tested cosmetics.
           </p>
@@ -118,7 +118,7 @@ export function getWelcomeEmailTemplate(name: string, email: string): string {
 
 // ─── 3. Order Placed Confirmation Email Template ────────────────────────────
 export function getOrderPlacedEmailTemplate(order: any, userEmail: string): string {
-  const orderId = order._id || order.id || `SANAB-${Date.now()}`;
+  const orderId = order._id || order.id || `AMIN-${Date.now()}`;
   const total = (order.total || 0).toLocaleString('en-IN');
   const subtotal = (order.subtotal || order.total || 0).toLocaleString('en-IN');
   const discount = (order.discount || 0).toLocaleString('en-IN');
@@ -126,7 +126,7 @@ export function getOrderPlacedEmailTemplate(order: any, userEmail: string): stri
   const address = order.shippingAddress || {};
 
   const itemsHtml = items.map((item: any) => {
-    const pName = item.product?.name || item.name || 'SANAB Jewellery Item';
+    const pName = item.product?.name || item.name || 'AMIN Jewellery Item';
     const price = (item.variant?.price || item.price || 0).toLocaleString('en-IN');
     const qty = item.quantity || 1;
     return `
@@ -151,7 +151,7 @@ export function getOrderPlacedEmailTemplate(order: any, userEmail: string): stri
         <div style="padding: 36px 32px; background: radial-gradient(circle at top right, rgba(34, 197, 94, 0.1), transparent 70%);">
           <div style="background-color: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); border-radius: 12px; padding: 16px; text-align: center; margin-bottom: 24px;">
             <span style="color: #4ade80; font-size: 18px; font-weight: 800; display: block;">🎉 Order Confirmed!</span>
-            <span style="color: #94a3b8; font-size: 13px;">Thank you for shopping with SANAB. Your order is being processed.</span>
+            <span style="color: #94a3b8; font-size: 13px;">Thank you for shopping with AMIN. Your order is being processed.</span>
           </div>
 
           <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; color: #94a3b8; font-size: 13px;">
@@ -215,14 +215,14 @@ export function getOrderPlacedEmailTemplate(order: any, userEmail: string): stri
 
 // ─── 4. Order Status Update Email Template ──────────────────────────────────
 export function getOrderStatusEmailTemplate(order: any, newStatus: string, userEmail: string): string {
-  const orderId = order._id || order.id || `SANAB-${Date.now()}`;
+  const orderId = order._id || order.id || `AMIN-${Date.now()}`;
   const total = (order.total || 0).toLocaleString('en-IN');
 
   const statusConfig: Record<string, { title: string; color: string; bg: string; icon: string; desc: string }> = {
     pending: { title: 'Order Received', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', icon: '⏳', desc: 'Your order has been logged and is awaiting verification.' },
     processing: { title: 'Order Confirmed & In Atelier Processing', color: '#60a5fa', bg: 'rgba(96, 165, 250, 0.15)', icon: '🛠️', desc: 'Our master craftsmen are preparing and hallmarking your jewellery items.' },
     shipped: { title: 'Order Dispatched & In Transit', color: '#a855f7', bg: 'rgba(168, 85, 247, 0.15)', icon: '🚚', desc: 'Your package has been handed to our armored insured courier service.' },
-    delivered: { title: 'Order Delivered Successfully', color: '#4ade80', bg: 'rgba(74, 222, 128, 0.15)', icon: '🎉', desc: 'Your order has been delivered! We hope you love your SANAB items.' },
+    delivered: { title: 'Order Delivered Successfully', color: '#4ade80', bg: 'rgba(74, 222, 128, 0.15)', icon: '🎉', desc: 'Your order has been delivered! We hope you love your AMIN items.' },
     cancelled: { title: 'Order Cancelled', color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.15)', icon: '❌', desc: 'Your order has been cancelled. Any processed payment will be refunded within 3-5 days.' },
   };
 

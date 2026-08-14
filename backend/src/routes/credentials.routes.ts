@@ -71,7 +71,7 @@ router.get('/verify', authMiddleware, adminMiddleware, async (req: Request, res:
     results.mongodb = {
       status: mongoState === 1 ? '✅ Connected' : '⚠️ ' + stateMap[mongoState],
       host: mongoose.connection.host || 'cluster0.b8jlajl.mongodb.net',
-      database: mongoose.connection.name || 'sanab',
+      database: mongoose.connection.name || 'amin',
     };
   } catch (err: any) {
     results.mongodb = { status: '❌ Failed', error: err?.message };

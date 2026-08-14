@@ -78,7 +78,7 @@ export class EmailService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: `${options.fromName || 'SANAB Luxury Atelier'} <onboarding@resend.dev>`,
+          from: `${options.fromName || 'AMIN Luxury Atelier'} <onboarding@resend.dev>`,
           to: [options.to],
           subject: options.subject,
           html: options.html,
@@ -120,7 +120,7 @@ export class EmailService {
     try {
       const transporter = this.getTransporter();
       const info = await transporter.sendMail({
-        from: `"SANAB Luxury Atelier" <${fromUser}>`,
+        from: `"AMIN Luxury Atelier" <${fromUser}>`,
         to: options.to,
         subject: options.subject,
         text: options.text,
@@ -138,7 +138,7 @@ export class EmailService {
       logger.info(`[ETHEREAL FALLBACK] Gmail failed — routing via Ethereal test mailer...`);
       const ethereal = await this.getEtherealTransporter();
       const etherealInfo = await ethereal.sendMail({
-        from: `"SANAB Luxury Atelier" <no-reply@sanab.com>`,
+        from: `"AMIN Luxury Atelier" <no-reply@amin.com>`,
         to: options.to,
         subject: options.subject,
         text: options.text,
@@ -159,8 +159,8 @@ export class EmailService {
     const htmlContent = getOtpEmailTemplate(otp);
     return this.sendMailWithFallback({
       to: email,
-      subject: `✨ ${otp} is your SANAB verification code`,
-      text: `Your SANAB verification code is ${otp}. It is valid for 5 minutes.`,
+      subject: `✨ ${otp} is your AMIN verification code`,
+      text: `Your AMIN verification code is ${otp}. It is valid for 5 minutes.`,
       html: htmlContent,
     });
   }
@@ -170,8 +170,8 @@ export class EmailService {
     const htmlContent = getWelcomeEmailTemplate(name, email);
     return this.sendMailWithFallback({
       to: email,
-      subject: `👑 Welcome to SANAB & PRAO Paris Luxury Atelier`,
-      text: `Welcome to SANAB! Discover our fine jewellery, PRAO anti-tarnish 18K gold collection, and luxury cosmetics.`,
+      subject: `👑 Welcome to AMIN & PRAO Paris Luxury Atelier`,
+      text: `Welcome to AMIN! Discover our fine jewellery, PRAO anti-tarnish 18K gold collection, and luxury cosmetics.`,
       html: htmlContent,
     });
   }
@@ -179,11 +179,11 @@ export class EmailService {
   // ─── 3. Send Order Confirmation Email ───────────────────────────────────────
   static async sendOrderPlaced(email: string, order: any): Promise<boolean> {
     const htmlContent = getOrderPlacedEmailTemplate(order, email);
-    const orderId = order._id || order.id || `SANAB-${Date.now()}`;
+    const orderId = order._id || order.id || `AMIN-${Date.now()}`;
     return this.sendMailWithFallback({
       to: email,
-      subject: `🎉 Order Confirmation #${orderId} - SANAB Luxury`,
-      text: `Your SANAB order #${orderId} has been confirmed! Total: ₹${order.total || 0}`,
+      subject: `🎉 Order Confirmation #${orderId} - AMIN Luxury`,
+      text: `Your AMIN order #${orderId} has been confirmed! Total: ₹${order.total || 0}`,
       html: htmlContent,
     });
   }
@@ -191,11 +191,11 @@ export class EmailService {
   // ─── 4. Send Order Status Update Email ──────────────────────────────────────
   static async sendOrderStatus(email: string, order: any, newStatus: string): Promise<boolean> {
     const htmlContent = getOrderStatusEmailTemplate(order, newStatus, email);
-    const orderId = order._id || order.id || `SANAB-${Date.now()}`;
+    const orderId = order._id || order.id || `AMIN-${Date.now()}`;
     return this.sendMailWithFallback({
       to: email,
       subject: `📦 Order #${orderId} Status Update: ${newStatus.toUpperCase()}`,
-      text: `Your SANAB order #${orderId} status has been updated to ${newStatus.toUpperCase()}.`,
+      text: `Your AMIN order #${orderId} status has been updated to ${newStatus.toUpperCase()}.`,
       html: htmlContent,
     });
   }

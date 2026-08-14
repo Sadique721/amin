@@ -41,7 +41,7 @@ export async function publishEvent<T extends object>(
     value: JSON.stringify({ ...payload, _timestamp: new Date().toISOString() }),
     headers: {
       'content-type': 'application/json',
-      source: 'sanab-backend',
+      source: 'amin-backend',
     },
   };
 

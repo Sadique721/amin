@@ -55,7 +55,7 @@ import { notFoundMiddleware } from '../middlewares/not-found.middleware';
 app.get('/api/health', (_req, res) => {
   res.json({
     success: true,
-    message: '🚀 Sanab API is running',
+    message: '🚀 Amin API is running',
     version: '2.0.0',
     env: process.env.NODE_ENV || 'production',
     db: mongoose.connection.readyState === 1 ? '✅ connected' : '⚠️ connecting...',

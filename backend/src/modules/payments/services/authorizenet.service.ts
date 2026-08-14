@@ -121,7 +121,7 @@ export class AuthorizeNetService {
             },
           },
           order: {
-            description: opts.description || 'SANAB Order',
+            description: opts.description || 'AMIN Order',
           },
           customerIP: '127.0.0.1',
         },

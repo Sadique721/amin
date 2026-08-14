@@ -120,11 +120,11 @@ export default function ShopDetailPage({ params }: { params: Promise<{ slug: str
       // Continue to local storage fallback
     } finally {
       try {
-        const stored = localStorage.getItem('sanab_local_wishlist');
+        const stored = localStorage.getItem('amin_local_wishlist');
         const list = stored ? JSON.parse(stored) : [];
         if (!list.some((item: any) => item._id === targetId)) {
           list.push(product);
-          localStorage.setItem('sanab_local_wishlist', JSON.stringify(list));
+          localStorage.setItem('amin_local_wishlist', JSON.stringify(list));
         }
       } catch (e) {}
       setAddedToWishlist(true);

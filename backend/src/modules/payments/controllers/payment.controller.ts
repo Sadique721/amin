@@ -201,7 +201,7 @@ export class PaymentController {
       const result = await AuthorizeNetService.chargeCard({
         amount: order.total,
         card: { cardNumber, expirationDate, cardCode },
-        description: `SANAB Order #${order._id}`,
+        description: `AMIN Order #${order._id}`,
         orderId: order._id.toString(),
       });
 

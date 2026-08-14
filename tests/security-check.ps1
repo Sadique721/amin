@@ -8,7 +8,7 @@ function Test-Api($label, $status, $detail) {
 }
 
 Write-Host "============================================================"
-Write-Host "   SANAB SECURITY VERIFICATION TESTS"
+Write-Host "   AMIN SECURITY VERIFICATION TESTS"
 Write-Host "============================================================"
 Write-Host ""
 

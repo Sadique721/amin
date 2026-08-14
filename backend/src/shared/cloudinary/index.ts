@@ -9,7 +9,7 @@ export interface UploadResult {
 }
 
 export const cloudinaryUploader = {
-  uploadBuffer: async (buffer: Buffer, folder = 'sanab'): Promise<UploadResult> => {
+  uploadBuffer: async (buffer: Buffer, folder = 'amin'): Promise<UploadResult> => {
     // If Cloudinary keys are configured, use Cloudinary
     if (env.CLOUDINARY_CLOUD_NAME && env.CLOUDINARY_API_KEY && env.CLOUDINARY_API_SECRET) {
       return new Promise((resolve, reject) => {

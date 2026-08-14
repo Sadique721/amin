@@ -114,7 +114,7 @@ export default function AdminSettingsPage() {
       try { await api.put('/users/profile', { name, email }); } catch {}
       const updatedUser = { ...(user || {}), name, email, role: user?.role || 'admin' };
       dispatch(setCredentials({ user: updatedUser as any, accessToken: accessToken || '', refreshToken: '' }));
-      localStorage.setItem('sanab_user', JSON.stringify(updatedUser));
+      localStorage.setItem('amin_user', JSON.stringify(updatedUser));
       toast.success('Admin profile updated successfully!');
       setNewPassword('');
     } catch (err: any) {
@@ -195,7 +195,7 @@ export default function AdminSettingsPage() {
               <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputCls()} placeholder="Admin Name" />
             </FormField>
             <FormField label="Administrator Email" icon={Mail}>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} className={inputCls()} placeholder="admin@sanab.com" />
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} className={inputCls()} placeholder="admin@amin.com" />
             </FormField>
             <FormField label="Contact Phone" icon={Smartphone}>
               <input type="text" value={phone} onChange={e => setPhone(e.target.value)} className={inputCls()} />

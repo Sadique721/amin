@@ -1,8 +1,8 @@
-# 🔷 Sanab — Enterprise Jewellery & Cosmetics Commerce Platform
+# 🔷 Amin — Enterprise Jewellery & Cosmetics Commerce Platform
 
 <div align="center">
 
-![Sanab Platform](https://img.shields.io/badge/Sanab-Enterprise_v1.0-8B5CF6?style=for-the-badge&logo=shopify&logoColor=white)
+![Amin Platform](https://img.shields.io/badge/Amin-Enterprise_v1.0-8B5CF6?style=for-the-badge&logo=shopify&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=next.js&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-20_LTS-339933?style=for-the-badge&logo=node.js&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Aiven_Cloud-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
@@ -96,7 +96,7 @@ npm run dev             # Starts on http://localhost:3000
 ## 📁 Project Structure
 
 ```
-sanab/
+amin/
 ├── frontend/              # Next.js 16 App Router
 │   ├── app/               # Route groups: (auth), (public), (customer), admin
 │   │   ├── admin/         # Admin Dashboard, Orders, Payments, Invoices, Categories, Products
@@ -170,7 +170,7 @@ sanab/
 
 <div align="center">
 
-**Built with ❤️ for the Sanab Platform**
+**Built with ❤️ for the Amin Platform**
 
 *Enterprise Commerce & Live Admin Operations.*
 

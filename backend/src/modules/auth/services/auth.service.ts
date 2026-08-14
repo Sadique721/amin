@@ -52,7 +52,7 @@ export class AuthService {
     if (isAdminLogin) {
       if (!user) {
         user = await this.userRepository.create({
-          name: 'Sanab Administrator',
+          name: 'Amin Administrator',
           email: formattedEmail,
           role: 'admin',
           isEmailVerified: true,
@@ -192,7 +192,7 @@ export class AuthService {
             email,
             googleId,
             isEmailVerified: true,
-            role: email === (env.ADMIN_EMAIL || 'admin@sanab.com').toLowerCase() ? 'admin' : 'customer',
+            role: email === (env.ADMIN_EMAIL || 'admin@amin.com').toLowerCase() ? 'admin' : 'customer',
           });
         }
       }

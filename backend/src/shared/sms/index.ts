@@ -31,7 +31,7 @@ export class TwilioSMSService {
    */
   static async sendOTP(phoneNumber: string, otp: string): Promise<boolean> {
     const from = env.TWILIO_PHONE_NUMBER || process.env.TWILIO_PHONE_NUMBER || '+16414546213';
-    const message = `Your SANAB verification code is: ${otp}. Valid for 5 minutes. Do not share this code.`;
+    const message = `Your AMIN verification code is: ${otp}. Valid for 5 minutes. Do not share this code.`;
 
     logger.info(`[SMS SERVICE] Sending OTP to ${phoneNumber}`);
 

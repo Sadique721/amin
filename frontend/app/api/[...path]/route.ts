@@ -78,7 +78,7 @@ async function sendOtpEmail(to: string, otp: string): Promise<void> {
     resendKey.startsWith('re_');
 
   const html = buildOtpHtml(otp);
-  const subject = `${otp} — Your SANAB Verification Code`;
+  const subject = `${otp} — Your AMIN Verification Code`;
 
   // PRIMARY: Resend (instant HTTP call, no SMTP socket overhead)
   if (isResendConfigured) {
@@ -92,7 +92,7 @@ async function sendOtpEmail(to: string, otp: string): Promise<void> {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'SANAB Luxury Atelier <onboarding@resend.dev>',
+          from: 'AMIN Luxury Atelier <onboarding@resend.dev>',
           to: [to],
           subject,
           html,
@@ -135,7 +135,7 @@ async function sendOtpEmail(to: string, otp: string): Promise<void> {
     });
 
     await transporter.sendMail({
-      from: `"SANAB Luxury Atelier" <${smtpUser}>`,
+      from: `"AMIN Luxury Atelier" <${smtpUser}>`,
       to,
       subject,
       html,
@@ -196,7 +196,7 @@ async function chargeAuthorizeNet(opts: {
         transactionType: 'authCaptureTransaction',
         amount: opts.amount.toFixed(2),
         payment: { creditCard: { cardNumber: opts.cardNumber, expirationDate: opts.expirationDate, cardCode: opts.cardCode } },
-        order: { description: opts.description || 'Sanab luxury purchase' },
+        order: { description: opts.description || 'Amin luxury purchase' },
         billTo: { firstName: opts.firstName, lastName: opts.lastName },
       },
     },
@@ -278,7 +278,7 @@ async function uploadToCloudinary(file: File): Promise<{ url: string; publicId: 
 
   try {
     const timestamp = Math.floor(Date.now() / 1000).toString();
-    const folder = 'sanab';
+    const folder = 'amin';
     const stringToSign = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
     const signature = crypto.createHash('sha1').update(stringToSign).digest('hex');
 
@@ -762,7 +762,7 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
 
       // ── Coupon / discount ──
       let discountAmount = 0;
-      if (couponCode === 'SANAB10') discountAmount = Math.round(subtotal * 0.10);
+      if (couponCode === 'AMIN10' || couponCode === 'SANAB10') discountAmount = Math.round(subtotal * 0.10);
       else if (couponCode === 'WELCOME20') discountAmount = Math.round(subtotal * 0.20);
 
       const shipping = subtotal >= 999 ? 0 : 99;
@@ -791,7 +791,7 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
             firstName,
             lastName,
             email: currentUser.email,
-            description: `SANAB Order — ${resolvedItems.map(i => i.name).join(', ').slice(0, 60)}`,
+            description: `AMIN Order — ${resolvedItems.map(i => i.name).join(', ').slice(0, 60)}`,
           });
 
           paymentStatus = 'paid';
@@ -1355,6 +1355,7 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
       const body = await req.json();
       const code = (body.couponCode || body.code || '').toString().trim().toUpperCase();
       const COUPONS: Record<string, { discount: number; type: 'percent'; description: string }> = {
+        'AMIN10':    { discount: 10, type: 'percent', description: '10% off your order' },
         'SANAB10':   { discount: 10, type: 'percent', description: '10% off your order' },
         'WELCOME20': { discount: 20, type: 'percent', description: '20% off your order' },
       };

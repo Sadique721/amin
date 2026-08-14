@@ -91,8 +91,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     let currentUser = user;
     if (typeof window !== 'undefined' && (!currentToken || !currentUser)) {
       try {
-        const storedUser = localStorage.getItem('sanab_user');
-        const storedToken = localStorage.getItem('sanab_accessToken');
+        const storedUser = localStorage.getItem('amin_user');
+        const storedToken = localStorage.getItem('amin_accessToken');
         if (storedUser) currentUser = JSON.parse(storedUser);
         if (storedToken) currentToken = storedToken;
       } catch (e) {}
@@ -229,7 +229,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold text-white truncate">{user?.name || 'Admin User'}</p>
-                    <p className="text-[10px] text-slate-500 truncate">{user?.email || 'admin@sanab.com'}</p>
+                    <p className="text-[10px] text-slate-500 truncate">{user?.email || 'admin@amin.com'}</p>
                   </div>
                   <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-[#00a65a]/20 text-[#00a65a] uppercase">
                     {user?.role || 'admin'}
