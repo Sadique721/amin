@@ -217,22 +217,22 @@ async function sendEmailCore(to: string, subject: string, html: string, text?: s
     }
 
     const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
+      service: 'gmail',
       auth: { user: smtpUser, pass: smtpPass },
       tls: { rejectUnauthorized: false },
-      connectionTimeout: 10000,
-      greetingTimeout: 8000,
-      socketTimeout: 10000,
     });
 
+    const timestamp = Date.now();
     await transporter.sendMail({
       from: `"AMIN Luxury Atelier" <${smtpUser}>`,
       to,
       subject,
       html,
       text,
+      headers: {
+        'X-Entity-Ref-ID': `amin-otp-${timestamp}`,
+        'X-Priority': '1',
+      },
     });
     console.log(`[GMAIL SMTP] ✅ Email delivered to ${to} ("${subject}")`);
   } catch (err: any) {
