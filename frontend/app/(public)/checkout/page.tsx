@@ -268,7 +268,7 @@ export default function CheckoutPage() {
             key: rzpKeyId,
             amount: rzpAmount,
             currency: 'INR',
-            name: 'SANAB Luxury Atelier',
+            name: 'AMIN Luxury Atelier',
             description: `Order #${(order._id || '').slice(-6)} — Fine Jewellery & Cosmetics`,
             order_id: isMockOrder ? undefined : rzpOrderId,
             prefill: {

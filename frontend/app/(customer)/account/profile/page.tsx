@@ -193,7 +193,7 @@ export default function ProfilePage() {
                     </span>
                   ) : (
                     <span className="rounded-full bg-rose-500/10 border border-rose-500/20 px-3 py-0.5 text-xs font-bold text-rose-500 uppercase tracking-wider">
-                      💎 Sanab VIP Member
+                      💎 Amin VIP Member
                     </span>
                   )}
                 </div>

@@ -357,7 +357,7 @@ export default function RegisterPage() {
                 <CheckCircle2 className="h-10 w-10" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl font-bold text-foreground">Welcome to Sanab!</h3>
+                <h3 className="text-xl font-bold text-foreground">Welcome to Amin!</h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   Your premium jewellery & cosmetics account has been successfully configured. You can now shop, save items to your wishlist, and manage your delivery addresses.
                 </p>

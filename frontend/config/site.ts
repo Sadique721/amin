@@ -1,1 +1,1 @@
-export const siteConfig = { name: "Sanab" };
+export const siteConfig = { name: "Amin" };

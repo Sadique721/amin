@@ -198,9 +198,9 @@ export default function HomePage() {
     return featuredProducts;
   };
 
-  const siteUrl = 'https://sanab.com';
-  const websiteSchema = { '@context': 'https://schema.org', '@type': 'WebSite', 'name': 'Sanab Store', 'url': siteUrl };
-  const orgSchema = { '@context': 'https://schema.org', '@type': 'OnlineStore', 'name': 'Sanab Store', 'url': siteUrl };
+  const siteUrl = 'https://amin.com';
+  const websiteSchema = { '@context': 'https://schema.org', '@type': 'WebSite', 'name': 'Amin Store', 'url': siteUrl };
+  const orgSchema = { '@context': 'https://schema.org', '@type': 'OnlineStore', 'name': 'Amin Store', 'url': siteUrl };
 
   return (
     <div className="flex flex-col min-h-screen overflow-hidden">
@@ -620,7 +620,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               { name: 'Ananya Sharma', city: 'Mumbai', review: 'The Anti-Tarnish Evil Eye Hoops are my absolute favourite! I wear them every day, even in the shower, and they still look as bright as day one.', rating: 5, product: 'PRAO Heart Evil Eye Hoops' },
-              { name: 'Priya Mukherjee', city: 'Kolkata', review: "SANAB's diamond choker surpassed my expectations. The craftsmanship is divine and hallmark purity gives complete peace of mind.", rating: 5, product: 'Empress Diamond Choker' },
+              { name: 'Priya Mukherjee', city: 'Kolkata', review: "AMIN's diamond choker surpassed my expectations. The craftsmanship is divine and hallmark purity gives complete peace of mind.", rating: 5, product: 'Empress Diamond Choker' },
               { name: 'Riya Verma', city: 'Delhi', review: 'The Kashmiri Kundan Dangles look so regal! Packaging was premium and delivery took less than 48 hours.', rating: 5, product: 'Kashmiri Kundan Dangles' },
             ].map((t, idx) => (
               <div key={idx} className="p-6 rounded-2xl bg-muted/20 border border-border space-y-4 flex flex-col justify-between hover:border-amber-500/30 transition-colors">
@@ -679,7 +679,7 @@ export default function HomePage() {
         <Container className="relative z-10 text-center space-y-6 max-w-2xl">
           <Gem className="h-10 w-10 text-amber-400 mx-auto" />
           <h2 className="text-3xl sm:text-4xl font-black text-amber-100 font-serif tracking-tight">
-            Join the SANAB Circle
+            Join the AMIN Circle
           </h2>
           <p className="text-slate-300 text-sm leading-relaxed">
             Be the first to know about new PRAO anti-tarnish drops, hallmarked gold arrivals, exclusive offers, and VIP member-only collections.

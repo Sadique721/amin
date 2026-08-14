@@ -128,7 +128,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <ShieldCheck className="w-4 h-4 text-white" />
           </div>
           <div>
-            <span className="font-black text-sm text-white tracking-wide">SANAB Admin</span>
+            <span className="font-black text-sm text-white tracking-wide">AMIN Admin</span>
             <span className="block text-[10px] text-slate-400 font-medium">Control Panel</span>
           </div>
         </div>
@@ -164,7 +164,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <ShieldCheck className="w-5 h-5 text-white" />
               </div>
               <div>
-                <span className="font-black text-base text-white tracking-tight block leading-tight">SANAB</span>
+                <span className="font-black text-base text-white tracking-tight block leading-tight">AMIN</span>
                 <span className="text-[11px] text-slate-400 font-semibold">Admin Control Panel</span>
               </div>
             </div>

@@ -230,7 +230,7 @@ export default function AdminProductsPage() {
                             </div>
                             <div className="min-w-0">
                               <p className="text-foreground font-bold truncate max-w-xs">{product.name}</p>
-                              <p className="text-muted-foreground text-[11px] truncate max-w-xs">{product.brand || 'Sanab'}</p>
+                              <p className="text-muted-foreground text-[11px] truncate max-w-xs">{product.brand || 'Amin'}</p>
                             </div>
                           </div>
                         </td>

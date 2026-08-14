@@ -190,7 +190,7 @@ export default function LoginPage() {
         sub: 'google-oauth2|1234567890',
         name: 'Google Customer',
         iss: 'accounts.google.com',
-        aud: 'sanab-client'
+        aud: 'amin-client'
       }));
       const mockSignature = 'mock-signature';
       const mockCredential = `${mockHeader}.${mockPayload}.${mockSignature}`;

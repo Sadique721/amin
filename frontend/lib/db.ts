@@ -113,7 +113,7 @@ async function initDB(p: Pool) {
       slug TEXT UNIQUE NOT NULL,
       description TEXT NOT NULL,
       short_description TEXT,
-      brand TEXT DEFAULT 'Sanab',
+      brand TEXT DEFAULT 'Amin',
       type TEXT DEFAULT 'jewellery',
       price NUMERIC NOT NULL DEFAULT 0,
       sale_price NUMERIC,
@@ -555,7 +555,7 @@ export async function getModels() {
         INSERT INTO products (name,slug,description,short_description,brand,type,price,sale_price,sku,stock,images,category_id,tags,is_active,is_featured,specifications,attributes,variants)
         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *
       `, [
-        data.name, slug, data.description, data.shortDescription||null, data.brand||'Sanab', data.type||'jewellery',
+        data.name, slug, data.description, data.shortDescription||null, data.brand||'Amin', data.type||'jewellery',
         data.price||0, data.salePrice||null, data.sku||`SKU-${Date.now()}`, data.stock||0,
         JSON.stringify(data.images||[]), catId,
         JSON.stringify(data.tags||[]), data.isActive!==false, data.isFeatured||false,

@@ -6,8 +6,8 @@ import { MessageSquare, User, Send, CheckCircle2, Clock, XCircle, Search, Sparkl
 const ticketsData = [
   { id: '1', user: 'Md Sadique Amin', email: 'mdsadiqueamin721786@gmail.com', subject: 'Order Delivery Status Inquiry', status: 'Open',    date: '03 Aug 2026', avatar: 'M', priority: 'High' },
   { id: '2', user: 'Luxury Buyer',     email: 'buyer@example.com',              subject: 'Return Request — Crystal Hoops', status: 'Pending', date: '02 Aug 2026', avatar: 'L', priority: 'Medium' },
-  { id: '3', user: 'Franchise Partner',email: 'partner@franchise.com',          subject: 'SANAB Franchise Onboarding Docs', status: 'Closed', date: '01 Aug 2026', avatar: 'F', priority: 'Low' },
-  { id: '4', user: 'Test Customer',    email: 'test@sanab.com',                 subject: 'Payment confirmation not received', status: 'Open', date: '03 Aug 2026', avatar: 'T', priority: 'High' },
+  { id: '3', user: 'Franchise Partner',email: 'partner@franchise.com',          subject: 'AMIN Franchise Onboarding Docs', status: 'Closed', date: '01 Aug 2026', avatar: 'F', priority: 'Low' },
+  { id: '4', user: 'Test Customer',    email: 'test@amin.com',                 subject: 'Payment confirmation not received', status: 'Open', date: '03 Aug 2026', avatar: 'T', priority: 'High' },
 ];
 
 const STATUS_CONFIG = {

@@ -122,10 +122,10 @@ export default function FranchisePage() {
         />
         <div className="relative z-10 max-w-6xl mx-auto space-y-6">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/30 text-amber-300 text-xs font-bold uppercase tracking-widest">
-            <Building2 className="h-3.5 w-3.5" /> Partner With SANAB
+            <Building2 className="h-3.5 w-3.5" /> Partner With AMIN
           </div>
           <h1 className="text-4xl sm:text-6xl font-black tracking-tight font-serif text-amber-100">
-            Grow Your Business<br />with SANAB Franchise
+            Grow Your Business<br />with AMIN Franchise
           </h1>
           <p className="text-base text-slate-300 max-w-2xl leading-relaxed">
             Expand the luxury jewellery and PRAO anti-tarnish cosmetics line to your city. We offer structured setup guidance, geo-protected territories, marketing resources, and certified BIS hallmarked inventory supply.
@@ -157,7 +157,7 @@ export default function FranchisePage() {
         <div className="space-y-8">
           <div className="text-center space-y-2">
             <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Why Partner With Us</span>
-            <h2 className="text-3xl font-extrabold text-foreground font-serif">The SANAB Franchise Advantage</h2>
+            <h2 className="text-3xl font-extrabold text-foreground font-serif">The AMIN Franchise Advantage</h2>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -179,7 +179,7 @@ export default function FranchisePage() {
         <div className="space-y-8">
           <div className="text-center space-y-2">
             <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">How It Works</span>
-            <h2 className="text-3xl font-extrabold text-foreground font-serif">Your Journey to Launching a SANAB Boutique</h2>
+            <h2 className="text-3xl font-extrabold text-foreground font-serif">Your Journey to Launching an AMIN Boutique</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {PROCESS_STEPS.map((step, i) => (

@@ -10,10 +10,10 @@ export default function AboutPage() {
         {/* Hero Section */}
         <div className="text-center space-y-4 max-w-3xl mx-auto">
           <span className="text-xs font-bold text-amber-500 uppercase tracking-widest bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
-            Est. 2024 • SANAB & PRAO Atelier
+            Est. 2024 • AMIN & PRAO Atelier
           </span>
           <h1 className="text-4xl sm:text-6xl font-black text-foreground tracking-tight font-serif">
-            Timeless Elegance, <span className="bg-gradient-to-r from-amber-500 via-rose-500 to-amber-500 bg-clip-text text-transparent">Defined by SANAB</span>
+            Timeless Elegance, <span className="bg-gradient-to-r from-amber-500 via-rose-500 to-amber-500 bg-clip-text text-transparent">Defined by AMIN</span>
           </h1>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
             Crafting fine hallmarked gold, ethically-sourced diamonds, and PRAO anti-tarnish waterproof jewellery alongside clinically-proven botanical cosmetic formulations.
@@ -25,7 +25,7 @@ export default function AboutPage() {
           <div className="space-y-6">
             <h2 className="text-3xl font-extrabold text-foreground tracking-tight font-serif">Our Heritage & Vision</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              At SANAB, luxury is an experience of trust, craftsmanship, and individuality. Founded with a vision to marry classic fine metal art with modern anti-tarnish innovations and organic clean cosmetics, we deliver pieces that empower your everyday dazzle.
+              At AMIN, luxury is an experience of trust, craftsmanship, and individuality. Founded with a vision to marry classic fine metal art with modern anti-tarnish innovations and organic clean cosmetics, we deliver pieces that empower your everyday dazzle.
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed">
               Every diamond is conflict-free and certified by IGI/GIA, every gold piece is 100% BIS 916 hallmarked, and our PRAO fashion collection guarantees 100% waterproof anti-tarnish durability.
@@ -73,12 +73,12 @@ export default function AboutPage() {
         <div className="space-y-8 pt-6 border-t border-border">
           <div className="text-center space-y-2">
             <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Journey of Excellence</span>
-            <h2 className="text-3xl font-extrabold text-foreground font-serif">The SANAB Heritage Timeline</h2>
+            <h2 className="text-3xl font-extrabold text-foreground font-serif">The AMIN Heritage Timeline</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {[
-              { year: '2024', title: 'Atelier Founded', desc: 'Launched SANAB in Delhi Luxury District with 100% hallmarked gold & diamond collections.' },
+              { year: '2024', title: 'Atelier Founded', desc: 'Launched AMIN in Delhi Luxury District with 100% hallmarked gold & diamond collections.' },
               { year: '2025', title: 'Dermal Cosmetics Line', desc: 'Introduced botanical clean cosmetics & velvet lip formulations certified cruelty-free.' },
               { year: '2025', title: 'PRAO Anti-Tarnish Launch', desc: 'Partnered with European artisans to introduce 100% waterproof anti-tarnish fashion earrings.' },
               { year: '2026', title: 'Global Franchise Network', desc: 'Expanded boutique stores and flagship concierges across tier-1 luxury hubs.' },
@@ -95,7 +95,7 @@ export default function AboutPage() {
         {/* Values Grid */}
         <div className="space-y-8">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-foreground">Why SANAB & PRAO</h2>
+            <h2 className="text-2xl font-bold text-foreground">Why AMIN & PRAO</h2>
             <p className="text-xs text-muted-foreground mt-1">Built on trust, verified by science, designed by artisans.</p>
           </div>
 

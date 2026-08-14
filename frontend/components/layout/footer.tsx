@@ -15,7 +15,7 @@ export const Footer: React.FC = () => {
           {/* Brand Info */}
           <div className="space-y-4">
             <span className="text-xl font-bold tracking-wider bg-gradient-to-r from-amber-500 to-rose-500 bg-clip-text text-transparent">
-              SANAB
+              AMIN
             </span>
             <p className="text-muted-foreground leading-relaxed">
               Premium Jewellery & Luxury Cosmetics curated with pure elegance. Indulge in state-of-the-art formulations and craftsmanship.
@@ -72,7 +72,7 @@ export const Footer: React.FC = () => {
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="h-4 w-4 shrink-0" />
-                <span>support@sanab.com</span>
+                <span>support@amin.com</span>
               </li>
             </ul>
           </div>
@@ -97,7 +97,7 @@ export const Footer: React.FC = () => {
 
         {/* Bottom Panel */}
         <div className="mt-16 border-t border-border pt-8 text-center text-xs text-muted-foreground">
-          <p>© {new Date().getFullYear()} SANAB Platform. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} AMIN Platform. All rights reserved.</p>
         </div>
       </Container>
     </footer>

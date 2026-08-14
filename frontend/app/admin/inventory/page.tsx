@@ -15,7 +15,7 @@ const inventoryItems = [
   { id: '5', sku: 'SKU-CH-005',  name: 'Crystal Hoop Drop Earrings',         stock: 6,   minStock: 15,  category: 'Diamond Jewellery', value: 34000 },
   { id: '6', sku: 'SKU-SK-006',  name: 'Botanical Brightening Serum 30ml',   stock: 210, minStock: 40,  category: 'Skincare',          value: 2299 },
   { id: '7', sku: 'SKU-BR-007',  name: 'BIS Certified Gold Bangle Pair',     stock: 19,  minStock: 10,  category: 'Gold Jewellery',    value: 98000 },
-  { id: '8', sku: 'SKU-FK-008',  name: 'SANAB Franchise Kit (Premium)',      stock: 4,   minStock: 5,   category: 'Franchise',         value: 500000 },
+  { id: '8', sku: 'SKU-FK-008',  name: 'AMIN Franchise Kit (Premium)',      stock: 4,   minStock: 5,   category: 'Franchise',         value: 500000 },
 ];
 
 const CustomTooltip = ({ active, payload, label }: any) => {

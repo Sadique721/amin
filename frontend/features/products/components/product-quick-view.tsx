@@ -209,7 +209,7 @@ export function ProductQuickView({ product, onClose }: ProductQuickViewProps) {
             <div className="p-6 sm:p-8 flex flex-col gap-5 overflow-y-auto">
               {/* Brand + Type */}
               <div className="flex items-center gap-2 text-xs">
-                <span className="font-extrabold text-amber-600 uppercase tracking-widest">{product.brand || 'SANAB'}</span>
+                <span className="font-extrabold text-amber-600 uppercase tracking-widest">{product.brand || 'AMIN'}</span>
                 <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded-full capitalize">{product.type}</span>
                 {isAntiTarnish && (
                   <span className="bg-amber-500/10 text-amber-600 border border-amber-500/30 px-2 py-0.5 rounded-full text-[10px] font-bold">PRAO Collection</span>

@@ -98,7 +98,7 @@ export const Header: React.FC = () => {
                   <Gem className="w-4 h-4 text-white" />
                 </div>
                 <span className="text-xl sm:text-2xl font-black tracking-wider bg-gradient-to-r from-amber-500 to-rose-500 bg-clip-text text-transparent">
-                  SANAB
+                  AMIN
                 </span>
               </Link>
             </div>
@@ -272,7 +272,7 @@ export const Header: React.FC = () => {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
               <Gem className="w-4 h-4 text-white" />
             </div>
-            <span className="font-black text-lg bg-gradient-to-r from-amber-500 to-rose-500 bg-clip-text text-transparent">SANAB</span>
+            <span className="font-black text-lg bg-gradient-to-r from-amber-500 to-rose-500 bg-clip-text text-transparent">AMIN</span>
           </div>
           <button
             onClick={() => setMobileOpen(false)}

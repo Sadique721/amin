@@ -47,7 +47,7 @@ export function AuthForm() {
       }
     }
 
-    const isAdmin = email.toLowerCase() === 'admin@sanab.com' || email.toLowerCase().startsWith('admin@');
+    const isAdmin = email.toLowerCase() === 'admin@amin.com' || email.toLowerCase().startsWith('admin@');
     if (isAdmin) {
       setHasPassword(true);
       setUsePassword(true);
@@ -74,7 +74,7 @@ export function AuthForm() {
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const isAdmin = email.toLowerCase() === 'admin@sanab.com' || email.toLowerCase().startsWith('admin@');
+    const isAdmin = email.toLowerCase() === 'admin@amin.com' || email.toLowerCase().startsWith('admin@');
     if (!isAdmin && !usePassword) {
       try {
         otpSchema.parse(otp);
@@ -115,7 +115,7 @@ export function AuthForm() {
         sub: 'google-oauth2|1234567890',
         name: 'Google Customer',
         iss: 'accounts.google.com',
-        aud: 'sanab-client'
+        aud: 'amin-client'
       }));
       const mockSignature = 'mock-signature';
       const mockCredential = `${mockHeader}.${mockPayload}.${mockSignature}`;
@@ -136,7 +136,7 @@ export function AuthForm() {
     }
   };
 
-  const isAdmin = email.toLowerCase() === 'admin@sanab.com' || email.toLowerCase().startsWith('admin@');
+  const isAdmin = email.toLowerCase() === 'admin@amin.com' || email.toLowerCase().startsWith('admin@');
 
   return (
     <Card className="w-full max-w-md border-border bg-background/60 backdrop-blur-md shadow-2xl">

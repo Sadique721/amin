@@ -86,7 +86,7 @@ export default function AdminSettingsPage() {
   const [showPassword, setShowPassword] = React.useState(false);
 
   // Store config state
-  const [siteName, setSiteName] = React.useState('SANAB Luxury Jewellery & Cosmetics');
+  const [siteName, setSiteName] = React.useState('AMIN Luxury Jewellery & Cosmetics');
   const [supportEmail, setSupportEmail] = React.useState('mdsadiqueamin721786@gmail.com');
   const [currency, setCurrency] = React.useState('INR (₹)');
   const [maintenanceMode, setMaintenanceMode] = React.useState(false);

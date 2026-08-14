@@ -88,7 +88,7 @@ export default function AdminDashboardPage() {
     { id: '2', ref: 'ORD-1785754636608-VTKB', user: 'Sadique (Test)', service: 'Crystal Hoop Earrings', price: '₹34,000.00', status: 'Pending', date: '03 Aug 2026' },
     { id: '3', ref: 'ORD-1785755196807-E68H', user: 'Md Sadique Amin', service: 'Pure Gold Kundan Necklace', price: '₹214,034.00', status: 'Processing', date: '03 Aug 2026' },
     { id: '4', ref: 'ORD-310725-1004', user: 'Luxury Buyer', service: 'Velvet Matte Lipstick Set', price: '₹4,500.00', status: 'Success', date: '02 Aug 2026' },
-    { id: '5', ref: 'ORD-310725-1005', user: 'Franchise Partner', service: 'SANAB Store Franchise Kit', price: '₹500,000.00', status: 'Success', date: '01 Aug 2026' },
+    { id: '5', ref: 'ORD-310725-1005', user: 'Franchise Partner', service: 'AMIN Store Franchise Kit', price: '₹500,000.00', status: 'Success', date: '01 Aug 2026' },
   ];
 
   const [orders, setOrders] = React.useState<OrderItem[]>(initialOrders);

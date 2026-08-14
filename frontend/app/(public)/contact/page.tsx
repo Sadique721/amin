@@ -18,7 +18,7 @@ const CONTACT_METHODS = [
     icon: Mail,
     color: 'rose',
     label: 'Email Support',
-    value: 'support@sanab.com',
+    value: 'support@amin.com',
     sub: 'Response within 24 hours',
   },
   {
@@ -135,7 +135,7 @@ export default function ContactPage() {
             </div>
 
             <div className="p-6 rounded-2xl bg-background border border-border space-y-4">
-              <h3 className="text-sm font-extrabold text-foreground">Follow SANAB</h3>
+              <h3 className="text-sm font-extrabold text-foreground">Follow AMIN</h3>
               <div className="flex gap-3">
                 <a href="#" className="p-2.5 rounded-xl bg-muted/20 hover:bg-rose-500/10 hover:text-rose-500 transition-colors text-muted-foreground">
                   <Globe className="h-4 w-4" />
