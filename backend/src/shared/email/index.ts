@@ -6,6 +6,10 @@ import {
   getWelcomeEmailTemplate,
   getOrderPlacedEmailTemplate,
   getOrderStatusEmailTemplate,
+  getPasswordResetEmailTemplate,
+  getLowStockAlertEmailTemplate,
+  getSupportInquiryEmailTemplate,
+  getNewsletterWelcomeEmailTemplate,
 } from './templates';
 
 export class EmailService {
@@ -18,7 +22,6 @@ export class EmailService {
       const port = Number(env.SMTP_PORT || process.env.MAIL_PORT || 465);
       const user = (env.SMTP_USER || process.env.MAIL_USERNAME || '').trim();
       const pass = (env.SMTP_PASS || process.env.MAIL_PASSWORD || '').trim();
-
 
       if (host.includes('gmail') || user.endsWith('@gmail.com')) {
         this.transporter = nodemailer.createTransport({
@@ -58,19 +61,22 @@ export class EmailService {
     return this.etherealTransporter;
   }
 
-  // ── Primary: Resend HTTP API (fastest — no SMTP socket overhead) ─────────────
+  // ── Primary: Resend HTTP API (fastest — sub-second serverless execution) ─────
   private static async sendViaResend(options: {
     to: string;
     subject: string;
     html: string;
+    text?: string;
     fromName?: string;
   }): Promise<boolean> {
     const resendKey = process.env.RESEND_API_KEY || '';
-    if (!resendKey || resendKey.includes('PLACEHOLDER') || resendKey.includes('REPLACE')) {
+    if (!resendKey || resendKey.includes('PLACEHOLDER') || resendKey.includes('REPLACE') || !resendKey.startsWith('re_')) {
       return false; // Not configured
     }
 
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -82,8 +88,11 @@ export class EmailService {
           to: [options.to],
           subject: options.subject,
           html: options.html,
+          text: options.text,
         }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
 
       if (res.ok) {
         const data = await res.json() as any;
@@ -105,13 +114,14 @@ export class EmailService {
     text: string;
     html: string;
   }): Promise<boolean> {
-    const fromUser = env.SMTP_USER || process.env.MAIL_USERNAME || 'entitykart@gmail.com';
+    const fromUser = env.SMTP_USER || process.env.MAIL_USERNAME || 'support@amin.com';
     logger.info(`[EMAIL SERVICE] Sending to: ${options.to} | Subject: "${options.subject}"`);
 
     // 1st: Try Resend (instant HTTP call — no SMTP socket penalty)
     const resendOk = await this.sendViaResend({
       to: options.to,
       subject: options.subject,
+      text: options.text,
       html: options.html,
     });
     if (resendOk) return true;
@@ -153,50 +163,91 @@ export class EmailService {
     return true;
   }
 
-
   // ─── 1. Send OTP Verification Code ──────────────────────────────────────────
   static async sendOTP(email: string, otp: string): Promise<boolean> {
-    const htmlContent = getOtpEmailTemplate(otp);
+    const template = getOtpEmailTemplate(otp);
     return this.sendMailWithFallback({
       to: email,
-      subject: `✨ ${otp} is your AMIN verification code`,
-      text: `Your AMIN verification code is ${otp}. It is valid for 5 minutes.`,
-      html: htmlContent,
+      subject: template.subject,
+      text: template.text,
+      html: template.html,
     });
   }
 
   // ─── 2. Send Welcome Email ──────────────────────────────────────────────────
   static async sendWelcome(email: string, name: string): Promise<boolean> {
-    const htmlContent = getWelcomeEmailTemplate(name, email);
+    const template = getWelcomeEmailTemplate(name, email);
     return this.sendMailWithFallback({
       to: email,
-      subject: `👑 Welcome to AMIN & PRAO Paris Luxury Atelier`,
-      text: `Welcome to AMIN! Discover our fine jewellery, PRAO anti-tarnish 18K gold collection, and luxury cosmetics.`,
-      html: htmlContent,
+      subject: template.subject,
+      text: template.text,
+      html: template.html,
     });
   }
 
   // ─── 3. Send Order Confirmation Email ───────────────────────────────────────
   static async sendOrderPlaced(email: string, order: any): Promise<boolean> {
-    const htmlContent = getOrderPlacedEmailTemplate(order, email);
-    const orderId = order._id || order.id || `AMIN-${Date.now()}`;
+    const template = getOrderPlacedEmailTemplate(order, email);
     return this.sendMailWithFallback({
       to: email,
-      subject: `🎉 Order Confirmation #${orderId} - AMIN Luxury`,
-      text: `Your AMIN order #${orderId} has been confirmed! Total: ₹${order.total || 0}`,
-      html: htmlContent,
+      subject: template.subject,
+      text: template.text,
+      html: template.html,
     });
   }
 
   // ─── 4. Send Order Status Update Email ──────────────────────────────────────
-  static async sendOrderStatus(email: string, order: any, newStatus: string): Promise<boolean> {
-    const htmlContent = getOrderStatusEmailTemplate(order, newStatus, email);
-    const orderId = order._id || order.id || `AMIN-${Date.now()}`;
+  static async sendOrderStatus(email: string, order: any, newStatus: string, trackingInfo?: any): Promise<boolean> {
+    const template = getOrderStatusEmailTemplate(order, newStatus, email, trackingInfo);
     return this.sendMailWithFallback({
       to: email,
-      subject: `📦 Order #${orderId} Status Update: ${newStatus.toUpperCase()}`,
-      text: `Your AMIN order #${orderId} status has been updated to ${newStatus.toUpperCase()}.`,
-      html: htmlContent,
+      subject: template.subject,
+      text: template.text,
+      html: template.html,
+    });
+  }
+
+  // ─── 5. Send Password Reset Email ───────────────────────────────────────────
+  static async sendPasswordReset(email: string, resetUrl: string, name?: string): Promise<boolean> {
+    const template = getPasswordResetEmailTemplate(resetUrl, name);
+    return this.sendMailWithFallback({
+      to: email,
+      subject: template.subject,
+      text: template.text,
+      html: template.html,
+    });
+  }
+
+  // ─── 6. Send Low Stock Alert to Admin ───────────────────────────────────────
+  static async sendLowStockAlert(adminEmail: string, productName: string, sku: string, currentStock: number): Promise<boolean> {
+    const template = getLowStockAlertEmailTemplate(productName, sku, currentStock);
+    return this.sendMailWithFallback({
+      to: adminEmail,
+      subject: template.subject,
+      text: template.text,
+      html: template.html,
+    });
+  }
+
+  // ─── 7. Send Support Inquiry Confirmation ───────────────────────────────────
+  static async sendSupportConfirmation(email: string, ticketId: string, name: string, inquiryText: string): Promise<boolean> {
+    const template = getSupportInquiryEmailTemplate(ticketId, name, inquiryText);
+    return this.sendMailWithFallback({
+      to: email,
+      subject: template.subject,
+      text: template.text,
+      html: template.html,
+    });
+  }
+
+  // ─── 8. Send VIP Newsletter Welcome ─────────────────────────────────────────
+  static async sendNewsletterWelcome(email: string, voucherCode = 'AMIN10'): Promise<boolean> {
+    const template = getNewsletterWelcomeEmailTemplate(email, voucherCode);
+    return this.sendMailWithFallback({
+      to: email,
+      subject: template.subject,
+      text: template.text,
+      html: template.html,
     });
   }
 }

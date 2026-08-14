@@ -363,30 +363,86 @@ export default function AdminProductsPage() {
               })}
             </div>
 
-            {/* Pagination Controls */}
+            {/* Luxury Numbered Pagination Controls */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 border-t border-border pt-8">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="border-border rounded-xl h-10 w-10 disabled:opacity-50"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-xs font-bold text-muted-foreground px-3 select-none">
-                  Page {page} of {totalPages}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-border pt-6 mt-4">
+                <span className="text-xs text-muted-foreground font-medium">
+                  Showing page <strong className="text-foreground">{page}</strong> of <strong className="text-foreground">{totalPages}</strong>
                 </span>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  className="border-border rounded-xl h-10 w-10 disabled:opacity-50"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+
+                <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(1)}
+                    disabled={page === 1}
+                    className="h-8 px-2 text-xs"
+                    title="First Page"
+                  >
+                    &laquo;
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="h-8 px-2.5 text-xs"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5 mr-0.5" /> Prev
+                  </Button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
+                    .reduce((acc: (number | string)[], p, idx, arr) => {
+                      if (idx > 0 && p - (arr[idx - 1] as number) > 1) {
+                        acc.push('...');
+                      }
+                      acc.push(p);
+                      return acc;
+                    }, [])
+                    .map((p, idx) => {
+                      if (p === '...') {
+                        return <span key={`dots-${idx}`} className="px-1.5 text-xs text-muted-foreground">&hellip;</span>;
+                      }
+                      const pageNum = p as number;
+                      const isActive = pageNum === page;
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setPage(pageNum)}
+                          className={`h-8 min-w-[32px] px-2.5 rounded-lg text-xs font-bold transition-all ${
+                            isActive
+                              ? 'bg-amber-500 text-slate-950 shadow-md font-extrabold scale-105'
+                              : 'border border-border bg-background text-foreground hover:border-amber-500/50 hover:text-amber-500'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="h-8 px-2.5 text-xs"
+                  >
+                    Next <ChevronRight className="h-3.5 w-3.5 ml-0.5" />
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(totalPages)}
+                    disabled={page === totalPages}
+                    className="h-8 px-2 text-xs"
+                    title="Last Page"
+                  >
+                    &raquo;
+                  </Button>
+                </div>
               </div>
             )}
             

@@ -5,82 +5,173 @@ import crypto from 'crypto';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// ── Transactional Email Templates (R3) ───────────────────────────────────────
-function buildOtpHtml(otp: string): string {
-  return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:32px 24px;background-color:#0f172a;color:#ffffff;border-radius:16px;max-width:520px;margin:0 auto;border:1px solid #334155">
-    <div style="text-align:center;padding-bottom:20px;border-bottom:1px solid #1e293b;margin-bottom:24px">
-      <span style="color:#f59e0b;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:3px">✨ AMIN LUXURY ATELIER</span>
-      <h2 style="color:#ffffff;font-size:26px;font-weight:900;margin:6px 0 0 0;font-family:Georgia,serif">AMIN</h2>
-    </div>
-    <h3 style="color:#f8fafc;font-size:18px;font-weight:700;margin-top:0;margin-bottom:8px">Security Verification Code</h3>
-    <p style="font-size:14px;color:#cbd5e1;line-height:1.6;margin-top:0;margin-bottom:20px">Use the 6-digit code below to verify your sign-in to AMIN Luxury Atelier. Valid for <strong>5 minutes</strong>.</p>
-    <div style="background:linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(244, 63, 94, 0.15) 100%);border:2px dashed #f59e0b;padding:22px;font-size:38px;font-weight:900;letter-spacing:10px;color:#ffffff;text-align:center;margin:24px 0;border-radius:14px;font-family:monospace;text-shadow:0 2px 10px rgba(245, 158, 11, 0.4)">${otp}</div>
-    <p style="font-size:12px;color:#64748b;margin-bottom:0;text-align:center">If you didn't request this verification code, please ignore this email.</p>
-  </div>`;
+// ── Master Luxury Email Design System (R3/R4) ─────────────────────────────────
+const getFrontendUrl = () => process.env.NEXT_PUBLIC_APP_URL || process.env.FRONTEND_URL || 'https://temp-sanab.vercel.app';
+
+function renderLuxuryEmailLayout(opts: {
+  preheader: string;
+  badge?: string;
+  title: string;
+  subtitle?: string;
+  contentHtml: string;
+  ctaText?: string;
+  ctaUrl?: string;
+  secondaryCtaText?: string;
+  secondaryCtaUrl?: string;
+  footerNote?: string;
+}): string {
+  const FRONTEND_URL = getFrontendUrl();
+  const year = new Date().getFullYear();
+
+  return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="supported-color-schemes" content="dark" />
+  <title>${opts.title}</title>
+  <!--[if mso]>
+  <style type="text/css">
+    body, table, td, h1, h2, h3, p, a { font-family: Arial, sans-serif !important; }
+  </style>
+  <![endif]-->
+</head>
+<body style="margin: 0; padding: 0; background-color: #050811; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; color: #e2e8f0;">
+  <div style="display: none; font-size: 1px; color: #050811; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden; mso-hide: all;">
+    ${opts.preheader} &zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;
+  </div>
+
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #050811; table-layout: fixed;">
+    <tr>
+      <td align="center" style="padding: 24px 12px 36px 12px;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #0d1322; border-radius: 20px; overflow: hidden; border: 1px solid #1e293b; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);">
+          
+          <!-- Brand Header -->
+          <tr>
+            <td align="center" style="background: linear-gradient(135deg, #090d16 0%, #171f38 50%, #2a1b0a 100%); padding: 36px 24px 28px 24px; border-bottom: 2px solid #f59e0b;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding-bottom: 12px;">
+                    <div style="display: inline-block; padding: 6px 16px; border-radius: 9999px; background-color: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.4);">
+                      <span style="color: #f59e0b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 3px; font-family: -apple-system, sans-serif;">✨ ${opts.badge || 'AMIN LUXURY ATELIER'}</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center">
+                    <h1 style="color: #ffffff; font-size: 32px; font-weight: 900; margin: 0; font-family: Georgia, 'Times New Roman', serif; letter-spacing: 2px;">AMIN</h1>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-top: 4px;">
+                    <p style="color: #94a3b8; font-size: 11px; margin: 0; letter-spacing: 2px; text-transform: uppercase; font-weight: 600;">FINE JEWELLERY &bull; ANTI-TARNISH &bull; COSMETICS</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Main Content Area -->
+          <tr>
+            <td style="padding: 36px 32px 28px 32px; background-color: #0d1322;">
+              <h2 style="color: #f8fafc; font-size: 24px; font-weight: 800; margin: 0 0 10px 0; font-family: Georgia, 'Times New Roman', serif; line-height: 1.3;">
+                ${opts.title}
+              </h2>
+              ${opts.subtitle ? `
+              <p style="color: #94a3b8; font-size: 14px; line-height: 1.6; margin: 0 0 24px 0;">
+                ${opts.subtitle}
+              </p>` : '<div style="margin-bottom: 20px;"></div>'}
+
+              ${opts.contentHtml}
+
+              ${opts.ctaText && opts.ctaUrl ? `
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 32px 0 16px 0;">
+                <tr>
+                  <td align="center">
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td align="center" style="border-radius: 9999px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #e11d48 100%);">
+                          <a href="${opts.ctaUrl}" target="_blank" style="font-size: 15px; font-weight: 800; color: #020617; text-decoration: none; padding: 16px 36px; display: inline-block; border-radius: 9999px; letter-spacing: 0.5px; text-transform: uppercase;">
+                            ${opts.ctaText} &rarr;
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              ` : ''}
+
+              ${opts.secondaryCtaText && opts.secondaryCtaUrl ? `
+              <div style="text-align: center; margin: 8px 0 20px 0;">
+                <a href="${opts.secondaryCtaUrl}" target="_blank" style="color: #f59e0b; font-size: 13px; font-weight: 700; text-decoration: underline;">
+                  ${opts.secondaryCtaText}
+                </a>
+              </div>
+              ` : ''}
+            </td>
+          </tr>
+
+          <!-- Security / Privilege Assurance Footer Banner -->
+          <tr>
+            <td style="background-color: #090e1a; padding: 20px 32px; border-top: 1px solid #1e293b; border-bottom: 1px solid #1e293b;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td align="center" style="color: #cbd5e1; font-size: 12px; line-height: 1.7;">
+                    <span style="color: #f59e0b; font-weight: 700;">✨ 100% BIS Hallmarked Gold</span> &bull; 
+                    <span style="color: #f59e0b; font-weight: 700;">🛡️ Lifetime Anti-Tarnish</span> &bull; 
+                    <span style="color: #f59e0b; font-weight: 700;">🚚 Insured Delivery</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Brand Footer -->
+          <tr>
+            <td align="center" style="background-color: #03060d; padding: 32px 24px; color: #64748b; font-size: 12px; line-height: 1.7;">
+              <p style="margin: 0 0 10px 0; color: #94a3b8; font-weight: 700; font-size: 13px;">
+                AMIN Luxury Atelier &bull; Haute Joaillerie & Cosmetics
+              </p>
+              
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 12px auto 16px auto;">
+                <tr>
+                  <td style="padding: 0 10px;"><a href="${FRONTEND_URL}/shop" style="color: #f59e0b; text-decoration: none; font-weight: 700;">Collections</a></td>
+                  <td style="color: #334155;">&bull;</td>
+                  <td style="padding: 0 10px;"><a href="${FRONTEND_URL}/account/orders" style="color: #f59e0b; text-decoration: none; font-weight: 700;">My Orders</a></td>
+                  <td style="color: #334155;">&bull;</td>
+                  <td style="padding: 0 10px;"><a href="${FRONTEND_URL}/about" style="color: #f59e0b; text-decoration: none; font-weight: 700;">Our Atelier</a></td>
+                  <td style="color: #334155;">&bull;</td>
+                  <td style="padding: 0 10px;"><a href="${FRONTEND_URL}/contact" style="color: #f59e0b; text-decoration: none; font-weight: 700;">VIP Concierge</a></td>
+                </tr>
+              </table>
+
+              ${opts.footerNote ? `<p style="margin: 0 0 12px 0; color: #475569; font-size: 11px;">${opts.footerNote}</p>` : ''}
+              
+              <p style="margin: 0; color: #475569; font-size: 11px;">
+                &copy; ${year} AMIN Platform. All rights reserved. This is an official confidential communication regarding your AMIN account.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 }
 
-function buildWelcomeHtml(name: string): string {
-  const FRONTEND_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://temp-sanab.vercel.app';
-  return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:32px 24px;background-color:#0f172a;color:#ffffff;border-radius:16px;max-width:540px;margin:0 auto;border:1px solid #334155">
-    <div style="text-align:center;padding-bottom:20px;border-bottom:1px solid #1e293b;margin-bottom:24px">
-      <span style="color:#f59e0b;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:3px">✨ AMIN LUXURY ATELIER</span>
-      <h2 style="color:#ffffff;font-size:28px;font-weight:900;margin:6px 0 0 0;font-family:Georgia,serif">Welcome to AMIN</h2>
-    </div>
-    <h3 style="color:#f59e0b;font-size:22px;font-weight:800;margin-top:0;margin-bottom:12px">Welcome, ${name}! ✨</h3>
-    <p style="font-size:14px;color:#cbd5e1;line-height:1.6;margin-top:0;margin-bottom:24px">We are thrilled to welcome you to our luxury circle. Explore our handcrafted <strong>BIS Hallmarked Fine Jewellery</strong>, revolutionary <strong>Anti-Tarnish Collection</strong>, and premium cosmetics.</p>
-    <div style="background-color:#1e293b;border-left:4px solid #f59e0b;border-radius:0 12px 12px 0;padding:20px;margin-bottom:28px">
-      <h4 style="color:#ffffff;font-size:15px;font-weight:700;margin:0 0 8px 0">Your Privileges Include:</h4>
-      <ul style="color:#94a3b8;font-size:13px;line-height:1.8;margin:0;padding-left:20px">
-        <li><strong>✨ Lifetime Anti-Tarnish Guarantee:</strong> Waterproof & sweat-proof everyday wear.</li>
-        <li><strong>🏆 Certified Gold & Diamonds:</strong> 100% BIS Hallmarked.</li>
-        <li><strong>🚚 Express Delivery:</strong> Insured shipping across India.</li>
-      </ul>
-    </div>
-    <div style="text-align:center;margin:28px 0">
-      <a href="${FRONTEND_URL}/shop" style="background:linear-gradient(135deg, #f59e0b 0%, #f43f5e 100%);color:#020617;font-size:15px;font-weight:800;text-decoration:none;padding:14px 32px;border-radius:9999px;display:inline-block">Explore Collections →</a>
-    </div>
-  </div>`;
-}
-
-async function sendWelcomeEmail(to: string, name: string): Promise<void> {
-  const resendKey = process.env.RESEND_API_KEY;
-  const html = buildWelcomeHtml(name);
-  const subject = `Welcome to AMIN Luxury Atelier, ${name}! ✨`;
-  if (resendKey && resendKey.startsWith('re_')) {
-    try {
-      await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: 'AMIN Luxury Atelier <onboarding@resend.dev>', to: [to], subject, html }),
-      });
-      console.log(`[RESEND] ✅ Welcome email sent to ${to}`);
-      return;
-    } catch (e: any) { console.warn('[RESEND] Welcome email error:', e?.message); }
-  }
-  try {
-    const smtpUser = process.env.SMTP_USER || process.env.MAIL_USERNAME || '';
-    const smtpPass = process.env.SMTP_PASS || process.env.MAIL_PASSWORD || '';
-    if (!smtpUser || !smtpPass) return;
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com', port: 465, secure: true, auth: { user: smtpUser, pass: smtpPass }, tls: { rejectUnauthorized: false }
-    });
-    await transporter.sendMail({ from: `"AMIN Luxury Atelier" <${smtpUser}>`, to, subject, html });
-    console.log(`[GMAIL SMTP] ✅ Welcome email sent to ${to}`);
-  } catch (err: any) { console.error('[GMAIL SMTP] ❌ Failed welcome email:', err?.message); }
-}
-
-// ── Fast email sender: Resend HTTP API first, Gmail SMTP fallback ─────────────
-async function sendOtpEmail(to: string, otp: string): Promise<void> {
+// ── Generic Email Sender with Resend + Gmail Fallback (Always Awaited) ────────
+async function sendEmailCore(to: string, subject: string, html: string, text?: string): Promise<void> {
   const resendKey = process.env.RESEND_API_KEY;
   const isResendConfigured = resendKey &&
     !resendKey.includes('REPLACE') &&
     !resendKey.includes('PLACEHOLDER') &&
     resendKey.startsWith('re_');
 
-  const html = buildOtpHtml(otp);
-  const subject = `${otp} — Your AMIN Verification Code`;
-
-  // PRIMARY: Resend (instant HTTP call, no SMTP socket overhead)
+  // PRIMARY: Resend (instant HTTP call)
   if (isResendConfigured) {
     try {
       const controller = new AbortController();
@@ -96,12 +187,13 @@ async function sendOtpEmail(to: string, otp: string): Promise<void> {
           to: [to],
           subject,
           html,
+          text,
         }),
         signal: controller.signal,
       });
       clearTimeout(timeout);
       if (res.ok) {
-        console.log(`[RESEND] ✅ OTP email sent to ${to}`);
+        console.log(`[RESEND] ✅ Email delivered to ${to} ("${subject}")`);
         return;
       }
       const errBody = await res.text();
@@ -112,14 +204,12 @@ async function sendOtpEmail(to: string, otp: string): Promise<void> {
   }
 
   // FALLBACK: Gmail SMTP (Nodemailer)
-  // IMPORTANT: Must be awaited — Vercel terminates the serverless function
-  // immediately after returning a response, so fire-and-forget does NOT work.
   try {
     const smtpUser = process.env.SMTP_USER || process.env.MAIL_USERNAME || '';
     const smtpPass = process.env.SMTP_PASS || process.env.MAIL_PASSWORD || '';
 
     if (!smtpUser || !smtpPass) {
-      console.error('[GMAIL SMTP] SMTP credentials not configured. Email not sent.');
+      console.error('[GMAIL SMTP] SMTP credentials not configured. Email skipped.');
       return;
     }
 
@@ -139,11 +229,302 @@ async function sendOtpEmail(to: string, otp: string): Promise<void> {
       to,
       subject,
       html,
+      text,
     });
-    console.log(`[GMAIL SMTP] ✅ OTP email sent to ${to}`);
+    console.log(`[GMAIL SMTP] ✅ Email delivered to ${to} ("${subject}")`);
   } catch (err: any) {
-    console.error('[GMAIL SMTP] ❌ Failed to send OTP email:', err?.message || err);
+    console.error('[GMAIL SMTP] ❌ Failed to send email:', err?.message || err);
   }
+}
+
+// ── Specific Transactional Senders ────────────────────────────────────────────
+async function sendOtpEmail(to: string, otp: string): Promise<void> {
+  const subject = `🔒 ${otp} — Your AMIN Verification Code`;
+  const text = `AMIN Security Verification Code: ${otp}\nValid for 5 minutes. Never share this code with anyone.`;
+  const contentHtml = `
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 8px 0 24px 0;">
+      <tr>
+        <td align="center" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(244, 63, 94, 0.12) 100%); border: 2px dashed #f59e0b; border-radius: 16px; padding: 24px 16px;">
+          <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #f59e0b; margin-bottom: 8px;">SECURITY AUTHENTICATION CODE</div>
+          <div style="font-size: 44px; font-weight: 900; letter-spacing: 12px; color: #ffffff; font-family: monospace; text-shadow: 0 2px 16px rgba(245, 158, 11, 0.5);">${otp}</div>
+        </td>
+      </tr>
+    </table>
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #141c2e; border: 1px solid #1e293b; border-radius: 12px; margin-bottom: 24px;">
+      <tr>
+        <td style="padding: 16px 20px;">
+          <div style="color: #f59e0b; font-size: 13px; font-weight: 800; margin-bottom: 4px;">⏱️ Code Expires in 5 Minutes</div>
+          <div style="color: #94a3b8; font-size: 12px; line-height: 1.6;">Please enter this code into your active session. AMIN support will never ask for your verification code.</div>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  const html = renderLuxuryEmailLayout({
+    preheader: `Your AMIN verification code is ${otp}. Valid for 5 minutes.`,
+    badge: 'SECURITY AUTHORIZATION',
+    title: 'Verification Code Required',
+    subtitle: 'Enter the 6-digit authorization code below to safely sign in to your AMIN Luxury account.',
+    contentHtml,
+    footerNote: 'If you did not request this verification code, you can safely ignore this email.',
+  });
+
+  await sendEmailCore(to, subject, html, text);
+}
+
+async function sendWelcomeEmail(to: string, name: string): Promise<void> {
+  const FRONTEND_URL = getFrontendUrl();
+  const displayName = name || to.split('@')[0] || 'Valued Connoisseur';
+  const subject = `✨ Welcome to AMIN Luxury Atelier, ${displayName}!`;
+  const text = `Welcome to AMIN, ${displayName}!\nDiscover handcrafted BIS Hallmarked fine jewellery and PRAO Paris Anti-Tarnish everyday luxury.\nShop now: ${FRONTEND_URL}/shop`;
+
+  const contentHtml = `
+    <p style="color: #cbd5e1; font-size: 15px; line-height: 1.7; margin: 0 0 24px 0;">
+      We are thrilled to welcome you into our luxury circle. Explore our handcrafted <strong>BIS Hallmarked Fine Jewellery</strong> and revolutionary <strong>PRAO Paris Anti-Tarnish</strong> everyday pieces.
+    </p>
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #141c2e; border: 1px solid #1e293b; border-radius: 14px; margin-bottom: 24px; overflow: hidden;">
+      <tr>
+        <td style="padding: 18px 22px; border-bottom: 1px solid #1e293b;">
+          <strong style="color: #f59e0b; font-size: 14px; display: block; margin-bottom: 4px;">🏆 100% BIS Hallmarked Pure Gold</strong>
+          <span style="color: #94a3b8; font-size: 12px;">Government-accredited certified gold & diamonds with authenticity assurance.</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 18px 22px; border-bottom: 1px solid #1e293b;">
+          <strong style="color: #f59e0b; font-size: 14px; display: block; margin-bottom: 4px;">✨ PRAO Paris Lifetime Anti-Tarnish</strong>
+          <span style="color: #94a3b8; font-size: 12px;">100% sweat-proof, waterproof, and perfume-resistant everyday luxury.</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 18px 22px;">
+          <strong style="color: #f59e0b; font-size: 14px; display: block; margin-bottom: 4px;">🚚 Insured Armored Express Delivery</strong>
+          <span style="color: #94a3b8; font-size: 12px;">Transit insurance and tamper-evident packaging straight to your doorstep.</span>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  const html = renderLuxuryEmailLayout({
+    preheader: `Welcome to the AMIN circle, ${displayName}. Explore BIS Hallmarked Jewellery and Anti-Tarnish Collections.`,
+    badge: 'VIP ATELIER ACCESS',
+    title: `Welcome, ${displayName}! ✨`,
+    subtitle: 'Your membership to India’s premier luxury fine jewellery and skincare destination is now active.',
+    contentHtml,
+    ctaText: 'Explore Collections',
+    ctaUrl: `${FRONTEND_URL}/shop`,
+    secondaryCtaText: 'Discover Our Atelier Story',
+    secondaryCtaUrl: `${FRONTEND_URL}/about`,
+  });
+
+  await sendEmailCore(to, subject, html, text);
+}
+
+async function sendOrderPlacedEmail(to: string, order: any): Promise<void> {
+  const FRONTEND_URL = getFrontendUrl();
+  const orderId = order.orderNumber || order._id || order.id || `ORD-${Date.now()}`;
+  const total = Number(order.total || 0).toLocaleString('en-IN');
+  const subtotal = Number(order.subtotal || order.total || 0).toLocaleString('en-IN');
+  const discount = Number(order.discount || 0).toLocaleString('en-IN');
+  const tax = Number(order.tax || 0).toLocaleString('en-IN');
+  const shipping = Number(order.shipping || 0) === 0 ? 'FREE' : `₹${Number(order.shipping).toLocaleString('en-IN')}`;
+  const items = Array.isArray(order.items) ? order.items : [];
+  const address = order.shippingAddress || {};
+
+  const subject = `🎉 Order Confirmed #${orderId} — AMIN Luxury Atelier`;
+  const text = `Your AMIN order #${orderId} has been confirmed!\nTotal Paid: ₹${total}\nTrack order: ${FRONTEND_URL}/account/orders`;
+
+  const itemsHtml = items.map((item: any) => {
+    const pName = item.product?.name || item.name || 'AMIN Luxury Item';
+    const price = Number(item.price || item.variant?.price || 0).toLocaleString('en-IN');
+    const qty = item.quantity || 1;
+    const sku = item.sku || item.variant?.sku || '';
+    const imgUrl = item.image || item.product?.images?.[0] || 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=200';
+
+    return `
+      <tr>
+        <td style="padding: 12px 0; border-bottom: 1px solid #1e293b;">
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+              <td width="54" style="vertical-align: top; padding-right: 12px;">
+                <img src="${imgUrl}" alt="${pName}" width="48" height="48" style="border-radius: 8px; object-fit: cover; border: 1px solid #334155; display: block;" />
+              </td>
+              <td style="vertical-align: middle;">
+                <div style="color: #f8fafc; font-size: 14px; font-weight: 700;">${pName}</div>
+                ${sku ? `<div style="color: #64748b; font-size: 11px;">SKU: ${sku}</div>` : ''}
+              </td>
+            </tr>
+          </table>
+        </td>
+        <td style="padding: 12px 8px; border-bottom: 1px solid #1e293b; color: #cbd5e1; font-size: 13px; text-align: center; vertical-align: middle;">&times;${qty}</td>
+        <td style="padding: 12px 0; border-bottom: 1px solid #1e293b; color: #f59e0b; font-size: 14px; font-weight: 800; text-align: right; vertical-align: middle;">₹${price}</td>
+      </tr>
+    `;
+  }).join('');
+
+  const contentHtml = `
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.4); border-radius: 14px; margin-bottom: 24px; padding: 14px;">
+      <tr>
+        <td align="center">
+          <span style="color: #4ade80; font-size: 16px; font-weight: 800; display: block; margin-bottom: 2px;">🎉 Order Successfully Confirmed</span>
+          <span style="color: #94a3b8; font-size: 12px;">Order reference: <strong style="color: #f8fafc;">#${orderId}</strong> &bull; Payment: <strong style="color: #f59e0b; text-transform: uppercase;">${order.paymentMethod || 'Card'}</strong></span>
+        </td>
+      </tr>
+    </table>
+
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 20px;">
+      <thead>
+        <tr style="border-bottom: 1px solid #334155; text-align: left; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">
+          <th style="padding-bottom: 8px;">Masterpiece</th>
+          <th style="padding-bottom: 8px; text-align: center;">Qty</th>
+          <th style="padding-bottom: 8px; text-align: right;">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${itemsHtml}
+      </tbody>
+    </table>
+
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #141c2e; border: 1px solid #1e293b; border-radius: 14px; margin-bottom: 24px; padding: 16px 20px;">
+      <tr>
+        <td>
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+              <td style="color: #94a3b8; font-size: 13px; padding-bottom: 6px;">Subtotal</td>
+              <td style="color: #f8fafc; font-size: 13px; font-weight: 700; text-align: right; padding-bottom: 6px;">₹${subtotal}</td>
+            </tr>
+            ${order.discount ? `
+            <tr>
+              <td style="color: #4ade80; font-size: 13px; padding-bottom: 6px;">Discount</td>
+              <td style="color: #4ade80; font-size: 13px; font-weight: 700; text-align: right; padding-bottom: 6px;">-₹${discount}</td>
+            </tr>` : ''}
+            <tr>
+              <td style="color: #94a3b8; font-size: 13px; padding-bottom: 6px;">Tax (5%)</td>
+              <td style="color: #f8fafc; font-size: 13px; font-weight: 700; text-align: right; padding-bottom: 6px;">₹${tax}</td>
+            </tr>
+            <tr>
+              <td style="color: #94a3b8; font-size: 13px; padding-bottom: 8px;">Insured Shipping</td>
+              <td style="color: #4ade80; font-size: 13px; font-weight: 700; text-align: right; padding-bottom: 8px;">${shipping}</td>
+            </tr>
+            <tr>
+              <td style="border-top: 1px solid #334155; color: #ffffff; font-size: 16px; font-weight: 900; padding-top: 8px;">Total Paid</td>
+              <td style="border-top: 1px solid #334155; color: #f59e0b; font-size: 18px; font-weight: 900; text-align: right; padding-top: 8px;">₹${total}</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  const html = renderLuxuryEmailLayout({
+    preheader: `Your AMIN order #${orderId} is confirmed! Total: ₹${total}.`,
+    badge: 'ORDER CONFIRMATION',
+    title: 'Order Confirmed',
+    subtitle: 'Thank you for choosing AMIN Luxury. Our artisans are now crafting your creations.',
+    contentHtml,
+    ctaText: 'Track Order Status',
+    ctaUrl: `${FRONTEND_URL}/account/orders`,
+  });
+
+  await sendEmailCore(to, subject, html, text);
+}
+
+async function sendOrderStatusEmail(to: string, order: any, newStatus: string): Promise<void> {
+  const FRONTEND_URL = getFrontendUrl();
+  const orderId = order.orderNumber || order._id || order.id || `ORD-${Date.now()}`;
+  const total = Number(order.total || 0).toLocaleString('en-IN');
+  const normalized = (newStatus || 'processing').toLowerCase();
+
+  const statusConfig: Record<string, { title: string; color: string; bg: string; icon: string; desc: string }> = {
+    pending: { title: 'Order Received', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', icon: '⏳', desc: 'Your order is queued in our atelier.' },
+    processing: { title: 'Crafting & Hallmarking', color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.15)', icon: '🛠️', desc: 'Our artisans are inspecting, hallmarking, and preparing your order.' },
+    shipped: { title: 'Dispatched in Armored Transit', color: '#a855f7', bg: 'rgba(168, 85, 247, 0.15)', icon: '🚚', desc: 'Your order is on the way with our secure armored courier partner.' },
+    delivered: { title: 'Delivered Successfully', color: '#4ade80', bg: 'rgba(74, 222, 128, 0.15)', icon: '🎁', desc: 'Your order has been safely delivered. We hope you adore your AMIN pieces.' },
+    cancelled: { title: 'Order Cancelled', color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.15)', icon: '❌', desc: 'Your order has been cancelled and any payment refunded.' },
+  };
+
+  const current = statusConfig[normalized] || {
+    title: `Order Updated: ${newStatus.toUpperCase()}`,
+    color: '#f59e0b',
+    bg: 'rgba(245, 158, 11, 0.15)',
+    icon: '📦',
+    desc: `Your order status has been updated to ${newStatus}.`,
+  };
+
+  const subject = `📦 Order #${orderId} Status Update: ${current.title}`;
+  const text = `Order #${orderId} Status: ${current.title}\n${current.desc}\nTotal: ₹${total}\nTrack: ${FRONTEND_URL}/account/orders`;
+
+  const contentHtml = `
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: ${current.bg}; border: 1px solid ${current.color}; border-radius: 14px; margin-bottom: 24px; padding: 20px;">
+      <tr>
+        <td align="center">
+          <div style="font-size: 36px; margin-bottom: 6px;">${current.icon}</div>
+          <h3 style="color: ${current.color}; font-size: 20px; font-weight: 900; margin: 0 0 6px 0;">${current.title}</h3>
+          <p style="color: #cbd5e1; font-size: 13px; line-height: 1.5; margin: 0;">${current.desc}</p>
+        </td>
+      </tr>
+    </table>
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #141c2e; border: 1px solid #1e293b; border-radius: 14px; margin-bottom: 24px; padding: 16px 20px;">
+      <tr>
+        <td>
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+              <td style="color: #94a3b8; font-size: 13px;">Order Reference:</td>
+              <td style="color: #f8fafc; font-size: 13px; font-weight: 700; text-align: right;">#${orderId}</td>
+            </tr>
+            <tr>
+              <td style="color: #94a3b8; font-size: 13px; padding-top: 6px;">Total Amount:</td>
+              <td style="color: #f59e0b; font-size: 14px; font-weight: 800; text-align: right; padding-top: 6px;">₹${total}</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  const html = renderLuxuryEmailLayout({
+    preheader: `Status update for AMIN order #${orderId}: ${current.title}`,
+    badge: 'ORDER STATUS UPDATE',
+    title: 'Order Status Update',
+    subtitle: `Real-time milestone progression for order #${orderId}.`,
+    contentHtml,
+    ctaText: 'View Order in Account',
+    ctaUrl: `${FRONTEND_URL}/account/orders`,
+  });
+
+  await sendEmailCore(to, subject, html, text);
+}
+
+async function sendNewsletterWelcomeEmail(to: string): Promise<void> {
+  const FRONTEND_URL = getFrontendUrl();
+  const subject = `👑 Welcome to the AMIN Circle — Your 10% VIP Privilege Code`;
+  const text = `Welcome to the AMIN Circle!\nUse code "AMIN10" at checkout for 10% off.\nShop now: ${FRONTEND_URL}/shop`;
+
+  const contentHtml = `
+    <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">
+      You are now part of our private inner circle. As our gift, enjoy an exclusive <strong>10% privilege discount</strong> on your next fine jewellery or cosmetics purchase:
+    </p>
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 24px;">
+      <tr>
+        <td align="center" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(244, 63, 94, 0.12) 100%); border: 2px dashed #f59e0b; border-radius: 14px; padding: 20px;">
+          <div style="color: #f59e0b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">YOUR VIP VOUCHER CODE</div>
+          <div style="color: #ffffff; font-size: 32px; font-weight: 900; letter-spacing: 6px; font-family: monospace;">AMIN10</div>
+          <div style="color: #94a3b8; font-size: 12px; margin-top: 6px;">Apply at checkout on any fine jewellery or skincare creation.</div>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  const html = renderLuxuryEmailLayout({
+    preheader: 'Your VIP code AMIN10 is ready! Enjoy 10% off fine jewellery and cosmetics.',
+    badge: 'PRIVATE CIRCLE',
+    title: 'Welcome to the AMIN Circle',
+    subtitle: 'Exclusive preview privileges, seasonal trunk shows, and bespoke offers await.',
+    contentHtml,
+    ctaText: 'Shop New Arrivals',
+    ctaUrl: `${FRONTEND_URL}/shop`,
+  });
+
+  await sendEmailCore(to, subject, html, text);
 }
 
 // Lazy-load db helpers
@@ -541,7 +922,14 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
       const data = currentUser?.role === 'admin'
         ? await Product.listAdmin(filters)
         : await Product.list(filters);
-      return ok({ results: data.results, products: data.results, totalResults: data.total, totalPages: data.totalPages });
+      return ok({
+        results: data.results,
+        products: data.results,
+        totalResults: data.total,
+        totalPages: data.totalPages,
+        page: filters.page,
+        limit: filters.limit
+      });
     } catch (e: any) { return err(e.message, 500); }
   }
 
@@ -666,6 +1054,16 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
       const { Order } = await getModels();
       const order = await Order.updateStatus(id, body.status, body.paymentStatus, body.paymentDetails);
       if (!order) return err('Order not found', 404);
+
+      // Send status update notification email (R3/R4)
+      if (order.userEmail && body.status) {
+        try {
+          await sendOrderStatusEmail(order.userEmail, order, body.status);
+        } catch (mailErr: any) {
+          console.warn('[EMAIL] Order status email notice error:', mailErr?.message);
+        }
+      }
+
       return ok(order);
     } catch (e: any) { return err(e.message, 500); }
   }
@@ -841,6 +1239,15 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
       // Decrement stock upon successful order creation (C9)
       for (const item of resolvedItems) {
         await Product.deductStock(item.productId, item.sku, item.quantity);
+      }
+
+      // Dispatch order confirmation email immediately (R3/R4)
+      if (currentUser.email) {
+        try {
+          await sendOrderPlacedEmail(currentUser.email, order);
+        } catch (mailErr: any) {
+          console.warn('[EMAIL] Order confirmation send error:', mailErr?.message);
+        }
       }
 
       return ok(order, 201);
@@ -1384,6 +1791,18 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
         Order.stats(), Product.count(), User.count()
       ]);
       return ok({ ...stats, totalProducts: productCount, totalUsers: userCount });
+    } catch (e: any) { return err(e.message, 500); }
+  }
+
+  // ── NEWSLETTER (public subscribe) ───────────────────────────────────────
+  if ((route === 'newsletter' || route === 'public/newsletter') && method === 'POST') {
+    try {
+      const body = await req.json();
+      const email = (body.email || '').toLowerCase().trim();
+      if (!email || !email.includes('@')) return err('Valid email address is required', 400);
+
+      await sendNewsletterWelcomeEmail(email);
+      return ok({ message: 'Subscribed to the AMIN Circle successfully! Check your inbox for your 10% privilege code.' });
     } catch (e: any) { return err(e.message, 500); }
   }
 

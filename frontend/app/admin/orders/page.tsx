@@ -370,24 +370,76 @@ export default function AdminOrdersPage() {
           </div>
         )}
 
-        {/* Pagination */}
+        {/* Luxury Numbered Pagination Controls */}
         {totalPages > 1 && (
-          <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50 text-xs">
-            <span className="text-slate-400 font-medium">Page {page} of {totalPages}</span>
-            <div className="flex items-center gap-1">
+          <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/50 text-xs">
+            <span className="text-slate-500 font-medium">
+              Showing page <strong className="text-slate-900">{page}</strong> of <strong className="text-slate-900">{totalPages}</strong> ({totalOrders} total orders)
+            </span>
+
+            <div className="flex items-center gap-1.5 flex-wrap justify-center">
+              <button
+                onClick={() => setPage(1)}
+                disabled={page === 1}
+                className="px-2 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 transition-colors disabled:opacity-40 shadow-sm font-bold"
+                title="First Page"
+              >
+                &laquo;
+              </button>
+
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="p-1.5 rounded-lg border border-slate-200 hover:bg-white transition-colors disabled:opacity-40 shadow-sm"
+                className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 transition-colors disabled:opacity-40 shadow-sm flex items-center gap-0.5 font-bold"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-3.5 h-3.5" /> Prev
               </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
+                .reduce((acc: (number | string)[], p, idx, arr) => {
+                  if (idx > 0 && p - (arr[idx - 1] as number) > 1) {
+                    acc.push('...');
+                  }
+                  acc.push(p);
+                  return acc;
+                }, [])
+                .map((p, idx) => {
+                  if (p === '...') {
+                    return <span key={`dots-${idx}`} className="px-1 text-slate-400">&hellip;</span>;
+                  }
+                  const pageNum = p as number;
+                  const isActive = pageNum === page;
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setPage(pageNum)}
+                      className={`h-7 min-w-[28px] px-2 rounded-lg text-xs font-bold transition-all ${
+                        isActive
+                          ? 'bg-[#00a65a] text-white shadow-sm font-extrabold'
+                          : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="p-1.5 rounded-lg border border-slate-200 hover:bg-white transition-colors disabled:opacity-40 shadow-sm"
+                className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 transition-colors disabled:opacity-40 shadow-sm flex items-center gap-0.5 font-bold"
               >
-                <ChevronRight className="w-4 h-4" />
+                Next <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                onClick={() => setPage(totalPages)}
+                disabled={page === totalPages}
+                className="px-2 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 transition-colors disabled:opacity-40 shadow-sm font-bold"
+                title="Last Page"
+              >
+                &raquo;
               </button>
             </div>
           </div>

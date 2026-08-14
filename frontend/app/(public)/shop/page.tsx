@@ -8,6 +8,8 @@ import {
   fetchFacets,
   fetchCategories,
   setFilter,
+  setPage,
+  setLimit,
   FilterSidebar,
   ProductCard
 } from '@/features/products';
@@ -53,8 +55,40 @@ export default function ShopPage() {
   };
 
   const handlePageChange = (newPage: number) => {
-    dispatch(setFilter({ page: newPage }));
+    dispatch(setPage(newPage));
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 300, behavior: 'smooth' });
+    }
   };
+
+  const handleLimitChange = (newLimit: string | null) => {
+    if (newLimit) {
+      dispatch(setLimit(parseInt(newLimit)));
+    }
+  };
+
+  // Generate visible pagination numbers (e.g. 1 2 3 4 5)
+  const getPageNumbers = () => {
+    const total = pagination.totalPages || 1;
+    const current = pagination.page || 1;
+    const pages: (number | string)[] = [];
+
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else {
+      if (current <= 4) {
+        pages.push(1, 2, 3, 4, 5, '...', total);
+      } else if (current >= total - 3) {
+        pages.push(1, '...', total - 4, total - 3, total - 2, total - 1, total);
+      } else {
+        pages.push(1, '...', current - 1, current, current + 1, '...', total);
+      }
+    }
+    return pages;
+  };
+
+  const startItem = Math.max(1, (pagination.page - 1) * pagination.limit + 1);
+  const endItem = Math.min(pagination.totalDocs, pagination.page * pagination.limit);
 
   return (
     <div className="min-h-screen bg-muted/10 py-10 px-4 sm:px-6 lg:px-8">
@@ -102,32 +136,49 @@ export default function ShopPage() {
               <p className="text-sm text-muted-foreground">
                 Discover fine hand-crafted anti-tarnish jewellery and premium cosmetic formulations.
               </p>
-              {!loading && products.length > 0 && (
-                <span className="text-[11px] font-bold bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded-full border border-amber-500/20">
-                  {products.length} items
+              {!loading && pagination.totalDocs > 0 && (
+                <span className="text-[11px] font-bold bg-amber-500/10 text-amber-600 px-2.5 py-0.5 rounded-full border border-amber-500/20">
+                  Showing {startItem}–{endItem} of {pagination.totalDocs} creations
                 </span>
               )}
             </div>
           </div>
           
-          <div className="flex items-center gap-3 mt-4 sm:mt-0">
-            <span className="text-sm text-muted-foreground whitespace-nowrap">Sort By</span>
-            <Select value={filters.sortBy} onValueChange={handleSortChange}>
-              <SelectTrigger className="w-[180px] bg-background">
-                <SelectValue placeholder="Sort order" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="newest">Newest Arrivals</SelectItem>
-                <SelectItem value="price-asc">Price: Low to High</SelectItem>
-                <SelectItem value="price-desc">Price: High to Low</SelectItem>
-                <SelectItem value="ratings">Top Rated</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-3 mt-4 sm:mt-0 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">Show:</span>
+              <Select value={String(filters.limit || 12)} onValueChange={handleLimitChange}>
+                <SelectTrigger className="w-[75px] h-9 text-xs bg-background">
+                  <SelectValue placeholder="12" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="12">12</SelectItem>
+                  <SelectItem value="24">24</SelectItem>
+                  <SelectItem value="36">36</SelectItem>
+                  <SelectItem value="48">48</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">Sort:</span>
+              <Select value={filters.sortBy} onValueChange={handleSortChange}>
+                <SelectTrigger className="w-[160px] h-9 text-xs bg-background">
+                  <SelectValue placeholder="Sort order" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Newest Arrivals</SelectItem>
+                  <SelectItem value="price-asc">Price: Low to High</SelectItem>
+                  <SelectItem value="price-desc">Price: High to Low</SelectItem>
+                  <SelectItem value="ratings">Top Rated</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
             <Button
               variant="outline"
               onClick={() => setShowMobileFilters(!showMobileFilters)}
-              className="lg:hidden gap-2"
+              className="lg:hidden gap-2 h-9 text-xs"
             >
               <Filter className="h-4 w-4" /> Filters
             </Button>
@@ -189,7 +240,7 @@ export default function ShopPage() {
           <div className="lg:col-span-3 space-y-8">
             {loading ? (
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-                {Array.from({ length: 6 }).map((_, i) => (
+                {Array.from({ length: filters.limit || 12 }).map((_, i) => (
                   <div key={i} className="rounded-2xl overflow-hidden border border-border bg-background/50 animate-pulse">
                     <div className="aspect-square bg-muted/30" />
                     <div className="p-4 space-y-2">
@@ -205,12 +256,12 @@ export default function ShopPage() {
               <div className="flex flex-col items-center justify-center text-center p-12 border border-dashed border-border rounded-2xl bg-background/50 h-96">
                 <ShoppingBag className="h-16 w-16 text-muted-foreground/50 mb-4 animate-bounce" />
                 <h3 className="text-xl font-bold text-foreground">No Products Found</h3>
-                <p className="text-sm text-muted-foreground mt-1">Try relaxing some of your filter criteria or tags.</p>
+                <p className="text-sm text-muted-foreground mt-1">Try relaxing some of your filter criteria or search terms.</p>
                 <button
                   onClick={() => dispatch(setFilter({ search: '', category: '' }))}
-                  className="mt-4 px-4 py-2 rounded-full bg-amber-500 text-slate-950 text-xs font-bold hover:bg-amber-400 transition-colors"
+                  className="mt-4 px-5 py-2 rounded-full bg-amber-500 text-slate-950 text-xs font-bold hover:bg-amber-400 transition-colors shadow-md"
                 >
-                  Clear Filters
+                  Reset All Filters
                 </button>
               </div>
             ) : (
@@ -221,25 +272,88 @@ export default function ShopPage() {
                   ))}
                 </div>
 
+                {/* Master Luxury Numbered Pagination Bar */}
                 {pagination.totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 border-t border-border pt-8">
-                    <Button
-                      variant="outline"
-                      disabled={pagination.page === 1}
-                      onClick={() => handlePageChange(pagination.page - 1)}
-                    >
-                      Previous
-                    </Button>
-                    <span className="text-sm font-semibold text-muted-foreground px-4">
-                      Page {pagination.page} of {pagination.totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      disabled={pagination.page === pagination.totalPages}
-                      onClick={() => handlePageChange(pagination.page + 1)}
-                    >
-                      Next
-                    </Button>
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-border pt-8 mt-6">
+                    <div className="text-xs text-muted-foreground font-medium">
+                      Showing page <strong className="text-foreground">{pagination.page}</strong> of <strong className="text-foreground">{pagination.totalPages}</strong> ({pagination.totalDocs} total products)
+                    </div>
+
+                    <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                      {/* First Page */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={pagination.page === 1}
+                        onClick={() => handlePageChange(1)}
+                        className="h-8 px-2 text-xs"
+                        title="First Page"
+                      >
+                        &laquo;
+                      </Button>
+
+                      {/* Previous Page */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={pagination.page === 1}
+                        onClick={() => handlePageChange(pagination.page - 1)}
+                        className="h-8 px-3 text-xs"
+                      >
+                        &lsaquo; Prev
+                      </Button>
+
+                      {/* Numbered Page Buttons */}
+                      {getPageNumbers().map((p, idx) => {
+                        if (p === '...') {
+                          return (
+                            <span key={`dots-${idx}`} className="px-2 text-xs text-muted-foreground">
+                              &hellip;
+                            </span>
+                          );
+                        }
+
+                        const pageNum = p as number;
+                        const isActive = pageNum === pagination.page;
+
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => handlePageChange(pageNum)}
+                            className={`h-8 min-w-[32px] px-2.5 rounded-lg text-xs font-bold transition-all ${
+                              isActive
+                                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md shadow-amber-500/20 scale-105'
+                                : 'border border-border bg-background text-foreground hover:border-amber-500/50 hover:text-amber-500'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+
+                      {/* Next Page */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={pagination.page === pagination.totalPages}
+                        onClick={() => handlePageChange(pagination.page + 1)}
+                        className="h-8 px-3 text-xs"
+                      >
+                        Next &rsaquo;
+                      </Button>
+
+                      {/* Last Page */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={pagination.page === pagination.totalPages}
+                        onClick={() => handlePageChange(pagination.totalPages)}
+                        className="h-8 px-2 text-xs"
+                        title="Last Page"
+                      >
+                        &raquo;
+                      </Button>
+                    </div>
                   </div>
                 )}
               </>
@@ -252,3 +366,4 @@ export default function ShopPage() {
     </div>
   );
 }
+

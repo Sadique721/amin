@@ -1,4 +1,4 @@
-export { default as productsReducer, setFilter, resetFilters, setPage, fetchProducts, fetchFacets } from './store/productsSlice';
+export { default as productsReducer, setFilter, resetFilters, setPage, setLimit, fetchProducts, fetchFacets } from './store/productsSlice';
 export { default as categoriesReducer, fetchCategories } from './store/categoriesSlice';
 export * from './types/product.types';
 export {

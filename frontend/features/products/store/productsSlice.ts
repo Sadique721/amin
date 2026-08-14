@@ -78,7 +78,12 @@ const productsSlice = createSlice({
   initialState,
   reducers: {
     setFilter(state, action: PayloadAction<Partial<ProductFilters>>) {
-      state.filters = { ...state.filters, ...action.payload, page: 1 };
+      const isPageExplicit = action.payload.page !== undefined;
+      state.filters = {
+        ...state.filters,
+        ...action.payload,
+        page: isPageExplicit ? (action.payload.page || 1) : 1,
+      };
     },
     resetFilters(state) {
       state.filters = {
@@ -89,6 +94,10 @@ const productsSlice = createSlice({
     setPage(state, action: PayloadAction<number>) {
       state.filters.page = action.payload;
     },
+    setLimit(state, action: PayloadAction<number>) {
+      state.filters.limit = action.payload;
+      state.filters.page = 1;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -98,13 +107,13 @@ const productsSlice = createSlice({
       })
       .addCase(fetchProducts.fulfilled, (state, action) => {
         state.loading = false;
-        // Backend returns 'results' array (not 'docs') and 'totalResults' (not 'totalDocs')
-        state.items = action.payload?.results || action.payload?.docs || [];
+        // Backend returns 'results' array and 'totalResults' / 'totalPages'
+        state.items = action.payload?.results || action.payload?.products || action.payload?.docs || [];
         state.pagination = {
-          page: action.payload?.page || 1,
-          limit: action.payload?.limit || 12,
+          page: action.payload?.page || state.filters.page || 1,
+          limit: action.payload?.limit || state.filters.limit || 12,
           totalPages: action.payload?.totalPages || 1,
-          totalDocs: action.payload?.totalResults || action.payload?.totalDocs || 0,
+          totalDocs: action.payload?.totalResults || action.payload?.total || action.payload?.totalDocs || 0,
         };
       })
       .addCase(fetchProducts.rejected, (state, action) => {
@@ -127,5 +136,6 @@ const productsSlice = createSlice({
   },
 });
 
-export const { setFilter, resetFilters, setPage } = productsSlice.actions;
+export const { setFilter, resetFilters, setPage, setLimit } = productsSlice.actions;
 export default productsSlice.reducer;
+
