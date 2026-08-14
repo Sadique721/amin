@@ -183,10 +183,14 @@ async function chargeAuthorizeNet(opts: {
 
     throw new Error(errMsg);
   } catch (e: any) {
+    // Dev + sandbox only: Authorize.net test cards (4007xxx, 4111xxx) that
+    // returned an API error (e.g. sandbox downtime) get a synthetic approval.
+    // Note: 4242 is a Stripe test card and should never appear here.
+    // This path is unreachable when NODE_ENV=production.
     const isSandboxEnv = process.env.AUTHORIZE_NET_ENVIRONMENT !== 'PRODUCTION';
     const isDevOrTest = process.env.NODE_ENV !== 'production';
 
-    if (isSandboxEnv && isDevOrTest && (opts.cardNumber.startsWith('4007') || opts.cardNumber.startsWith('4111') || opts.cardNumber.startsWith('4242'))) {
+    if (isSandboxEnv && isDevOrTest && (opts.cardNumber.startsWith('4007') || opts.cardNumber.startsWith('4111'))) {
       return {
         transactionId: `authnet_sb_${Date.now()}`,
         authCode: 'SB6001',
@@ -922,14 +926,40 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
   // ── WISHLIST ──────────────────────────────────────────────────────────────
   // GET /api/wishlist OR /api/public/wishlist
   if ((route === 'wishlist' || route === 'public/wishlist') && method === 'GET') {
-    return ok({ results: [], total: 0 });
+    const currentUser = await getUser(req);
+    if (!currentUser) return ok({ results: [], total: 0 });
+    try {
+      const { Wishlist } = await getModels();
+      const items = await Wishlist.list(currentUser.id);
+      return ok({ results: items, total: items.length });
+    } catch (e: any) { return err(e.message, 500); }
   }
 
-  // POST /api/wishlist
+  // POST /api/wishlist OR /api/public/wishlist
   if ((route === 'wishlist' || route === 'public/wishlist') && method === 'POST') {
+    const currentUser = await getUser(req);
+    if (!currentUser) return err('Authentication required', 401);
     try {
       const body = await req.json();
-      return ok({ message: 'Item added to wishlist', item: body }, 201);
+      const productId = body.productId || body.product_id;
+      if (!productId) return err('productId is required', 400);
+
+      const { Wishlist } = await getModels();
+      const item = await Wishlist.add(currentUser.id, productId);
+      return ok({ message: 'Item added to wishlist', item }, 201);
+    } catch (e: any) { return err(e.message, 500); }
+  }
+
+  // DELETE /api/wishlist/:id OR /api/public/wishlist/:id
+  if ((route.startsWith('wishlist/') || route.startsWith('public/wishlist/')) && method === 'DELETE') {
+    const currentUser = await getUser(req);
+    if (!currentUser) return err('Authentication required', 401);
+    try {
+      const parts = route.split('/');
+      const productId = parts[parts.length - 1];
+      const { Wishlist } = await getModels();
+      await Wishlist.remove(currentUser.id, productId);
+      return ok({ message: 'Item removed from wishlist' });
     } catch (e: any) { return err(e.message, 500); }
   }
 
@@ -1199,6 +1229,11 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
 
       const keySecret = process.env.RAZORPAY_KEY_SECRET || '';
       const isProduction = process.env.NODE_ENV === 'production';
+
+      if (isProduction && !keySecret) {
+        return err('Server configuration error: RAZORPAY_KEY_SECRET is missing', 500);
+      }
+
       const isMock = !isProduction && (razorpayOrderId.startsWith('rzp_mock_') || !keySecret || keySecret.endsWith('_secret'));
 
       if (!isMock) {

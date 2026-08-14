@@ -41,14 +41,13 @@ export class AuthService {
 
   async verifyOtp(email: string, otpCode: string, meta?: { ip: string; userAgent: string }) {
     const formattedEmail = email.toLowerCase().trim();
-    const adminEmail = env.ADMIN_EMAIL ? env.ADMIN_EMAIL.toLowerCase().trim() : 'admin@sanab.com';
-    const adminPassword = env.ADMIN_PASSWORD || 'Sadique@123';
+    const adminEmail = env.ADMIN_EMAIL ? env.ADMIN_EMAIL.toLowerCase().trim() : '';
+    const adminPassword = env.ADMIN_PASSWORD;
     
     let user = await this.userRepository.findByEmail(formattedEmail);
 
-    // Check if logging in as admin using the set password
-    const isAdminLogin = (adminEmail && formattedEmail === adminEmail && (otpCode === adminPassword || otpCode === 'adminpassword123')) ||
-                         (formattedEmail === 'admin@sanab.com' && (otpCode === 'adminpassword123' || otpCode === adminPassword));
+    // Allow admin password login via verify endpoint only if ADMIN_PASSWORD is set in env
+    const isAdminLogin = !!(adminEmail && adminPassword && formattedEmail === adminEmail && otpCode === adminPassword);
 
     if (isAdminLogin) {
       if (!user) {
@@ -57,7 +56,7 @@ export class AuthService {
           email: formattedEmail,
           role: 'admin',
           isEmailVerified: true,
-          password: await hashPassword(otpCode),
+          password: await hashPassword(adminPassword),
         });
       }
       

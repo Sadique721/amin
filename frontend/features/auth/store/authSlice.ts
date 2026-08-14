@@ -80,6 +80,10 @@ const authSlice = createSlice({
         localStorage.removeItem('sanab_user');
         localStorage.removeItem('sanab_accessToken');
         localStorage.removeItem('sanab_refreshToken');
+        localStorage.removeItem('sanab_local_wishlist');
+        localStorage.removeItem('sanab_cart_items');
+        localStorage.removeItem('sanab_cart_coupon');
+        localStorage.removeItem('sanab_cart_discount');
 
         document.cookie = 'sanab_accessToken=; path=/; max-age=0; SameSite=Lax';
         document.cookie = 'sanab_role=; path=/; max-age=0; SameSite=Lax';

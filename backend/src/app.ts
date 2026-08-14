@@ -10,20 +10,15 @@ import { env } from './config/env';
 import { rateLimitMiddleware } from './middlewares/rate-limit.middleware';
 import path from 'path';
 
+import { corsConfig } from './config/cors.config';
+
 const app = express();
 
 // Security Middlewares
 app.use(helmet());
 
 // Configure CORS
-const allowedOrigins = env.ALLOWED_ORIGINS ? env.ALLOWED_ORIGINS.split(',') : '*';
-app.use(
-  cors({
-    origin: allowedOrigins,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  })
-);
+app.use(cors(corsConfig));
 
 
 // Parsing Middlewares

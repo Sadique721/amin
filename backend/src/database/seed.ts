@@ -10,33 +10,36 @@ import bcrypt from 'bcryptjs';
 import { hashPassword as bcryptHashPassword } from '@/shared/auth/password';
 
 export const seedDefaultAdmin = async (): Promise<void> => {
-  // 1. Seed requested admin user
   try {
-    const adminEmail = 'mdsadiqueamin721786@gmail.com';
-    const adminPassHash = await bcrypt.hash('Sadique@123', 10);
+    const adminEmail = env.ADMIN_EMAIL || 'admin@sanab.com';
+    const adminPassword = env.ADMIN_PASSWORD;
+
+    if (!adminPassword) {
+      console.log('ℹ️ ADMIN_PASSWORD not configured. Skipping default admin seeding.');
+      return;
+    }
+
+    const adminPassHash = await bcrypt.hash(adminPassword, 10);
     const existingAdmin = await User.findOne({ email: adminEmail.toLowerCase() });
     
     if (!existingAdmin) {
       await User.create({
-        name: 'Md Sadique Amin',
+        name: 'Sanab Admin',
         email: adminEmail.toLowerCase(),
-        phone: '9318302850',
         role: 'admin',
         password: adminPassHash,
         isEmailVerified: true,
         isActive: true,
       });
-      console.log(`✅ Custom admin created successfully: ${adminEmail}`);
+      console.log(`✅ Default admin created successfully: ${adminEmail}`);
     } else {
       existingAdmin.role = 'admin';
       existingAdmin.password = adminPassHash;
-      existingAdmin.name = 'Md Sadique Amin';
-      existingAdmin.phone = '9318302850';
       await existingAdmin.save();
-      console.log(`✅ Custom admin details updated: ${adminEmail}`);
+      console.log(`✅ Default admin updated: ${adminEmail}`);
     }
   } catch (error) {
-    console.error('❌ Failed to seed custom admin:', (error as Error).message);
+    console.error('❌ Failed to seed default admin:', (error as Error).message);
   }
 
   // 2. Seed requested customer user

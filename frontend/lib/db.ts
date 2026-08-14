@@ -776,11 +776,37 @@ export async function getModels() {
         await p.query('DELETE FROM otps WHERE email = $1', [cleanEmail]);
         return true;
       }
-      return false;
     }
   };
 
-  return { User, Category, Product, Order, Banner, Faq, Otp };
+  const Wishlist = {
+    list: async (userId: string) => {
+      const r = await p.query(`
+        SELECT w.id as wishlist_id, p.* FROM wishlist w
+        JOIN products p ON w.product_id = p.id
+        WHERE w.user_id = $1
+        ORDER BY w.created_at DESC
+      `, [userId]);
+      return r.rows.map(mapProduct);
+    },
+    add: async (userId: string, productId: string) => {
+      const r = await p.query(`
+        INSERT INTO wishlist (user_id, product_id)
+        VALUES ($1, $2)
+        ON CONFLICT (user_id, product_id) DO NOTHING
+        RETURNING *
+      `, [userId, productId]);
+      return r.rows[0] || null;
+    },
+    remove: async (userId: string, productId: string) => {
+      await p.query(`
+        DELETE FROM wishlist WHERE user_id = $1 AND product_id = $2
+      `, [userId, productId]);
+      return true;
+    }
+  };
+
+  return { User, Category, Product, Order, Banner, Faq, Otp, Wishlist };
 }
 
 // ── Row Mappers (DB columns → JS camelCase) ───────────────────────────────────

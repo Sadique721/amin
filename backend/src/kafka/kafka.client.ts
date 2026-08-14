@@ -1,8 +1,12 @@
 import { Kafka, logLevel } from 'kafkajs';
 import { logger } from '@/shared/logger';
+import { env } from '@/config/env';
 
-const KAFKA_BROKERS = (process.env.KAFKA_BROKERS || 'localhost:2500').split(',');
-const KAFKA_CLIENT_ID = process.env.KAFKA_CLIENT_ID || 'sanab-backend';
+// Use validated env object — single source of truth for Kafka config (avoids
+// the mismatch between the raw process.env default here and the Zod-validated
+// default of 'localhost:2909' in env.ts).
+const KAFKA_BROKERS = env.KAFKA_BROKERS.split(',');
+const KAFKA_CLIENT_ID = env.KAFKA_CLIENT_ID;
 
 let kafkaInstance: Kafka | null = null;
 
