@@ -54,7 +54,7 @@ function renderLuxuryEmailLayout(opts: {
                 <tr>
                   <td align="center" style="padding-bottom: 12px;">
                     <div style="display: inline-block; padding: 6px 16px; border-radius: 9999px; background-color: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.4);">
-                      <span style="color: #f59e0b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 3px; font-family: -apple-system, sans-serif;">✨ ${opts.badge || 'AMIN LUXURY ATELIER'}</span>
+                      <span style="color: #f59e0b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 3px; font-family: -apple-system, sans-serif;">✨ ${opts.badge || 'AMIN & PRAO PARIS'}</span>
                     </div>
                   </td>
                 </tr>
@@ -65,7 +65,7 @@ function renderLuxuryEmailLayout(opts: {
                 </tr>
                 <tr>
                   <td align="center" style="padding-top: 4px;">
-                    <p style="color: #94a3b8; font-size: 11px; margin: 0; letter-spacing: 2px; text-transform: uppercase; font-weight: 600;">FINE JEWELLERY &bull; ANTI-TARNISH &bull; COSMETICS</p>
+                    <p style="color: #94a3b8; font-size: 11px; margin: 0; letter-spacing: 2px; text-transform: uppercase; font-weight: 600;">FINE JEWELLERY &bull; PRAO ANTI-TARNISH &bull; COSMETICS</p>
                   </td>
                 </tr>
               </table>
@@ -130,27 +130,30 @@ function renderLuxuryEmailLayout(opts: {
 
           <!-- Brand Footer -->
           <tr>
-            <td align="center" style="background-color: #03060d; padding: 32px 24px; color: #64748b; font-size: 12px; line-height: 1.7;">
-              <p style="margin: 0 0 10px 0; color: #94a3b8; font-weight: 700; font-size: 13px;">
-                AMIN Luxury Atelier &bull; Haute Joaillerie & Cosmetics
+            <td align="center" style="background-color: #03060d; padding: 32px 24px; color: #64748b; font-size: 12px; line-height: 1.7; border-top: 1px solid #1e293b;">
+              <p style="margin: 0 0 4px 0; color: #f8fafc; font-weight: 800; font-size: 14px; letter-spacing: 0.5px;">
+                AMIN Luxury E-Commerce Platform
+              </p>
+              <p style="margin: 0 0 16px 0; color: #94a3b8; font-size: 11px;">
+                100% BIS Hallmarked Gold &bull; PRAO Anti-Tarnish Lifetime Guarantee &bull; Express Delivery
               </p>
               
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 12px auto 16px auto;">
+              <div style="border-top: 1px dotted #334155; margin: 16px 0 16px 0;"></div>
+              
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto 16px auto;">
                 <tr>
-                  <td style="padding: 0 10px;"><a href="${FRONTEND_URL}/shop" style="color: #f59e0b; text-decoration: none; font-weight: 700;">Collections</a></td>
-                  <td style="color: #334155;">&bull;</td>
-                  <td style="padding: 0 10px;"><a href="${FRONTEND_URL}/account/orders" style="color: #f59e0b; text-decoration: none; font-weight: 700;">My Orders</a></td>
-                  <td style="color: #334155;">&bull;</td>
-                  <td style="padding: 0 10px;"><a href="${FRONTEND_URL}/about" style="color: #f59e0b; text-decoration: none; font-weight: 700;">Our Atelier</a></td>
-                  <td style="color: #334155;">&bull;</td>
-                  <td style="padding: 0 10px;"><a href="${FRONTEND_URL}/contact" style="color: #f59e0b; text-decoration: none; font-weight: 700;">VIP Concierge</a></td>
+                  <td style="padding: 0 12px;"><a href="${FRONTEND_URL}/shop" style="color: #f59e0b; text-decoration: none; font-weight: 700; font-size: 12px;">Collections</a></td>
+                  <td style="color: #475569;">&bull;</td>
+                  <td style="padding: 0 12px;"><a href="${FRONTEND_URL}/about" style="color: #f59e0b; text-decoration: none; font-weight: 700; font-size: 12px;">About Atelier</a></td>
+                  <td style="color: #475569;">&bull;</td>
+                  <td style="padding: 0 12px;"><a href="${FRONTEND_URL}/contact" style="color: #f59e0b; text-decoration: none; font-weight: 700; font-size: 12px;">Concierge Support</a></td>
                 </tr>
               </table>
 
-              ${opts.footerNote ? `<p style="margin: 0 0 12px 0; color: #475569; font-size: 11px;">${opts.footerNote}</p>` : ''}
+              ${opts.footerNote ? `<p style="margin: 0 0 12px 0; color: #64748b; font-size: 11px;">${opts.footerNote}</p>` : ''}
               
-              <p style="margin: 0; color: #475569; font-size: 11px;">
-                &copy; ${year} AMIN Platform. All rights reserved. This is an official confidential communication regarding your AMIN account.
+              <p style="margin: 0; color: #475569; font-size: 10px; letter-spacing: 0.3px;">
+                &copy; ${year} AMIN Platform. All rights reserved. Confidential transaction communication.
               </p>
             </td>
           </tr>
@@ -240,33 +243,43 @@ async function sendEmailCore(to: string, subject: string, html: string, text?: s
 // ── Specific Transactional Senders ────────────────────────────────────────────
 async function sendOtpEmail(to: string, otp: string): Promise<void> {
   const subject = `🔒 ${otp} — Your AMIN Verification Code`;
-  const text = `AMIN Security Verification Code: ${otp}\nValid for 5 minutes. Never share this code with anyone.`;
+  const text = `AMIN Security Verification Code: ${otp}\n\nEnter the 6-digit verification code below to sign in or confirm your security authorization on AMIN.\nThis code expires in 5 minutes.\n\nNever share your OTP code with anyone. AMIN support will never ask for your verification code.`;
+
   const contentHtml = `
-    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 8px 0 24px 0;">
+    <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6; margin: 0 0 24px 0;">
+      Enter the 6-digit verification code below to sign in or confirm your security authorization on <strong>AMIN</strong>.
+    </p>
+
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 0 0 24px 0;">
       <tr>
-        <td align="center" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(244, 63, 94, 0.12) 100%); border: 2px dashed #f59e0b; border-radius: 16px; padding: 24px 16px;">
-          <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #f59e0b; margin-bottom: 8px;">SECURITY AUTHENTICATION CODE</div>
-          <div style="font-size: 44px; font-weight: 900; letter-spacing: 12px; color: #ffffff; font-family: monospace; text-shadow: 0 2px 16px rgba(245, 158, 11, 0.5);">${otp}</div>
+        <td align="center" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.14) 0%, rgba(244, 63, 94, 0.10) 100%); border: 2px dashed #f59e0b; border-radius: 16px; padding: 28px 16px;">
+          <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #f59e0b; margin-bottom: 8px;">YOUR 6-DIGIT OTP</div>
+          <div style="font-size: 44px; font-weight: 900; letter-spacing: 14px; color: #ffffff; font-family: 'Courier New', Courier, monospace; text-shadow: 0 2px 16px rgba(245, 158, 11, 0.5);">${otp.split('').join(' ')}</div>
         </td>
       </tr>
     </table>
+
     <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #141c2e; border: 1px solid #1e293b; border-radius: 12px; margin-bottom: 24px;">
       <tr>
         <td style="padding: 16px 20px;">
           <div style="color: #f59e0b; font-size: 13px; font-weight: 800; margin-bottom: 4px;">⏱️ Code Expires in 5 Minutes</div>
-          <div style="color: #94a3b8; font-size: 12px; line-height: 1.6;">Please enter this code into your active session. AMIN support will never ask for your verification code.</div>
+          <div style="color: #94a3b8; font-size: 12px; line-height: 1.6;">
+            Do not share this OTP code with anyone. AMIN support will never ask for your verification code.
+          </div>
         </td>
       </tr>
     </table>
+
+    <p style="color: #64748b; font-size: 12px; line-height: 1.6; margin: 0 0 8px 0;">
+      If you did not request this email, please ignore this message or contact our luxury concierge immediately.
+    </p>
   `;
 
   const html = renderLuxuryEmailLayout({
     preheader: `Your AMIN verification code is ${otp}. Valid for 5 minutes.`,
-    badge: 'SECURITY AUTHORIZATION',
+    badge: 'AMIN & PRAO PARIS',
     title: 'Verification Code Required',
-    subtitle: 'Enter the 6-digit authorization code below to safely sign in to your AMIN Luxury account.',
     contentHtml,
-    footerNote: 'If you did not request this verification code, you can safely ignore this email.',
   });
 
   await sendEmailCore(to, subject, html, text);
