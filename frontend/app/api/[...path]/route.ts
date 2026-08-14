@@ -205,8 +205,8 @@ async function sendEmailCore(to: string, subject: string, html: string, text?: s
 
   // FALLBACK: Gmail SMTP (Nodemailer)
   try {
-    const smtpUser = process.env.SMTP_USER || process.env.MAIL_USERNAME || '';
-    const smtpPass = process.env.SMTP_PASS || process.env.MAIL_PASSWORD || '';
+    const smtpUser = (process.env.SMTP_USER || process.env.MAIL_USERNAME || 'mdsadiqueamin721786@gmail.com').trim();
+    const smtpPass = (process.env.SMTP_PASS || process.env.MAIL_PASSWORD || 'thvmiexrbpfekwqz').trim();
 
     if (!smtpUser || !smtpPass) {
       console.error('[GMAIL SMTP] SMTP credentials not configured. Email skipped.');
