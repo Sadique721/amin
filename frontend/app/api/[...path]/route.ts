@@ -6,7 +6,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 // ── Master Luxury Email Design System (R3/R4) ─────────────────────────────────
-const getFrontendUrl = () => process.env.NEXT_PUBLIC_APP_URL || process.env.FRONTEND_URL || 'https://temp-sanab.vercel.app';
+const getFrontendUrl = () => process.env.NEXT_PUBLIC_APP_URL || process.env.FRONTEND_URL || 'https://amin.vercel.app';
 
 function renderLuxuryEmailLayout(opts: {
   preheader: string;

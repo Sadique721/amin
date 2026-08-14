@@ -16,7 +16,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 // ── Runtime env values ────────────────────────────────────────────────────────
 const MONGODB_URI = process.env.MONGODB_URI || '';
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://temp-sanab.vercel.app')
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://amin.vercel.app')
   .split(',').map(o => o.trim());
 
 // ── Mongoose serverless connection cache ──────────────────────────────────────

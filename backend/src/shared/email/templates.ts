@@ -18,7 +18,7 @@
 const getFrontendUrl = () =>
   process.env.FRONTEND_URL ||
   process.env.NEXT_PUBLIC_APP_URL ||
-  'https://temp-sanab.vercel.app';
+  'https://amin.vercel.app';
 
 export interface EmailLayoutOptions {
   preheader: string;
