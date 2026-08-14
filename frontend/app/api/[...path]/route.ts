@@ -347,7 +347,7 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
 
   // ── HEALTH ────────────────────────────────────────────────────────────────
   if (route === 'health') {
-    return ok({ message: '🚀 Sanab API Health OK', version: 'pg-1.0.0', timestamp: new Date().toISOString() });
+    return ok({ message: '🚀 Amin API Health OK', version: 'pg-1.0.0', timestamp: new Date().toISOString() });
   }
 
   // ── FILE UPLOADS ───────────────────────────────────────────────────────────

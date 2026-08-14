@@ -80,7 +80,7 @@ async function createProduct(token, product) {
 }
 
 async function main() {
-  console.log('\n🚀 Sanab — Product Seeder v3\n');
+  console.log('\n🚀 Amin — Product Seeder v3\n');
 
   // ── Login
   console.log('🔐 Logging in as admin...');
@@ -111,32 +111,36 @@ async function main() {
   const PRODUCTS = [
     {
       name: 'Elegant Solitaire Ring',
-      brand: 'SANAB Atelier',
+      brand: 'AMIN Atelier',
       type: 'jewellery',
       description: 'Dazzling 1-carat round brilliant solitaire diamond set in 18K yellow gold prongs. A timeless piece for special occasions.',
       images: ['https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=600&auto=format&fit=crop'],
       category: catIds['Gold Rings'],
       tags: ['ring', 'gold', 'diamond', 'solitaire'],
       isActive: true,
-      variants: [{ sku: 'SNB-JWL-RG-991', price: 120000, compareAtPrice: 135000, stock: 10, attributes: { metal: '18K Yellow Gold', size: '7' }, isActive: true }],
+      variants: [
+        { price: 49999, compareAtPrice: 55999, stock: 15, attributes: 'Size 6 / 18K Gold', images: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=600&auto=format&fit=crop' },
+      ],
     },
     {
-      name: 'Emerald Tear Necklace',
-      brand: 'SANAB Atelier',
+      name: 'Royal Heritage Diamond Necklace',
+      brand: 'AMIN Atelier',
       type: 'jewellery',
-      description: 'Zambian teardrop emerald necklace accented by pave-set round diamonds in 18K white gold. Elegant and refined.',
+      description: 'Exquisite 22K hallmarked gold choker necklace studded with VS clarity certified diamonds and Zambian emerald drop accents.',
       images: ['https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=600&auto=format&fit=crop'],
       category: catIds['Diamond Necklaces'],
-      tags: ['necklace', 'emerald', 'diamond'],
+      tags: ['necklace', 'diamond', 'emerald', 'luxury'],
       isActive: true,
-      variants: [{ sku: 'SNB-JWL-NK-992', price: 185000, compareAtPrice: 210000, stock: 5, attributes: { metal: '18K White Gold' }, isActive: true }],
+      variants: [
+        { price: 125000, compareAtPrice: 140000, stock: 5, attributes: '22K Gold / Emerald Drop', images: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=600&auto=format&fit=crop' },
+      ],
     },
     {
-      name: 'Velvet Cherry Lipstick',
-      brand: 'SANAB Beauty',
+      name: 'Velvet Matte Liquid Lipstick — Ruby Red',
+      brand: 'AMIN Beauty',
       type: 'cosmetics',
-      description: 'Luxurious matte cherry lipstick providing intense 12-hour color with a hydrating satin finish.',
-      images: ['https://images.unsplash.com/photo-1596462502278-27bfdc403348?q=80&w=600&auto=format&fit=crop'],
+      description: 'Ultra-pigmented 16-hour transfer-proof matte liquid lipstick enriched with vitamin E and jojoba oil for soft, hydrated lips.',
+      images: ['https://images.unsplash.com/photo-1586495777744-4e6232bf4803?q=80&w=600&auto=format&fit=crop'],
       category: catIds['Matte Lipsticks'],
       tags: ['lipstick', 'matte', 'cosmetics'],
       isActive: true,

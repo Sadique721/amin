@@ -236,7 +236,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Eternal Diamond Engagement Ring',
         category: catMap['Gold Rings'],
-        brand: 'SANAB Atelier',
+        brand: 'AMIN Atelier',
         type: 'jewellery',
         description: 'A brilliant-cut 1.5 carat solitaire diamond set on an 18K yellow gold band. The ultimate symbol of everlasting love.',
         images: ['https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=600&auto=format&fit=crop'],
@@ -248,7 +248,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Royal Halo Sapphire Studs',
         category: catMap['Luxury Earrings'],
-        brand: 'SANAB Atelier',
+        brand: 'AMIN Atelier',
         type: 'jewellery',
         description: 'Vibrant blue oval sapphires surrounded by a dazzling halo of micro-pave diamonds in 18K white gold.',
         images: ['https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=600&auto=format&fit=crop'],
@@ -259,7 +259,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Classic Gold Eternity Band',
         category: catMap['Gold Rings'],
-        brand: 'SANAB Atelier',
+        brand: 'AMIN Atelier',
         type: 'jewellery',
         description: 'An elegant eternity ring crafted in pure 22K yellow gold with hand-engraved traditional filigree carvings.',
         images: ['https://images.unsplash.com/photo-1603561591411-07134e71a2a9?q=80&w=600&auto=format&fit=crop'],
@@ -270,7 +270,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Ornate Floral Pendant Necklace',
         category: catMap['Diamond Necklaces'],
-        brand: 'SANAB Atelier',
+        brand: 'AMIN Atelier',
         type: 'jewellery',
         description: 'A beautiful rose-shaped gold pendant encrusted with fine pave diamonds, hung on an adjustable 18K gold chain.',
         images: ['https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=600&auto=format&fit=crop'],
@@ -281,7 +281,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Empress Diamond Choker',
         category: catMap['Diamond Necklaces'],
-        brand: 'SANAB Atelier',
+        brand: 'AMIN Atelier',
         type: 'jewellery',
         description: 'A statement high-jewelry choker necklace containing over 10 carats of ethically sourced brilliant round diamonds.',
         images: ['https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?q=80&w=600&auto=format&fit=crop'],
@@ -292,7 +292,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Minimalist Gold Link Bracelet',
         category: catMap['Fine Bracelets'],
-        brand: 'SANAB Atelier',
+        brand: 'AMIN Atelier',
         type: 'jewellery',
         description: 'A lightweight everyday paperclip chain link bracelet in pure 18K yellow gold. Sleek and perfect for stacking.',
         images: ['https://images.unsplash.com/photo-1611591437281-460bfbe1220a?q=80&w=600&auto=format&fit=crop'],
@@ -303,7 +303,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Teardrop Emerald Drop Earrings',
         category: catMap['Luxury Earrings'],
-        brand: 'SANAB Atelier',
+        brand: 'AMIN Atelier',
         type: 'jewellery',
         description: 'Exquisite Zambian pear emeralds dangling from diamond-set huggie loops in 18K yellow gold.',
         images: ['https://images.unsplash.com/photo-1635767798638-3e25273a8236?q=80&w=600&auto=format&fit=crop'],
@@ -314,7 +314,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Dainty Diamond Tennis Bracelet',
         category: catMap['Fine Bracelets'],
-        brand: 'SANAB Atelier',
+        brand: 'AMIN Atelier',
         type: 'jewellery',
         description: 'A timeless single row of brilliant round-cut diamonds set in a secure four-prong 18K white gold mounting.',
         images: ['https://images.unsplash.com/photo-1573408301185-9146fe634ad0?q=80&w=600&auto=format&fit=crop'],
@@ -325,7 +325,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Crown Solitaire Ring',
         category: catMap['Gold Rings'],
-        brand: 'SANAB Atelier',
+        brand: 'AMIN Atelier',
         type: 'jewellery',
         description: 'A majestic crown-inspired ring with a 1-carat round diamond supported by a tiara-shaped pave set band.',
         images: ['https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=600&auto=format&fit=crop'],
@@ -336,7 +336,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Vintage Gold Filigree Bangle',
         category: catMap['Fine Bracelets'],
-        brand: 'SANAB Atelier',
+        brand: 'AMIN Atelier',
         type: 'jewellery',
         description: 'A broad, traditional Indian filigree bangle handcrafted in solid 22K yellow gold. Features screw lock mechanisms.',
         images: ['https://images.unsplash.com/photo-1611591437281-460bfbe1220a?q=80&w=600&auto=format&fit=crop'],
@@ -347,7 +347,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Heart Silhouette Locket',
         category: catMap['Diamond Necklaces'],
-        brand: 'SANAB Atelier',
+        brand: 'AMIN Atelier',
         type: 'jewellery',
         description: 'A delicate opening heart-shaped gold locket with micro diamonds tracing the edge. Space for two custom photos.',
         images: ['https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=600&auto=format&fit=crop'],
@@ -358,7 +358,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Contemporary Geometric Studs',
         category: catMap['Luxury Earrings'],
-        brand: 'SANAB Atelier',
+        brand: 'AMIN Atelier',
         type: 'jewellery',
         description: 'Sleek triangular studs crafted in 18K gold featuring baguette-cut diamonds in channel settings.',
         images: ['https://images.unsplash.com/photo-1630019852942-f89202989a59?q=80&w=600&auto=format&fit=crop'],
@@ -369,7 +369,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Art Deco Diamond Bangle',
         category: catMap['Fine Bracelets'],
-        brand: 'SANAB Atelier',
+        brand: 'AMIN Atelier',
         type: 'jewellery',
         description: 'Inspired by 1920s architecture, this 18K white gold bangle features alternating princess and baguette diamonds.',
         images: ['https://images.unsplash.com/photo-1573408301185-9146fe634ad0?q=80&w=600&auto=format&fit=crop'],
@@ -380,7 +380,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Twisted Gold Hoop Earrings',
         category: catMap['Luxury Earrings'],
-        brand: 'SANAB Atelier',
+        brand: 'AMIN Atelier',
         type: 'jewellery',
         description: 'Chic, medium-sized hoop earrings featuring a hand-twisted rope motif in high-polish 18K yellow gold.',
         images: ['https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=600&auto=format&fit=crop'],
@@ -391,7 +391,7 @@ export const seedProductsAndCategories = async (): Promise<void> => {
       {
         name: 'Infinity Pearl Pendant',
         category: catMap['Diamond Necklaces'],
-        brand: 'SANAB Atelier',
+        brand: 'AMIN Atelier',
         type: 'jewellery',
         tags: ['necklace', 'pearl', 'diamond'],
         description: 'A shimmering white South Sea pearl suspended inside a diamond-studded infinity loop in 18K rose gold.',

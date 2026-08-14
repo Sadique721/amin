@@ -56,7 +56,7 @@ export const connectDB = async (): Promise<void> => {
 
   // 2. Connect to MongoDB (With local fallback if Atlas cluster is unreachable)
   const primaryMongoUri = env.MONGODB_URI || process.env.MONGODB_URI;
-  const fallbackMongoUri = 'mongodb://127.0.0.1:27017/sanab';
+  const fallbackMongoUri = 'mongodb://127.0.0.1:27017/amin';
 
   const opts = {
     bufferCommands: true,
