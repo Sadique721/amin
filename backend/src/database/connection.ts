@@ -88,6 +88,15 @@ export const connectDB = async (): Promise<void> => {
     }
   }
 
+  if (!connected) {
+    if (env.NODE_ENV === 'production') {
+      logger.error('❌ FATAL: Could not connect to any MongoDB instance in production!');
+      throw new Error('Database connection failed: MongoDB is unreachable');
+    } else {
+      logger.warn('⚠️ Server started without active MongoDB connection (Development/Testing Mode)');
+    }
+  }
+
   if (connected) {
     try {
       const { seedDefaultAdmin, seedCmsData, seedProductsAndCategories } = await import('./seed');

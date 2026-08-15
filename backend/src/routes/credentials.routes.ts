@@ -144,7 +144,7 @@ router.get('/verify', authMiddleware, adminMiddleware, async (req: Request, res:
     results.authorizeNet = {
       status: authResult.success ? '✅ Authenticated' : '✅ Service Ready (Sandbox)',
       environment: authResult.environment,
-      loginId: (env.AUTHORIZE_NET_API_LOGIN_ID || env.AUTHORIZENET_API_LOGIN_ID || '5N8z4K9W').substring(0, 4) + '****',
+      loginId: (env.AUTHORIZE_NET_API_LOGIN_ID || '5N8z4K9W').substring(0, 4) + '****',
       note: 'Authorize.Net payment handler endpoints (/api/payments/authorizenet/charge) active',
     };
   } catch (err: any) {

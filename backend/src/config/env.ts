@@ -4,7 +4,6 @@ import { z } from 'zod';
 
 // Load environment variables conditionally from .env
 dotenv.config({ path: path.join(__dirname, '../../.env') });
-dotenv.config();
 
 const nodeEnv = process.env.NODE_ENV || 'development';
 
@@ -33,8 +32,6 @@ const envSchema = z.object({
   AUTHORIZE_NET_API_LOGIN_ID: z.string().optional(),
   AUTHORIZE_NET_TRANSACTION_KEY: z.string().optional(),
   AUTHORIZE_NET_ENVIRONMENT: z.enum(['SANDBOX', 'PRODUCTION']).default('SANDBOX'),
-  AUTHORIZENET_API_LOGIN_ID: z.string().optional(),
-  AUTHORIZENET_TRANSACTION_KEY: z.string().optional(),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().optional(),
   SMTP_USER: z.string().optional(),

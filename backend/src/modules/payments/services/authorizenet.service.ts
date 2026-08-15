@@ -72,16 +72,12 @@ export class AuthorizeNetService {
   private static getCredentials() {
     const loginId =
       env.AUTHORIZE_NET_API_LOGIN_ID ||
-      env.AUTHORIZENET_API_LOGIN_ID ||
       process.env.AUTHORIZE_NET_API_LOGIN_ID ||
-      process.env.AUTHORIZENET_API_LOGIN_ID ||
       '';
 
     const transactionKey =
       env.AUTHORIZE_NET_TRANSACTION_KEY ||
-      env.AUTHORIZENET_TRANSACTION_KEY ||
       process.env.AUTHORIZE_NET_TRANSACTION_KEY ||
-      process.env.AUTHORIZENET_TRANSACTION_KEY ||
       '';
 
     const isSandbox =

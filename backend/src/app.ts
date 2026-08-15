@@ -42,6 +42,16 @@ app.get('/', (req, res) => {
   });
 });
 
+// Platform Health Check Probe (Render, Railway, Kubernetes)
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    status: 'ok',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // Base API Routes Mount with general rate limiting
 app.use('/api', rateLimitMiddleware(200, 15 * 60 * 1000), router);
 
