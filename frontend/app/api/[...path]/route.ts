@@ -166,19 +166,14 @@ function renderLuxuryEmailLayout(opts: {
 </html>`;
 }
 
-// ── Generic Email Sender with Resend + Gmail Fallback (Always Awaited) ────────
+// ── Generic Email Sender with Multi-Provider HTTP + SMTP Fallbacks ────────────
 async function sendEmailCore(to: string, subject: string, html: string, text?: string): Promise<void> {
+  // ── 1. PRIMARY: Resend HTTP REST API (Instant ~120ms, Cloud Firewall Proof) ──
   const resendKey = process.env.RESEND_API_KEY;
-  const isResendConfigured = resendKey &&
-    !resendKey.includes('REPLACE') &&
-    !resendKey.includes('PLACEHOLDER') &&
-    resendKey.startsWith('re_');
-
-  // PRIMARY: Resend (instant HTTP call)
-  if (isResendConfigured) {
+  if (resendKey && !resendKey.includes('REPLACE') && !resendKey.includes('PLACEHOLDER') && resendKey.startsWith('re_')) {
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
+      const timeout = setTimeout(() => controller.abort(), 6000);
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -196,17 +191,51 @@ async function sendEmailCore(to: string, subject: string, html: string, text?: s
       });
       clearTimeout(timeout);
       if (res.ok) {
-        console.log(`[RESEND] ✅ Email delivered to ${to} ("${subject}")`);
+        console.log(`[RESEND HTTP] ✅ Email delivered to ${to} ("${subject}")`);
         return;
       }
       const errBody = await res.text();
-      console.warn(`[RESEND] Failed (${res.status}): ${errBody}`);
+      console.warn(`[RESEND HTTP] Failed (${res.status}): ${errBody}`);
     } catch (e: any) {
-      console.warn('[RESEND] Error:', e?.message);
+      console.warn('[RESEND HTTP] Error:', e?.message);
     }
   }
 
-  // FALLBACK: Gmail SMTP (Nodemailer)
+  // ── 2. SECONDARY: Brevo / Sendinblue HTTP REST API (Instant ~150ms) ──────────
+  const brevoKey = process.env.BREVO_API_KEY;
+  if (brevoKey && !brevoKey.includes('REPLACE') && !brevoKey.includes('PLACEHOLDER')) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': brevoKey,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          sender: { name: 'AMIN Luxury Atelier', email: 'mdsadiqueamin721786@gmail.com' },
+          to: [{ email: to }],
+          subject,
+          htmlContent: html,
+          textContent: text,
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      if (res.ok) {
+        console.log(`[BREVO HTTP] ✅ Email delivered to ${to} ("${subject}")`);
+        return;
+      }
+      const errBody = await res.text();
+      console.warn(`[BREVO HTTP] Failed (${res.status}): ${errBody}`);
+    } catch (e: any) {
+      console.warn('[BREVO HTTP] Error:', e?.message);
+    }
+  }
+
+  // ── 3. TERTIARY: Gmail SMTP (Nodemailer Dual-Port Fallback) ──────────────────
   try {
     const smtpUser = (process.env.SMTP_USER || process.env.MAIL_USERNAME || 'mdsadiqueamin721786@gmail.com').trim();
     const smtpPass = (process.env.SMTP_PASS || process.env.MAIL_PASSWORD || 'thvmiexrbpfekwqz').trim();
@@ -216,19 +245,8 @@ async function sendEmailCore(to: string, subject: string, html: string, text?: s
       return;
     }
 
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      auth: { user: smtpUser, pass: smtpPass },
-      tls: { rejectUnauthorized: false },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 15000,
-    });
-
     const timestamp = Date.now();
-    await transporter.sendMail({
+    const mailOptions = {
       from: `"AMIN Luxury Atelier" <${smtpUser}>`,
       to,
       subject,
@@ -237,10 +255,49 @@ async function sendEmailCore(to: string, subject: string, html: string, text?: s
       headers: {
         'X-Entity-Ref-ID': `amin-${timestamp}`,
       },
+    };
+
+    // Try Port 587 (STARTTLS) first (fastest on AWS / Vercel), fallback to Port 465 (SSL)
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: { user: smtpUser, pass: smtpPass },
+      tls: { rejectUnauthorized: false, minVersion: 'TLSv1.2' },
+      connectionTimeout: 8000,
+      greetingTimeout: 8000,
+      socketTimeout: 10000,
     });
-    console.log(`[GMAIL SMTP] ✅ Email delivered to ${to} ("${subject}")`);
-  } catch (err: any) {
-    console.error('[GMAIL SMTP] ❌ Failed to send email:', err?.message || err);
+
+    await transporter.sendMail(mailOptions);
+    console.log(`[GMAIL SMTP 587] ✅ Delivered to ${to} ("${subject}")`);
+  } catch (err587: any) {
+    console.warn(`[GMAIL SMTP 587] Retrying via Port 465 SSL... (${err587?.message})`);
+    try {
+      const smtpUser = (process.env.SMTP_USER || process.env.MAIL_USERNAME || 'mdsadiqueamin721786@gmail.com').trim();
+      const smtpPass = (process.env.SMTP_PASS || process.env.MAIL_PASSWORD || 'thvmiexrbpfekwqz').trim();
+      const transporter465 = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: { user: smtpUser, pass: smtpPass },
+        tls: { rejectUnauthorized: false },
+        connectionTimeout: 8000,
+        greetingTimeout: 8000,
+        socketTimeout: 10000,
+      });
+      await transporter465.sendMail({
+        from: `"AMIN Luxury Atelier" <${smtpUser}>`,
+        to,
+        subject,
+        html,
+        text,
+        headers: { 'X-Entity-Ref-ID': `amin-${Date.now()}` },
+      });
+      console.log(`[GMAIL SMTP 465] ✅ Delivered to ${to} ("${subject}")`);
+    } catch (err465: any) {
+      console.error('[GMAIL SMTP] ❌ All SMTP fallbacks failed:', err465?.message || err465);
+    }
   }
 }
 
