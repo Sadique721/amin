@@ -217,9 +217,14 @@ async function sendEmailCore(to: string, subject: string, html: string, text?: s
     }
 
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
       auth: { user: smtpUser, pass: smtpPass },
       tls: { rejectUnauthorized: false },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
     });
 
     const timestamp = Date.now();
@@ -241,7 +246,7 @@ async function sendEmailCore(to: string, subject: string, html: string, text?: s
 
 // ── Specific Transactional Senders ────────────────────────────────────────────
 async function sendOtpEmail(to: string, otp: string): Promise<void> {
-  const subject = `Your AMIN Verification Code: ${otp}`;
+  const subject = `🔒 ${otp} — Your AMIN Verification Code`;
   const text = `AMIN Security Verification Code: ${otp}\n\nEnter the 6-digit verification code below to sign in or confirm your security authorization on AMIN.\nThis code expires in 5 minutes.\n\nNever share your OTP code with anyone. AMIN support will never ask for your verification code.`;
 
   const contentHtml = `

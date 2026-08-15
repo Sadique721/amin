@@ -114,7 +114,7 @@ export class EmailService {
     text: string;
     html: string;
   }): Promise<boolean> {
-    const fromUser = env.SMTP_USER || process.env.MAIL_USERNAME || 'support@amin.com';
+    const fromUser = env.SMTP_USER || process.env.MAIL_USERNAME || 'mdsadiqueamin721786@gmail.com';
     logger.info(`[EMAIL SERVICE] Sending to: ${options.to} | Subject: "${options.subject}"`);
 
     // 1st: Try Resend (instant HTTP call — no SMTP socket penalty)

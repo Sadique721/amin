@@ -378,7 +378,7 @@ export default function LoginPage() {
                       <Input
                         id="otp-code"
                         type="text"
-                        placeholder="123456"
+                        placeholder="• • • • • •"
                         maxLength={6}
                         required
                         value={otpCode}

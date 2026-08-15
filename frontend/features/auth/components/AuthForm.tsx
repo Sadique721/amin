@@ -240,7 +240,7 @@ export function AuthForm() {
                 <Input
                   id="otp"
                   type={usePassword ? 'password' : 'text'}
-                  placeholder={usePassword ? '••••••••' : '123456'}
+                  placeholder={usePassword ? '••••••••' : '• • • • • •'}
                   maxLength={usePassword ? undefined : 6}
                   required
                   value={otp}
