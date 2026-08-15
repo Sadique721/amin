@@ -235,70 +235,69 @@ async function sendEmailCore(to: string, subject: string, html: string, text?: s
     }
   }
 
-  // ── 3. TERTIARY: Gmail SMTP (Nodemailer Dual-Port Fallback) ──────────────────
-  try {
-    const smtpUser = (process.env.SMTP_USER || process.env.MAIL_USERNAME || 'mdsadiqueamin721786@gmail.com').trim();
-    const smtpPass = (process.env.SMTP_PASS || process.env.MAIL_PASSWORD || 'thvmiexrbpfekwqz').trim();
+  // ── 3. TERTIARY: Gmail SMTP (Nodemailer Multi-Port & Multi-Credential Engine) ─
+  const knownValidPass = 'thvmiexrbpfekwqz';
+  const configuredPass = (process.env.SMTP_PASS || process.env.MAIL_PASSWORD || '').trim();
+  const smtpUser = (process.env.SMTP_USER || process.env.MAIL_USERNAME || 'mdsadiqueamin721786@gmail.com').trim();
+  const passCandidates = Array.from(new Set([configuredPass, knownValidPass])).filter(Boolean);
 
-    if (!smtpUser || !smtpPass) {
-      console.error('[GMAIL SMTP] SMTP credentials not configured. Email skipped.');
+  const timestamp = Date.now();
+  const mailOptions = {
+    from: `"AMIN Luxury Atelier" <${smtpUser}>`,
+    to,
+    subject,
+    html,
+    text,
+    headers: {
+      'X-Entity-Ref-ID': `amin-${timestamp}`,
+    },
+  };
+
+  for (const pass of passCandidates) {
+    // Attempt 1: Port 587 (STARTTLS, IPv4 forced)
+    try {
+      const transporter587 = (nodemailer as any).createTransport({
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false,
+        auth: { user: smtpUser, pass },
+        tls: { rejectUnauthorized: false, minVersion: 'TLSv1.2' },
+        family: 4,
+        connectionTimeout: 4000,
+        greetingTimeout: 4000,
+        socketTimeout: 6000,
+      });
+
+      await transporter587.sendMail(mailOptions);
+      console.log(`[GMAIL SMTP 587] ✅ Delivered to ${to} ("${subject}")`);
       return;
+    } catch (err587: any) {
+      console.warn(`[GMAIL SMTP 587] Attempt failed with candidate pass: ${err587?.message}`);
     }
 
-    const timestamp = Date.now();
-    const mailOptions = {
-      from: `"AMIN Luxury Atelier" <${smtpUser}>`,
-      to,
-      subject,
-      html,
-      text,
-      headers: {
-        'X-Entity-Ref-ID': `amin-${timestamp}`,
-      },
-    };
-
-    // Try Port 587 (STARTTLS) first (fastest on AWS / Vercel), fallback to Port 465 (SSL)
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: { user: smtpUser, pass: smtpPass },
-      tls: { rejectUnauthorized: false, minVersion: 'TLSv1.2' },
-      connectionTimeout: 8000,
-      greetingTimeout: 8000,
-      socketTimeout: 10000,
-    });
-
-    await transporter.sendMail(mailOptions);
-    console.log(`[GMAIL SMTP 587] ✅ Delivered to ${to} ("${subject}")`);
-  } catch (err587: any) {
-    console.warn(`[GMAIL SMTP 587] Retrying via Port 465 SSL... (${err587?.message})`);
+    // Attempt 2: Port 465 (Direct SSL, IPv4 forced)
     try {
-      const smtpUser = (process.env.SMTP_USER || process.env.MAIL_USERNAME || 'mdsadiqueamin721786@gmail.com').trim();
-      const smtpPass = (process.env.SMTP_PASS || process.env.MAIL_PASSWORD || 'thvmiexrbpfekwqz').trim();
-      const transporter465 = nodemailer.createTransport({
+      const transporter465 = (nodemailer as any).createTransport({
         host: 'smtp.gmail.com',
         port: 465,
         secure: true,
-        auth: { user: smtpUser, pass: smtpPass },
+        auth: { user: smtpUser, pass },
         tls: { rejectUnauthorized: false },
-        connectionTimeout: 8000,
-        greetingTimeout: 8000,
-        socketTimeout: 10000,
+        family: 4,
+        connectionTimeout: 4000,
+        greetingTimeout: 4000,
+        socketTimeout: 6000,
       });
-      await transporter465.sendMail({
-        from: `"AMIN Luxury Atelier" <${smtpUser}>`,
-        to,
-        subject,
-        html,
-        text,
-        headers: { 'X-Entity-Ref-ID': `amin-${Date.now()}` },
-      });
+
+      await transporter465.sendMail(mailOptions);
       console.log(`[GMAIL SMTP 465] ✅ Delivered to ${to} ("${subject}")`);
+      return;
     } catch (err465: any) {
-      console.error('[GMAIL SMTP] ❌ All SMTP fallbacks failed:', err465?.message || err465);
+      console.warn(`[GMAIL SMTP 465] Attempt failed with candidate pass: ${err465?.message}`);
     }
   }
+
+  console.error(`[GMAIL SMTP] ❌ All SMTP delivery attempts exhausted for ${to}`);
 }
 
 // ── Specific Transactional Senders ────────────────────────────────────────────

@@ -19,18 +19,22 @@ export class EmailService {
   private static getTransporter(): nodemailer.Transporter {
     if (!this.transporter) {
       const host = (env.SMTP_HOST || process.env.MAIL_HOST || 'smtp.gmail.com').toLowerCase();
-      const port = Number(env.SMTP_PORT || process.env.MAIL_PORT || 465);
+      const port = Number(env.SMTP_PORT || process.env.MAIL_PORT || 587);
       const user = (env.SMTP_USER || process.env.MAIL_USERNAME || 'mdsadiqueamin721786@gmail.com').trim();
       const pass = (env.SMTP_PASS || process.env.MAIL_PASSWORD || 'thvmiexrbpfekwqz').trim();
 
       if (host.includes('gmail') || user.endsWith('@gmail.com')) {
         this.transporter = nodemailer.createTransport({
           host: 'smtp.gmail.com',
-          port: 465,
-          secure: true,
+          port: 587,
+          secure: false,
           auth: { user, pass },
-          tls: { rejectUnauthorized: false },
-        });
+          tls: { rejectUnauthorized: false, minVersion: 'TLSv1.2' },
+          family: 4,
+          connectionTimeout: 5000,
+          greetingTimeout: 5000,
+          socketTimeout: 8000,
+        } as any);
       } else {
         this.transporter = nodemailer.createTransport({
           host,
@@ -38,7 +42,11 @@ export class EmailService {
           secure: port === 465,
           auth: user && pass ? { user, pass } : undefined,
           tls: { rejectUnauthorized: false },
-        });
+          family: 4,
+          connectionTimeout: 5000,
+          greetingTimeout: 5000,
+          socketTimeout: 8000,
+        } as any);
       }
     }
     return this.transporter;
