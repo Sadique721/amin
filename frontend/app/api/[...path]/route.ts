@@ -600,6 +600,48 @@ async function sendNewsletterWelcomeEmail(to: string): Promise<void> {
   await sendEmailCore(to, subject, html, text);
 }
 
+async function sendPasswordResetEmail(to: string, resetUrl: string, name?: string): Promise<void> {
+  const subject = `🔑 Reset Your AMIN Account Password`;
+  const text = `Hello ${name || 'Member'},\n\nA password reset request was received for your AMIN account.\n\nClick the link below to set a new password:\n${resetUrl}\n\nThis link is valid for 15 minutes.\nIf you did not request this, please disregard this email.`;
+
+  const contentHtml = `
+    <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6; margin: 0 0 24px 0;">
+      We received a request to reset the password for your <strong>AMIN</strong> account${name ? ` associated with <strong>${name}</strong>` : ''}.
+    </p>
+    <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6; margin: 0 0 24px 0;">
+      Click the button below to establish a new password:
+    </p>
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 24px;">
+      <tr>
+        <td align="center">
+          <a href="${resetUrl}" target="_blank" style="background-color: #f59e0b; color: #1e293b; font-size: 15px; font-weight: 800; text-decoration: none; padding: 14px 28px; border-radius: 12px; display: inline-block; box-shadow: 0 4px 12px rgba(245,158,11,0.25);">
+            Reset Password
+          </a>
+        </td>
+      </tr>
+    </table>
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #141c2e; border: 1px solid #1e293b; border-radius: 12px; margin-bottom: 24px;">
+      <tr>
+        <td style="padding: 16px 20px;">
+          <div style="color: #f59e0b; font-size: 13px; font-weight: 800; margin-bottom: 4px;">⏱️ Link Expires in 15 Minutes</div>
+          <div style="color: #94a3b8; font-size: 12px; line-height: 1.6;">
+            For your protection, this single-use password reset link will expire in 15 minutes. If it expires, simply submit a new request.
+          </div>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  const html = renderLuxuryEmailLayout({
+    preheader: 'Reset your AMIN account password securely. Link expires in 15 minutes.',
+    badge: 'ACCOUNT SECURITY',
+    title: 'Password Reset Request',
+    contentHtml,
+  });
+
+  await sendEmailCore(to, subject, html, text);
+}
+
 // Lazy-load db helpers
 let _dbModule: any = null;
 async function getDb() {
@@ -972,6 +1014,74 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
     } catch (e: any) { return err(e.message, 500); }
   }
 
+  // POST /api/public/auth/forgot-password
+  if ((route === 'public/auth/forgot-password' || route === 'auth/forgot-password' || route === 'public/public/auth/forgot-password') && method === 'POST') {
+    try {
+      const body = await req.json();
+      const email = (body.email || '').toLowerCase().trim();
+      if (!email) return err('Email address is required', 400);
+
+      const { User } = await getModels();
+      const user = await User.findByEmail(email);
+
+      if (user) {
+        const token = crypto.randomBytes(32).toString('hex');
+        const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+
+        await User.update(user._id || user.id, {
+          resetToken: token,
+          resetTokenExpires: expires,
+        });
+
+        const FRONTEND_URL = getFrontendUrl();
+        const resetUrl = `${FRONTEND_URL}/auth/reset-password?token=${token}`;
+        
+        try {
+          await sendPasswordResetEmail(email, resetUrl, user.name);
+        } catch (mailErr: any) {
+          console.error('[EMAIL] Failed to send password reset email:', mailErr?.message);
+        }
+      }
+
+      // Secure behavior: generic success message to prevent user enumeration
+      return ok({ message: 'If the email exists, a password reset link has been sent.' });
+    } catch (e: any) {
+      return err(e.message || 'Forgot password failed', 500);
+    }
+  }
+
+  // POST /api/public/auth/reset-password
+  if ((route === 'public/auth/reset-password' || route === 'auth/reset-password' || route === 'public/public/auth/reset-password') && method === 'POST') {
+    try {
+      const body = await req.json();
+      const token = (body.token || '').trim();
+      const password = (body.password || '').trim();
+
+      if (!token || !password) {
+        return err('Token and password are required', 400);
+      }
+      if (password.length < 6) {
+        return err('Password must be at least 6 characters long', 400);
+      }
+
+      const { User } = await getModels();
+      const dbUser = await User.findByResetToken?.(token);
+      if (!dbUser) {
+        return err('Invalid or expired reset token', 400);
+      }
+
+      await User.update(dbUser._id || dbUser.id, {
+        password: password,
+        resetToken: null,
+        resetTokenExpires: null,
+      });
+
+      return ok({ message: 'Password has been reset successfully. You can now log in.' });
+    } catch (e: any) {
+      return err(e.message || 'Password reset failed', 500);
+    }
+  }
+
   // ── CATEGORIES ────────────────────────────────────────────────────────────
   // GET /api/categories  OR  /api/public/categories
   if ((route === 'categories' || route === 'public/categories') && method === 'GET') {
@@ -1163,7 +1273,6 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
     } catch (e: any) { return err(e.message, 500); }
   }
 
-  // PATCH /api/orders/admin/:id/status
   if (route.startsWith('orders/admin/') && route.endsWith('/status') && method === 'PATCH') {
     const currentUser = await getUser(req);
     if (!currentUser || currentUser.role !== 'admin') return err('Admin access required', 403);
@@ -1171,8 +1280,56 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
       const id = path[2]; // orders/admin/{id}/status
       const body = await req.json();
       const { Order } = await getModels();
-      const order = await Order.updateStatus(id, body.status, body.paymentStatus, body.paymentDetails);
-      if (!order) return err('Order not found', 404);
+
+      const existingOrder = await Order.findById(id);
+      if (!existingOrder) return err('Order not found', 404);
+
+      let paymentStatus = body.paymentStatus;
+      let paymentDetails = body.paymentDetails;
+
+      // Handle Razorpay refund on order cancellation
+      if (body.status === 'cancelled' && existingOrder.paymentStatus === 'paid') {
+        const payDetails = existingOrder.paymentDetails || {};
+        if (payDetails.method === 'razorpay' && payDetails.razorpayPaymentId) {
+          try {
+            const keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '';
+            const keySecret = process.env.RAZORPAY_KEY_SECRET || '';
+            if (keyId && keySecret && !keySecret.endsWith('_secret')) {
+              const authHeader = 'Basic ' + Buffer.from(`${keyId}:${keySecret}`).toString('base64');
+              const refRes = await fetch(`https://api.razorpay.com/v1/payments/${payDetails.razorpayPaymentId}/refund`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': authHeader,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  amount: Math.round(existingOrder.total * 100), // paise
+                  notes: { orderId: existingOrder._id || existingOrder.id, reason: 'Admin cancelled order' },
+                }),
+              });
+
+              if (refRes.ok) {
+                const refData = await refRes.json();
+                console.log(`[RAZORPAY REFUND SUCCESS] Refunded order ${existingOrder.id}:`, refData);
+                paymentStatus = 'refunded';
+                paymentDetails = {
+                  ...payDetails,
+                  refundId: refData.id,
+                  refundedAt: new Date().toISOString(),
+                };
+              } else {
+                const refErr = await refRes.text();
+                console.error(`[RAZORPAY REFUND FAILED] Status ${refRes.status}:`, refErr);
+              }
+            }
+          } catch (refErr: any) {
+            console.error('[RAZORPAY REFUND EXCEPTION]', refErr?.message);
+          }
+        }
+      }
+
+      const order = await Order.updateStatus(id, body.status, paymentStatus, paymentDetails);
+      if (!order) return err('Order status update failed', 500);
 
       // Send status update notification email (R3/R4)
       if (order.userEmail && body.status) {
@@ -1869,6 +2026,76 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
     } catch (e: any) {
       console.error('[RAZORPAY VERIFY]', e?.message);
       return err(e.message || 'Verification error', 500);
+    }
+  }
+
+  // ── RAZORPAY: Webhook Listener ─────────────────────────────────────────────
+  // POST /api/webhooks/razorpay  OR  /api/public/webhooks/razorpay
+  if ((route === 'webhooks/razorpay' || route === 'public/webhooks/razorpay' || route === 'public/public/webhooks/razorpay') && method === 'POST') {
+    try {
+      const signature = req.headers.get('x-razorpay-signature') || '';
+      const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || '';
+      const rawBody = await req.text();
+
+      if (webhookSecret || process.env.NODE_ENV === 'production') {
+        if (!signature) {
+          return err('Missing x-razorpay-signature header', 400);
+        }
+        const expectedSignature = crypto
+          .createHmac('sha256', webhookSecret)
+          .update(rawBody)
+          .digest('hex');
+
+        if (expectedSignature !== signature) {
+          console.warn('[RAZORPAY WEBHOOK] Invalid signature');
+          return err('Invalid webhook signature', 400);
+        }
+      }
+
+      const event = JSON.parse(rawBody);
+      console.log(`[RAZORPAY WEBHOOK] Event: ${event.event}`);
+
+      if (event.event === 'order.paid' || event.event === 'payment.captured') {
+        const payment = event.payload?.payment?.entity;
+        const razorpayOrderId = payment?.order_id || event.payload?.order?.entity?.id;
+        const razorpayPaymentId = payment?.id;
+        const orderId = payment?.notes?.orderId || payment?.notes?.order_id || event.payload?.order?.entity?.notes?.orderId;
+
+        if (razorpayOrderId || orderId) {
+          const { Order } = await getModels();
+          let order = null;
+          if (orderId) {
+            order = await Order.findById(orderId);
+          }
+          if (!order && razorpayOrderId) {
+            order = await Order.findByRazorpayOrderId?.(razorpayOrderId);
+          }
+
+          if (order) {
+            if (order.paymentStatus === 'paid' && order.paymentDetails?.razorpayPaymentId === razorpayPaymentId) {
+              return ok({ message: 'Webhook processed (duplicate skip)' });
+            }
+
+            await Order.updateStatus(order._id || order.id, 'processing', 'paid', {
+              ...order.paymentDetails,
+              method: 'razorpay',
+              razorpayOrderId,
+              razorpayPaymentId,
+              razorpaySignature: signature || 'webhook_verified',
+              status: 'paid',
+              verifiedAt: new Date().toISOString(),
+              webhookEvent: event.event,
+            });
+
+            console.log(`[RAZORPAY WEBHOOK] Order ${order._id || order.id} successfully updated to paid`);
+          }
+        }
+      }
+
+      return ok({ status: 'success' });
+    } catch (e: any) {
+      console.error('[RAZORPAY WEBHOOK ERROR]', e?.message);
+      return err(e.message || 'Webhook error', 500);
     }
   }
 

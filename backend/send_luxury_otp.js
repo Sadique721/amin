@@ -113,7 +113,7 @@ function renderLuxuryEmailLayout(opts) {
 }
 
 async function sendTestOtp() {
-  const otp = '915247';
+  const otp = '167236';
   const to = 'mdsadiqueamin721721@gmail.com';
 
   const contentHtml = `

@@ -22,4 +22,14 @@ export async function loginWithPasswordApi(email: string, secret: string) {
   return response.data;
 }
 
+export async function forgotPasswordApi(email: string) {
+  const response = await api.post('/public/auth/forgot-password', { email });
+  return response.data;
+}
+
+export async function resetPasswordApi(token: string, secret: string) {
+  const response = await api.post('/public/auth/reset-password', { token, password: secret });
+  return response.data;
+}
+
 

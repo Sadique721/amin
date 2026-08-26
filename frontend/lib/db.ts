@@ -1,316 +1,6 @@
-// ── PostgreSQL Connection (Aiven) ─────────────────────────────────────────────
-import { Pool, type PoolClient } from 'pg';
+import mongoose from 'mongoose';
 
-// DATABASE_URL must be set as an environment variable (Vercel / .env)
-// Format: postgres://user:password@host:port/dbname?sslmode=require
-const DATABASE_URL = process.env.DATABASE_URL || '';
-
-let pool: Pool | null = null;
-let dbInitialized = false;
-let initPromise: Promise<void> | null = null;
-
-export function getPool(): Pool {
-  if (!pool) {
-    const dbUrl = process.env.DATABASE_URL || '';
-    const useSsl = dbUrl.includes('sslmode=require') || dbUrl.includes('ssl=true') || dbUrl.includes('aivencloud.com');
-    let ssl: any = false;
-    if (useSsl) {
-      ssl = {
-        rejectUnauthorized: true,
-      };
-      if (process.env.POSTGRES_CA_CERT) {
-        ssl.ca = process.env.POSTGRES_CA_CERT;
-      } else if (process.env.POSTGRES_CA_PATH) {
-        const fs = require('fs');
-        ssl.ca = fs.readFileSync(process.env.POSTGRES_CA_PATH).toString();
-      }
-    }
-    let config: any = {};
-    try {
-      const parsed = new URL(dbUrl);
-      config = {
-        user: parsed.username,
-        password: decodeURIComponent(parsed.password),
-        host: parsed.hostname,
-        port: parseInt(parsed.port || '5432'),
-        database: parsed.pathname.replace(/^\//, '') || 'defaultdb',
-        ssl,
-        max: 5,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 10000,
-      };
-    } catch {
-      config = {
-        connectionString: dbUrl.split('?')[0],
-        ssl,
-        max: 5,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 10000,
-      };
-    }
-    pool = new Pool(config);
-  }
-  return pool;
-}
-
-export async function connectDB(): Promise<Pool | null> {
-  try {
-    const p = getPool();
-    await p.query('SELECT 1'); // ping
-    if (!dbInitialized) {
-      if (!initPromise) {
-        initPromise = initDB(p).then(() => { dbInitialized = true; }).catch((err) => {
-          initPromise = null;
-          if (err?.code === '23505') {
-            dbInitialized = true;
-          } else {
-            console.error('Database schema init error:', err?.message || err);
-          }
-        });
-      }
-      await initPromise;
-    }
-    return p;
-  } catch (e) {
-    console.error('PostgreSQL connection error:', e);
-    return null;
-  }
-}
-
-// ── Auto Schema Creation ───────────────────────────────────────────────────────
-async function initDB(p: Pool) {
-  await p.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      name TEXT NOT NULL,
-      email TEXT UNIQUE NOT NULL,
-      phone TEXT,
-      password TEXT NOT NULL,
-      role TEXT DEFAULT 'user',
-      addresses JSONB DEFAULT '[]'::jsonb,
-      is_active BOOLEAN DEFAULT true,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      updated_at TIMESTAMPTZ DEFAULT NOW()
-    );
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS addresses JSONB DEFAULT '[]'::jsonb;
-
-
-    CREATE TABLE IF NOT EXISTS categories (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      name TEXT NOT NULL,
-      slug TEXT UNIQUE NOT NULL,
-      description TEXT,
-      image TEXT,
-      parent_id UUID REFERENCES categories(id),
-      is_active BOOLEAN DEFAULT true,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      updated_at TIMESTAMPTZ DEFAULT NOW()
-    );
-
-    CREATE TABLE IF NOT EXISTS products (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      name TEXT NOT NULL,
-      slug TEXT UNIQUE NOT NULL,
-      description TEXT NOT NULL,
-      short_description TEXT,
-      brand TEXT DEFAULT 'Amin',
-      type TEXT DEFAULT 'jewellery',
-      price NUMERIC NOT NULL DEFAULT 0,
-      sale_price NUMERIC,
-      sku TEXT NOT NULL,
-      stock INTEGER DEFAULT 0,
-      images JSONB DEFAULT '[]',
-      category_id UUID REFERENCES categories(id),
-      tags JSONB DEFAULT '[]',
-      is_active BOOLEAN DEFAULT true,
-      is_featured BOOLEAN DEFAULT false,
-      specifications JSONB DEFAULT '{}',
-      attributes JSONB DEFAULT '[]',
-      variants JSONB DEFAULT '[]',
-      ratings JSONB DEFAULT '{"average":0,"count":0}',
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      updated_at TIMESTAMPTZ DEFAULT NOW()
-    );
-
-    CREATE TABLE IF NOT EXISTS orders (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      order_number TEXT DEFAULT ('ORD-' || extract(epoch from now())::bigint || '-' || substr(md5(random()::text),1,4)),
-      user_id UUID REFERENCES users(id),
-      user_email TEXT,
-      items JSONB DEFAULT '[]',
-      total NUMERIC DEFAULT 0,
-      subtotal NUMERIC,
-      tax NUMERIC DEFAULT 0,
-      shipping NUMERIC DEFAULT 0,
-      status TEXT DEFAULT 'pending',
-      payment_status TEXT DEFAULT 'pending',
-      payment_method TEXT DEFAULT 'cod',
-      payment_details JSONB DEFAULT '{}',
-      shipping_address JSONB DEFAULT '{}',
-      coupon_code TEXT,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      updated_at TIMESTAMPTZ DEFAULT NOW()
-    );
-
-    CREATE TABLE IF NOT EXISTS banners (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      title TEXT NOT NULL,
-      subtitle TEXT,
-      image TEXT NOT NULL,
-      link TEXT,
-      type TEXT DEFAULT 'hero',
-      is_active BOOLEAN DEFAULT true,
-      sort_order INTEGER DEFAULT 0,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      updated_at TIMESTAMPTZ DEFAULT NOW()
-    );
-
-    CREATE TABLE IF NOT EXISTS faqs (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      question TEXT NOT NULL,
-      answer TEXT NOT NULL,
-      category TEXT DEFAULT 'general',
-      is_active BOOLEAN DEFAULT true,
-      sort_order INTEGER DEFAULT 0,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      updated_at TIMESTAMPTZ DEFAULT NOW()
-    );
-
-    CREATE TABLE IF NOT EXISTS wishlist (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-      product_id UUID REFERENCES products(id) ON DELETE CASCADE,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      UNIQUE(user_id, product_id)
-    );
-
-    CREATE TABLE IF NOT EXISTS otps (
-      email TEXT PRIMARY KEY,
-      code TEXT NOT NULL,
-      expires_at TIMESTAMPTZ NOT NULL,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-  `);
-
-  // Seed default categories if empty
-  const catCount = await p.query('SELECT COUNT(*) FROM categories');
-  if (parseInt(catCount.rows[0].count) === 0) {
-    await p.query(`
-      INSERT INTO categories (name, slug, description, is_active) VALUES
-      ('Rings', 'rings', 'Beautiful ring collection', true),
-      ('Necklaces', 'necklaces', 'Elegant necklaces', true),
-      ('Earrings', 'earrings', 'Stunning earrings', true),
-      ('Bracelets', 'bracelets', 'Charming bracelets', true),
-      ('Lipstick', 'lipstick', 'Premium lipstick range', true),
-      ('Serum', 'serum', 'Skincare serums', true),
-      ('Foundation', 'foundation', 'Face foundation', true)
-      ON CONFLICT (slug) DO NOTHING;
-    `);
-  }
-
-  // Seed admin & demo users if missing
-  const adminEmail = process.env.ADMIN_EMAIL;
-  const adminPassword = process.env.ADMIN_PASSWORD;
-
-  if (adminEmail && adminPassword) {
-    const _bcrypt = await getBcrypt();
-    const adminHash = await _bcrypt.hash(adminPassword, 10);
-    await p.query(`
-      INSERT INTO users (name, email, password, role, is_active) VALUES
-      ('Admin User', $1, $2, 'admin', true)
-      ON CONFLICT (email) DO NOTHING;
-    `, [adminEmail.toLowerCase().trim(), adminHash]);
-  }
-
-  // Seed sample customer in non-production environments
-  if (process.env.NODE_ENV !== 'production') {
-    const _bcrypt = await getBcrypt();
-    const customerHash = await _bcrypt.hash('Amin@123', 10);
-    await p.query(`
-      INSERT INTO users (name, email, password, role, is_active) VALUES
-      ('Dev User', 'dev.user@example.com', $1, 'user', true)
-      ON CONFLICT (email) DO NOTHING;
-    `, [customerHash]);
-  }
-
-  // Seed sample products if less than 50
-  const prodCount = await p.query('SELECT COUNT(*) FROM products');
-  if (parseInt(prodCount.rows[0].count) < 50) {
-    await seedSampleProducts(p);
-  }
-}
-
-async function seedSampleProducts(p: Pool) {
-  // Get category IDs
-  const cats = await p.query('SELECT id, slug FROM categories');
-  const catMap: Record<string, string> = {};
-  cats.rows.forEach((r: any) => { catMap[r.slug] = r.id; });
-
-  const products = [
-    { name: 'Diamond Sparkle Ring', slug: 'diamond-sparkle-ring', description: 'Exquisite diamond sparkle ring crafted with precision', brand: 'Amin Jewels', type: 'jewellery', price: 12999, sku: 'VGN-101', stock: 15, category: 'rings', images: ['https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=500'], is_featured: true },
-    { name: 'Rose Petal Matte Lipstick', slug: 'rose-petal-matte-lipstick', description: 'Long-lasting matte lipstick in rose petal shade', brand: 'Amin Beauty', type: 'cosmetics', price: 1420, sku: 'RPL-202', stock: 50, category: 'lipstick', images: ['https://images.unsplash.com/photo-1586495777744-4e6232bf4803?w=500'], is_featured: true },
-    { name: 'Diamond Stud Earrings', slug: 'diamond-stud-earrings', description: 'Classic diamond stud earrings for everyday elegance', brand: 'Amin Jewels', type: 'jewellery', price: 8999, sku: 'DSE-303', stock: 20, category: 'earrings', images: ['https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=500'], is_featured: false },
-    { name: 'Radiant Glow Serum', slug: 'radiant-glow-serum', description: 'Brightening serum for radiant glowing skin', brand: 'Amin Beauty', type: 'cosmetics', price: 2499, sku: 'RGS-404', stock: 35, category: 'serum', images: ['https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=500'], is_featured: true },
-    { name: 'Ruby Elegance Bracelet', slug: 'ruby-elegance-bracelet', description: 'Stunning ruby bracelet with gold plating', brand: 'Amin Jewels', type: 'jewellery', price: 5499, sku: 'REB-505', stock: 10, category: 'bracelets', images: ['https://images.unsplash.com/photo-1611652022419-a9419f74343d?w=500'], is_featured: false },
-    { name: 'Pearl Necklace Set', slug: 'pearl-necklace-set', description: 'Timeless pearl necklace set with matching earrings', brand: 'Amin Jewels', type: 'jewellery', price: 18999, sku: 'PNS-606', stock: 8, category: 'necklaces', images: ['https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=500'], is_featured: true },
-    { name: 'Matte Foundation Pro', slug: 'matte-foundation-pro', description: 'Full coverage matte foundation for all skin types', brand: 'Amin Beauty', type: 'cosmetics', price: 1890, sku: 'MFP-707', stock: 40, category: 'foundation', images: ['https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=500'], is_featured: false },
-    { name: 'Gold Chain Bracelet', slug: 'gold-chain-bracelet', description: 'Classic gold chain bracelet for everyday wear', brand: 'Amin Jewels', type: 'jewellery', price: 6999, sku: 'GCB-808', stock: 12, category: 'bracelets', images: ['https://images.unsplash.com/photo-1573408301185-9519f94815b4?w=500'], is_featured: false },
-    { name: 'Velvet Lip Gloss', slug: 'velvet-lip-gloss', description: 'Smooth velvet lip gloss with moisturizing formula', brand: 'Amin Beauty', type: 'cosmetics', price: 899, sku: 'VLG-909', stock: 60, category: 'lipstick', images: ['https://images.unsplash.com/photo-1596704017257-af07cba0ce21?w=500'], is_featured: false },
-    { name: 'Sapphire Ring', slug: 'sapphire-ring', description: 'Blue sapphire ring in sterling silver setting', brand: 'Amin Jewels', type: 'jewellery', price: 9999, sku: 'SPR-010', stock: 6, category: 'rings', images: ['https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=500'], is_featured: true },
-    { name: 'Anti-Aging Night Serum', slug: 'anti-aging-night-serum', description: 'Powerful anti-aging serum for overnight repair', brand: 'Amin Beauty', type: 'cosmetics', price: 3299, sku: 'ANS-011', stock: 25, category: 'serum', images: ['https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=500'], is_featured: false },
-    { name: 'Emerald Pendant Necklace', slug: 'emerald-pendant-necklace', description: 'Stunning emerald pendant necklace in gold', brand: 'Amin Jewels', type: 'jewellery', price: 22999, sku: 'EPN-012', stock: 5, category: 'necklaces', images: ['https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?w=500'], is_featured: true },
-    { name: 'Crystal Hoop Earrings', slug: 'crystal-hoop-earrings', description: 'Sparkling crystal hoop earrings for parties', brand: 'Amin Jewels', type: 'jewellery', price: 3499, sku: 'CHE-013', stock: 30, category: 'earrings', images: ['https://images.unsplash.com/photo-1560343090-f0409e92791a?w=500'], is_featured: false },
-    { name: 'Solitaire Gold Band', slug: 'solitaire-gold-band', description: 'Elegant 18K solid gold solitaire band', brand: 'Amin Jewels', type: 'jewellery', price: 14500, sku: 'SGB-014', stock: 18, category: 'rings', images: ['https://images.unsplash.com/photo-1603561591411-07134e71a2a9?w=500'], is_featured: true },
-    { name: 'Hydrating Botanical Cleanser', slug: 'hydrating-botanical-cleanser', description: 'Gentle facial cleanser infused with aloe vera', brand: 'Amin Beauty', type: 'cosmetics', price: 1250, sku: 'HBC-015', stock: 45, category: 'serum', images: ['https://images.unsplash.com/photo-1556228720-195a672e8a03?w=500'], is_featured: false },
-    { name: 'Royal Amethyst Earrings', slug: 'royal-amethyst-earrings', description: 'Deep purple amethyst teardrop earrings', brand: 'Amin Jewels', type: 'jewellery', price: 7800, sku: 'RAE-016', stock: 14, category: 'earrings', images: ['https://images.unsplash.com/photo-1630019852942-f89202989a59?w=500'], is_featured: false },
-    { name: 'Satin Silk Face Primer', slug: 'satin-silk-face-primer', description: 'Pore-blurring satin primer for flawless makeup base', brand: 'Amin Beauty', type: 'cosmetics', price: 1650, sku: 'SFP-017', stock: 38, category: 'foundation', images: ['https://images.unsplash.com/photo-1616683693504-3ea7e9ad6fec?w=500'], is_featured: false },
-    { name: 'Vintage Kundan Choker', slug: 'vintage-kundan-choker', description: 'Handcrafted heritage Kundan choker set', brand: 'Amin Jewels', type: 'jewellery', price: 34999, sku: 'VKC-018', stock: 4, category: 'necklaces', images: ['https://images.unsplash.com/photo-1599643477877-530eb83abc8e?w=500'], is_featured: true },
-    { name: 'Crimson Velvet Liquid Lipstick', slug: 'crimson-velvet-liquid-lipstick', description: 'Intense crimson liquid lipstick with 16h stay', brand: 'Amin Beauty', type: 'cosmetics', price: 1550, sku: 'CVL-019', stock: 55, category: 'lipstick', images: ['https://images.unsplash.com/photo-1625093742435-6fa192b6fb10?w=500'], is_featured: false },
-    { name: 'Celestial Star Anklet', slug: 'celestial-star-anklet', description: 'Delicate sterling silver star charm anklet', brand: 'Amin Jewels', type: 'jewellery', price: 2999, sku: 'CSA-020', stock: 22, category: 'bracelets', images: ['https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=500'], is_featured: false },
-    { name: 'Vitamin C Day Cream', slug: 'vitamin-c-day-cream', description: 'Nourishing day cream with Vitamin C and SPF 30', brand: 'Amin Beauty', type: 'cosmetics', price: 1999, sku: 'VDC-021', stock: 42, category: 'serum', images: ['https://images.unsplash.com/photo-1608248597261-83325805435f?w=500'], is_featured: true },
-    { name: 'Diamond Eternity Cuff', slug: 'diamond-eternity-cuff', description: 'Modern pavé diamond open cuff bracelet', brand: 'Amin Jewels', type: 'jewellery', price: 28500, sku: 'DEC-022', stock: 7, category: 'bracelets', images: ['https://images.unsplash.com/photo-1611652022419-a9419f74343d?w=500'], is_featured: true },
-    { name: 'Luminous Glow Highlighter', slug: 'luminous-glow-highlighter', description: 'Ultra-reflective Champagne gold pressed powder', brand: 'Amin Beauty', type: 'cosmetics', price: 1790, sku: 'LGH-023', stock: 30, category: 'foundation', images: ['https://images.unsplash.com/photo-1599733589046-9b8308b5b50d?w=500'], is_featured: false },
-    { name: 'Pearl Drop Jhumkas', slug: 'pearl-drop-jhumkas', description: 'Traditional pearl drop Jhumka earrings', brand: 'Amin Jewels', type: 'jewellery', price: 6499, sku: 'PDJ-024', stock: 16, category: 'earrings', images: ['https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=500'], is_featured: false },
-    { name: 'Nude Nectar Tinted Lip Balm', slug: 'nude-nectar-tinted-lip-balm', description: 'Hydrating lip balm with subtle peach nude tint', brand: 'Amin Beauty', type: 'cosmetics', price: 750, sku: 'NNL-025', stock: 65, category: 'lipstick', images: ['https://images.unsplash.com/photo-1617897903246-719242758050?w=500'], is_featured: false },
-    { name: 'Minimalist Rose Gold Ring', slug: 'minimalist-rose-gold-ring', description: 'Sleek rose gold stackable band', brand: 'Amin Jewels', type: 'jewellery', price: 4999, sku: 'MRG-026', stock: 28, category: 'rings', images: ['https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=500'], is_featured: false },
-    { name: 'Rosewater Hydrosol Mist', slug: 'rosewater-hydrosol-mist', description: 'Pure organic Damask rose soothing facial mist', brand: 'Amin Beauty', type: 'cosmetics', price: 1100, sku: 'RHM-027', stock: 50, category: 'serum', images: ['https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=500'], is_featured: false },
-    { name: 'Opal Charm Necklace', slug: 'opal-charm-necklace', description: 'Iridescent Australian opal pendant on fine gold chain', brand: 'Amin Jewels', type: 'jewellery', price: 16800, sku: 'OCN-028', stock: 9, category: 'necklaces', images: ['https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=500'], is_featured: true },
-    { name: 'Full Coverage Liquid Concealer', slug: 'full-coverage-liquid-concealer', description: 'Crease-resistant 24h liquid concealer', brand: 'Amin Beauty', type: 'cosmetics', price: 1350, sku: 'FLC-029', stock: 35, category: 'foundation', images: ['https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=500'], is_featured: false },
-    { name: 'Twisted Gold Bangle', slug: 'twisted-gold-bangle', description: 'Textured twisted 22K gold plated bangle', brand: 'Amin Jewels', type: 'jewellery', price: 8200, sku: 'TGB-030', stock: 15, category: 'bracelets', images: ['https://images.unsplash.com/photo-1573408301185-9519f94815b4?w=500'], is_featured: false },
-    { name: 'Berry Crush Lip Stain', slug: 'berry-crush-lip-stain', description: 'Water-based long-lasting berry stain', brand: 'Amin Beauty', type: 'cosmetics', price: 1190, sku: 'BCL-031', stock: 48, category: 'lipstick', images: ['https://images.unsplash.com/photo-1586495777744-4e6232bf4803?w=500'], is_featured: false },
-    { name: 'Topaz Cushion Cut Ring', slug: 'topaz-cushion-cut-ring', description: 'Golden topaz cushion cut statement ring', brand: 'Amin Jewels', type: 'jewellery', price: 11200, sku: 'TCR-032', stock: 11, category: 'rings', images: ['https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=500'], is_featured: false },
-    { name: 'Hyaluronic Acid Gel Moisturizer', slug: 'hyaluronic-acid-gel-moisturizer', description: 'Oil-free deep hydration gel cream', brand: 'Amin Beauty', type: 'cosmetics', price: 2150, sku: 'HAG-033', stock: 33, category: 'serum', images: ['https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=500'], is_featured: true },
-    { name: 'Filigree Gold Earrings', slug: 'filigree-gold-earrings', description: 'Intricate traditional filigree drop earrings', brand: 'Amin Jewels', type: 'jewellery', price: 9500, sku: 'FGE-034', stock: 12, category: 'earrings', images: ['https://images.unsplash.com/photo-1560343090-f0409e92791a?w=500'], is_featured: false },
-    { name: 'Velvet Contour Palette', slug: 'velvet-contour-palette', description: '4-shade cream-to-powder contour & bronze duo', brand: 'Amin Beauty', type: 'cosmetics', price: 2200, sku: 'VCP-035', stock: 25, category: 'foundation', images: ['https://images.unsplash.com/photo-1599733589046-9b8308b5b50d?w=500'], is_featured: false },
-    { name: 'Celestial Moon Lariat', slug: 'celestial-moon-lariat', description: 'Crescent moon Y-necklace with cubic zirconia', brand: 'Amin Jewels', type: 'jewellery', price: 13900, sku: 'CML-036', stock: 14, category: 'necklaces', images: ['https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?w=500'], is_featured: false },
-    { name: 'Coral Glow Blush Stick', slug: 'coral-glow-blush-stick', description: 'Creamy buildable coral blush stick', brand: 'Amin Beauty', type: 'cosmetics', price: 1290, sku: 'CGB-037', stock: 40, category: 'lipstick', images: ['https://images.unsplash.com/photo-1596704017257-af07cba0ce21?w=500'], is_featured: false },
-    { name: 'Dainty Diamond Nose Ring', slug: 'dainty-diamond-nose-ring', description: '18K gold single diamond nose stud', brand: 'Amin Jewels', type: 'jewellery', price: 3999, sku: 'DDN-038', stock: 20, category: 'rings', images: ['https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=500'], is_featured: false },
-    { name: 'Niacinamide Pore Refining Serum', slug: 'niacinamide-pore-refining-serum', description: '10% Niacinamide + Zinc pore tightening serum', brand: 'Amin Beauty', type: 'cosmetics', price: 1850, sku: 'NPR-039', stock: 36, category: 'serum', images: ['https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=500'], is_featured: false },
-    { name: 'Bespoke Tennis Necklace', slug: 'bespoke-tennis-necklace', description: 'Continuous CZ tennis necklace in rhodium finish', brand: 'Amin Jewels', type: 'jewellery', price: 26900, sku: 'BTN-040', stock: 6, category: 'necklaces', images: ['https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=500'], is_featured: true },
-    { name: 'Illuminating Setting Spray', slug: 'illuminating-setting-spray', description: 'Dewy finish 16-hour makeup lock mist', brand: 'Amin Beauty', type: 'cosmetics', price: 1450, sku: 'ISS-041', stock: 44, category: 'foundation', images: ['https://images.unsplash.com/photo-1616683693504-3ea7e9ad6fec?w=500'], is_featured: false },
-    { name: 'Layered Coin Bracelet', slug: 'layered-coin-bracelet', description: 'Boho multi-layered medallion chain bracelet', brand: 'Amin Jewels', type: 'jewellery', price: 4799, sku: 'LCB-042', stock: 19, category: 'bracelets', images: ['https://images.unsplash.com/photo-1611652022419-a9419f74343d?w=500'], is_featured: false },
-    { name: 'Plump & Pout Lip Serum', slug: 'plump-pout-lip-serum', description: 'Peptide-infused collagen lip volumizer', brand: 'Amin Beauty', type: 'cosmetics', price: 1390, sku: 'PPL-043', stock: 52, category: 'lipstick', images: ['https://images.unsplash.com/photo-1625093742435-6fa192b6fb10?w=500'], is_featured: false },
-    { name: 'Garnet Halo Ring', slug: 'garnet-halo-ring', description: 'Deep red garnet ring encircled by micro diamonds', brand: 'Amin Jewels', type: 'jewellery', price: 13500, sku: 'GHR-044', stock: 10, category: 'rings', images: ['https://images.unsplash.com/photo-1603561591411-07134e71a2a9?w=500'], is_featured: false },
-    { name: 'Bakuchiol Retinol Alternative', slug: 'bakuchiol-retinol-alternative', description: 'Gentle plant-based anti-wrinkle facial oil', brand: 'Amin Beauty', type: 'cosmetics', price: 2890, sku: 'BRA-045', stock: 22, category: 'serum', images: ['https://images.unsplash.com/photo-1556228720-195a672e8a03?w=500'], is_featured: true },
-    { name: 'Swarovski Crystal Studs', slug: 'swarovski-crystal-studs', description: 'Solitaire Austrian crystal studs in silver', brand: 'Amin Jewels', type: 'jewellery', price: 2999, sku: 'SCS-046', stock: 35, category: 'earrings', images: ['https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=500'], is_featured: false },
-    { name: 'HD Translucent Loose Powder', slug: 'hd-translucent-loose-powder', description: 'Flashback-free micro-fine setting powder', brand: 'Amin Beauty', type: 'cosmetics', price: 1590, sku: 'HTP-047', stock: 29, category: 'foundation', images: ['https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=500'], is_featured: false },
-    { name: 'Peridot Teardrop Pendant', slug: 'peridot-teardrop-pendant', description: 'Vibrant olive green peridot gold pendant', brand: 'Amin Jewels', type: 'jewellery', price: 11800, sku: 'PTP-048', stock: 13, category: 'necklaces', images: ['https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?w=500'], is_featured: false },
-    { name: 'Midnight Charcoal Detox Scrub', slug: 'midnight-charcoal-detox-scrub', description: 'Exfoliating bamboo charcoal facial polish', brand: 'Amin Beauty', type: 'cosmetics', price: 1490, sku: 'MCD-049', stock: 38, category: 'serum', images: ['https://images.unsplash.com/photo-1608248597261-83325805435f?w=500'], is_featured: false },
-    { name: 'Gold Signet Pinky Ring', slug: 'gold-signet-pinky-ring', description: 'Classic polished 14K gold signet ring', brand: 'Amin Jewels', type: 'jewellery', price: 8999, sku: 'GSP-050', stock: 17, category: 'rings', images: ['https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=500'], is_featured: true },
-  ];
-
-  for (const prod of products) {
-    const catId = catMap[prod.category] || null;
-    const variant = JSON.stringify([{ sku: prod.sku, price: prod.price, compareAtPrice: Math.round(prod.price * 1.2), stock: prod.stock, isActive: true, attributes: {}, images: prod.images }]);
-    await p.query(`
-      INSERT INTO products (name, slug, description, brand, type, price, sku, stock, images, category_id, is_active, is_featured, variants, tags)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,true,$11,$12,'[]')
-      ON CONFLICT (slug) DO NOTHING
-    `, [prod.name, prod.slug, prod.description, prod.brand, prod.type, prod.price, prod.sku, prod.stock, JSON.stringify(prod.images), catId, prod.is_featured, variant]);
-  }
-}
-
-// ── JWT helpers ────────────────────────────────────────────────────────────────
+// JWT secrets loaded securely
 const getJwtSecret = () => {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
@@ -336,11 +26,6 @@ const getJwtRefreshSecret = () => {
 const JWT_SECRET = getJwtSecret();
 const JWT_REFRESH = getJwtRefreshSecret();
 
-const isUuid = (val?: string | null): boolean =>
-  !!val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
-
-
-
 let _jwt: any = null;
 async function getJwt() {
   if (!_jwt) _jwt = (await import('jsonwebtoken')).default;
@@ -364,7 +49,6 @@ export async function verifyAccess(token: string) {
   }
 }
 
-
 // ── bcrypt ─────────────────────────────────────────────────────────────────────
 let _bcrypt: any = null;
 async function getBcrypt() {
@@ -377,533 +61,734 @@ export const bcrypt = {
   genSalt: async (rounds?: number) => (await getBcrypt()).genSalt(rounds),
 };
 
-// ── DB Helpers (replace Mongoose models) ──────────────────────────────────────
+// ── MongoDB/Mongoose Connection ────────────────────────────────────────────────
+let cachedConnection: typeof mongoose | null = null;
+
+export async function connectDB(): Promise<any> {
+  if (cachedConnection && mongoose.connection.readyState === 1) {
+    return cachedConnection;
+  }
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error('MONGODB_URI environment variable is missing');
+  }
+  cachedConnection = await mongoose.connect(uri);
+  console.log('✅ Connected to MongoDB via Mongoose');
+  return cachedConnection;
+}
+
+// Dummy getPool function returning a mock to prevent imports failure in route.ts
+export function getPool() {
+  return {
+    query: async () => {
+      throw new Error('PostgreSQL raw query is disabled. Using MongoDB.');
+    }
+  };
+}
+
+// Mongoose Schema Definitions
+const UserSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  phone: { type: String },
+  password: { type: String, required: true },
+  role: { type: String, default: 'user' },
+  addresses: { type: Array, default: [] },
+  isActive: { type: Boolean, default: true },
+  resetToken: { type: String },
+  resetTokenExpires: { type: Date },
+  avatar: { type: String },
+}, { timestamps: true });
+
+const CategorySchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  slug: { type: String, required: true, unique: true },
+  description: { type: String },
+  image: { type: String },
+  isActive: { type: Boolean, default: true },
+}, { timestamps: true });
+
+const ProductSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  slug: { type: String, required: true, unique: true },
+  description: { type: String, required: true },
+  shortDescription: { type: String },
+  brand: { type: String, default: 'Amin' },
+  type: { type: String, default: 'jewellery' },
+  price: { type: Number, required: true },
+  salePrice: { type: Number },
+  sku: { type: String, required: true },
+  stock: { type: Number, default: 0 },
+  images: { type: [String], default: [] },
+  category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
+  tags: { type: [String], default: [] },
+  isActive: { type: Boolean, default: true },
+  isFeatured: { type: Boolean, default: false },
+  specifications: { type: Object, default: {} },
+  attributes: { type: Array, default: [] },
+  variants: { type: Array, default: [] },
+  ratings: {
+    average: { type: Number, default: 0 },
+    count: { type: Number, default: 0 }
+  }
+}, { timestamps: true });
+
+const OrderSchema = new mongoose.Schema({
+  orderNumber: { type: String, unique: true },
+  userId: { type: String },
+  userEmail: { type: String },
+  items: { type: Array, default: [] },
+  total: { type: Number, required: true },
+  subtotal: { type: Number },
+  tax: { type: Number, default: 0 },
+  shipping: { type: Number, default: 0 },
+  status: { type: String, default: 'pending' },
+  paymentStatus: { type: String, default: 'pending' },
+  paymentMethod: { type: String, default: 'cod' },
+  paymentDetails: { type: Object, default: {} },
+  shippingAddress: { type: Object, default: {} },
+  couponCode: { type: String },
+}, { timestamps: true });
+
+const BannerSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  subtitle: { type: String },
+  image: { type: String, required: true },
+  link: { type: String },
+  type: { type: String, default: 'hero' },
+  isActive: { type: Boolean, default: true },
+  sortOrder: { type: Number, default: 0 }
+}, { timestamps: true });
+
+const FaqSchema = new mongoose.Schema({
+  question: { type: String, required: true },
+  answer: { type: String, required: true },
+  category: { type: String, default: 'general' },
+  isActive: { type: Boolean, default: true },
+  sortOrder: { type: Number, default: 0 }
+}, { timestamps: true });
+
+const OtpSchema = new mongoose.Schema({
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  code: { type: String, required: true },
+  expiresAt: { type: Date, required: true },
+}, { timestamps: true });
+
+const WishlistSchema = new mongoose.Schema({
+  userId: { type: String, required: true },
+  product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true }
+}, { timestamps: true });
+
+// Compile models securely (avoid recompilation in hot reloads)
+const UserModel = mongoose.models.User || mongoose.model('User', UserSchema);
+const CategoryModel = mongoose.models.Category || mongoose.model('Category', CategorySchema);
+const ProductModel = mongoose.models.Product || mongoose.model('Product', ProductSchema);
+const OrderModel = mongoose.models.Order || mongoose.model('Order', OrderSchema);
+const BannerModel = mongoose.models.Banner || mongoose.model('Banner', BannerSchema);
+const FaqModel = mongoose.models.Faq || mongoose.model('Faq', FaqSchema);
+const OtpModel = mongoose.models.Otp || mongoose.model('Otp', OtpSchema);
+const WishlistModel = mongoose.models.Wishlist || mongoose.model('Wishlist', WishlistSchema);
+
+// Mappers to ensure the client-facing APIs receive camelCase properties
+function mapUser(doc: any) {
+  if (!doc) return null;
+  return {
+    _id: doc._id.toString(),
+    id: doc._id.toString(),
+    name: doc.name,
+    email: doc.email,
+    phone: doc.phone,
+    role: doc.role,
+    isActive: doc.isActive,
+    password: doc.password,
+    addresses: doc.addresses || [],
+    avatar: doc.avatar,
+    createdAt: doc.createdAt,
+    resetToken: doc.resetToken,
+    resetTokenExpires: doc.resetTokenExpires,
+  };
+}
+
+function mapCategory(doc: any) {
+  if (!doc) return null;
+  return {
+    _id: doc._id.toString(),
+    id: doc._id.toString(),
+    name: doc.name,
+    slug: doc.slug,
+    description: doc.description,
+    image: doc.image,
+    isActive: doc.isActive,
+  };
+}
+
+function mapProduct(doc: any) {
+  if (!doc) return null;
+  return {
+    _id: doc._id.toString(),
+    id: doc._id.toString(),
+    name: doc.name,
+    slug: doc.slug,
+    description: doc.description,
+    shortDescription: doc.shortDescription,
+    brand: doc.brand,
+    type: doc.type,
+    price: doc.price,
+    salePrice: doc.salePrice,
+    sku: doc.sku,
+    stock: doc.stock,
+    images: doc.images || [],
+    tags: doc.tags || [],
+    isActive: doc.isActive,
+    isFeatured: doc.isFeatured,
+    specifications: doc.specifications || {},
+    attributes: doc.attributes || [],
+    variants: doc.variants || [],
+    ratings: doc.ratings || { average: 0, count: 0 },
+    category: doc.category ? (typeof doc.category === 'object' && doc.category._id ? {
+      _id: doc.category._id.toString(),
+      id: doc.category._id.toString(),
+      name: doc.category.name || '',
+      slug: doc.category.slug || ''
+    } : { _id: doc.category.toString(), id: doc.category.toString(), name: '', slug: '' }) : null,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
+}
+
+function mapOrder(doc: any) {
+  if (!doc) return null;
+  return {
+    _id: doc._id.toString(),
+    id: doc._id.toString(),
+    orderNumber: doc.orderNumber,
+    userId: doc.userId,
+    userEmail: doc.userEmail,
+    items: doc.items || [],
+    total: doc.total,
+    subtotal: doc.subtotal,
+    tax: doc.tax,
+    shipping: doc.shipping,
+    status: doc.status,
+    paymentStatus: doc.paymentStatus,
+    paymentMethod: doc.paymentMethod,
+    paymentDetails: doc.paymentDetails || {},
+    shippingAddress: doc.shippingAddress || {},
+    couponCode: doc.couponCode,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
+}
+
+function mapBanner(doc: any) {
+  if (!doc) return null;
+  return {
+    _id: doc._id.toString(),
+    id: doc._id.toString(),
+    title: doc.title,
+    subtitle: doc.subtitle,
+    image: doc.image,
+    link: doc.link,
+    type: doc.type,
+    isActive: doc.isActive,
+    sortOrder: doc.sortOrder,
+    createdAt: doc.createdAt,
+  };
+}
+
+function mapFaq(doc: any) {
+  if (!doc) return null;
+  return {
+    _id: doc._id.toString(),
+    id: doc._id.toString(),
+    question: doc.question,
+    answer: doc.answer,
+    category: doc.category,
+    isActive: doc.isActive,
+    sortOrder: doc.sortOrder,
+  };
+}
+
 export async function getModels() {
-  const p = getPool();
+  await connectDB();
 
   const User = {
     findByEmail: async (email: string) => {
-      const r = await p.query('SELECT * FROM users WHERE email = $1', [email.toLowerCase()]);
-      return r.rows[0] ? mapUser(r.rows[0]) : null;
+      const u = await UserModel.findOne({ email: email.toLowerCase().trim() });
+      return u ? mapUser(u) : null;
     },
     findById: async (id: string) => {
       try {
-        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-        if (isUuid) {
-          const r = await p.query('SELECT id,name,email,phone,role,addresses,is_active,created_at FROM users WHERE id=$1', [id]);
-          if (r.rows[0]) return mapUser(r.rows[0]);
-        }
-        const r = await p.query('SELECT id,name,email,phone,role,addresses,is_active,created_at FROM users WHERE email=$1', [id.toLowerCase()]);
-        return r.rows[0] ? mapUser(r.rows[0]) : null;
+        const u = await UserModel.findById(id);
+        return u ? mapUser(u) : null;
       } catch {
         return null;
       }
     },
-
-    addAddress: async (userIdOrEmail: string, addressData: any) => {
-      const user = await User.findById(userIdOrEmail);
-      if (!user) return null;
-      const addresses = Array.isArray(user.addresses) ? user.addresses : [];
-      const newAddr = { _id: `addr-${Date.now()}`, ...addressData };
-      if (addressData.isDefault) {
-        addresses.forEach((a: any) => (a.isDefault = false));
-      }
-      addresses.push(newAddr);
-      await p.query('UPDATE users SET addresses=$1, updated_at=NOW() WHERE id=$2 OR email=$3', [JSON.stringify(addresses), isUuid(userIdOrEmail) ? userIdOrEmail : null, user.email]);
-      return addresses;
-    },
-
-    deleteAddress: async (userIdOrEmail: string, addressId: string) => {
-      const user = await User.findById(userIdOrEmail);
-      if (!user) return null;
-      let addresses = Array.isArray(user.addresses) ? user.addresses : [];
-      addresses = addresses.filter((a: any) => (a._id || a.id) !== addressId);
-      await p.query('UPDATE users SET addresses=$1, updated_at=NOW() WHERE id=$2 OR email=$3', [JSON.stringify(addresses), isUuid(userIdOrEmail) ? userIdOrEmail : null, user.email]);
-      return addresses;
-    },
-
     create: async (data: any) => {
-      const r = await p.query(
-        'INSERT INTO users (name,email,phone,password,role,addresses) VALUES($1,$2,$3,$4,$5,$6) RETURNING *',
-        [data.name, data.email.toLowerCase(), data.phone||null, data.password, data.role||'user', JSON.stringify(data.addresses||[])]
-      );
-      return mapUser(r.rows[0]);
-    },
-
-    list: async (page=1, limit=20, search='') => {
-      const offset = (page-1)*limit;
-      const where = search ? `WHERE name ILIKE $3 OR email ILIKE $3` : '';
-      const params: any[] = [limit, offset];
-      if (search) params.push(`%${search}%`);
-      const [rows, total] = await Promise.all([
-        p.query(`SELECT id,name,email,phone,role,is_active,created_at FROM users ${where} ORDER BY created_at DESC LIMIT $1 OFFSET $2`, params),
-        p.query(`SELECT COUNT(*) FROM users ${where}`, search ? [`%${search}%`] : [])
-      ]);
-      return { results: rows.rows.map(mapUser), total: parseInt(total.rows[0].count) };
+      const _bcrypt = await getBcrypt();
+      const hashedPassword = await _bcrypt.hash(data.password, 10);
+      const u = await UserModel.create({
+        name: data.name,
+        email: data.email.toLowerCase().trim(),
+        phone: data.phone,
+        password: hashedPassword,
+        role: data.role || 'user',
+        isActive: data.isActive !== undefined ? data.isActive : true,
+        addresses: data.addresses || [],
+        avatar: data.avatar || '',
+      });
+      return mapUser(u);
     },
     update: async (id: string, data: any) => {
-      const fields: string[] = [];
-      const vals: any[] = [];
-      let i = 1;
-      if (data.isActive !== undefined) { fields.push(`is_active=$${i++}`); vals.push(data.isActive); }
-      if (data.role) { fields.push(`role=$${i++}`); vals.push(data.role); }
-      if (!fields.length) return null;
-      vals.push(id);
-      const r = await p.query(`UPDATE users SET ${fields.join(',')} WHERE id=$${i} RETURNING *`, vals);
-      return mapUser(r.rows[0]);
+      try {
+        const updateData: any = {};
+        if (data.name !== undefined) updateData.name = data.name;
+        if (data.email !== undefined) updateData.email = data.email.toLowerCase().trim();
+        if (data.phone !== undefined) updateData.phone = data.phone;
+        if (data.password !== undefined) {
+          const _bcrypt = await getBcrypt();
+          updateData.password = await _bcrypt.hash(data.password, 10);
+        }
+        if (data.isActive !== undefined) updateData.isActive = data.isActive;
+        if (data.role !== undefined) updateData.role = data.role;
+        if (data.resetToken !== undefined) updateData.resetToken = data.resetToken;
+        if (data.resetTokenExpires !== undefined) updateData.resetTokenExpires = data.resetTokenExpires;
+        if (data.avatar !== undefined) updateData.avatar = data.avatar;
+        
+        const u = await UserModel.findByIdAndUpdate(id, { $set: updateData }, { new: true });
+        return u ? mapUser(u) : null;
+      } catch {
+        return null;
+      }
     },
     count: async () => {
-      const r = await p.query('SELECT COUNT(*) FROM users');
-      return parseInt(r.rows[0].count);
+      return await UserModel.countDocuments();
+    },
+    list: async (page = 1, limit = 10, search = '') => {
+      const query: any = {};
+      if (search) {
+        query.$or = [
+          { name: new RegExp(search, 'i') },
+          { email: new RegExp(search, 'i') }
+        ];
+      }
+      const [docs, total] = await Promise.all([
+        UserModel.find(query).skip((page - 1) * limit).limit(limit).sort({ createdAt: -1 }),
+        UserModel.countDocuments(query)
+      ]);
+      return { results: docs.map(mapUser), total };
+    },
+    findByResetToken: async (token: string) => {
+      const u = await UserModel.findOne({ resetToken: token, resetTokenExpires: { $gt: new Date() } });
+      return u ? mapUser(u) : null;
     }
   };
 
   const Category = {
     list: async () => {
-      const r = await p.query('SELECT * FROM categories WHERE is_active=true ORDER BY name');
-      return r.rows.map(mapCategory);
-    },
-    listAll: async () => {
-      const r = await p.query('SELECT * FROM categories ORDER BY name');
-      return r.rows.map(mapCategory);
+      const docs = await CategoryModel.find({}).sort({ name: 1 });
+      return docs.map(mapCategory);
     },
     findById: async (id: string) => {
-      const r = await p.query('SELECT * FROM categories WHERE id=$1', [id]);
-      return r.rows[0] ? mapCategory(r.rows[0]) : null;
+      try {
+        const c = await CategoryModel.findById(id);
+        return c ? mapCategory(c) : null;
+      } catch {
+        return null;
+      }
     },
     create: async (data: any) => {
-      const baseSlug = (data.slug || data.name || 'cat').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      const slug = `${baseSlug}-${Date.now().toString(36)}`;
-      const r = await p.query(
-        'INSERT INTO categories (name,slug,description,image,is_active) VALUES($1,$2,$3,$4,$5) RETURNING *',
-        [data.name, slug, data.description || null, data.image || null, data.isActive !== false]
-      );
-      return mapCategory(r.rows[0]);
+      const c = await CategoryModel.create({
+        name: data.name,
+        slug: data.slug.toLowerCase().trim(),
+        description: data.description,
+        image: data.image,
+        isActive: data.isActive !== undefined ? data.isActive : true
+      });
+      return mapCategory(c);
     },
     update: async (id: string, data: any) => {
-      const fields: string[] = [];
-      const vals: any[] = [];
-      let i = 1;
-      if (data.name) { fields.push(`name=$${i++}`); vals.push(data.name); }
-      if (data.description !== undefined) { fields.push(`description=$${i++}`); vals.push(data.description); }
-      if (data.image !== undefined) { fields.push(`image=$${i++}`); vals.push(data.image); }
-      if (data.isActive !== undefined) { fields.push(`is_active=$${i++}`); vals.push(data.isActive); }
-      if (!fields.length) return Category.findById(id);
-      fields.push(`updated_at=NOW()`);
-      vals.push(id);
-      const r = await p.query(`UPDATE categories SET ${fields.join(',')} WHERE id=$${i} RETURNING *`, vals);
-      return r.rows[0] ? mapCategory(r.rows[0]) : null;
+      try {
+        const updateData: any = {};
+        ['name', 'slug', 'description', 'image', 'isActive'].forEach(k => {
+          if (data[k] !== undefined) updateData[k] = data[k];
+        });
+        const c = await CategoryModel.findByIdAndUpdate(id, { $set: updateData }, { new: true });
+        return c ? mapCategory(c) : null;
+      } catch {
+        return null;
+      }
     },
     delete: async (id: string) => {
-      await p.query('DELETE FROM categories WHERE id=$1', [id]);
-    },
+      try {
+        await CategoryModel.findByIdAndDelete(id);
+      } catch {}
+    }
   };
 
   const Product = {
-    list: async (filters: any = {}) => {
-      const { page=1, limit=12, search='', type='', category='', minPrice, maxPrice, sortBy='created_at', brand='' } = filters;
-      const offset = (page-1)*limit;
-      const conditions: string[] = ['p.is_active=true'];
-      const vals: any[] = [];
-      let i = 1;
-      if (search) { conditions.push(`(p.name ILIKE $${i} OR p.brand ILIKE $${i} OR p.description ILIKE $${i})`); vals.push(`%${search}%`); i++; }
-      if (type) { conditions.push(`p.type=$${i++}`); vals.push(type); }
-      if (brand) { conditions.push(`p.brand ILIKE $${i++}`); vals.push(`%${brand}%`); }
-      if (category) { conditions.push(`c.slug=$${i++}`); vals.push(category); }
-      if (minPrice !== undefined) { conditions.push(`p.price>=$${i++}`); vals.push(minPrice); }
-      if (maxPrice !== undefined) { conditions.push(`p.price<=$${i++}`); vals.push(maxPrice); }
-      const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-      const orderMap: Record<string, string> = { price_asc: 'p.price ASC', price_desc: 'p.price DESC', newest: 'p.created_at DESC', rating: 'p.created_at DESC' };
-      const orderClause = orderMap[sortBy] || 'p.created_at DESC';
-      const [rows, total] = await Promise.all([
-        p.query(`SELECT p.*,c.name as category_name,c.slug as category_slug FROM products p LEFT JOIN categories c ON p.category_id=c.id ${where} ORDER BY ${orderClause} LIMIT $${i} OFFSET $${i+1}`, [...vals, limit, offset]),
-        p.query(`SELECT COUNT(*) FROM products p LEFT JOIN categories c ON p.category_id=c.id ${where}`, vals)
+    list: async (page = 1, limit = 10, category = '', search = '', minPrice = 0, maxPrice = 9999999, type = '', sort = '') => {
+      const query: any = {
+        isActive: true
+      };
+      if (search) {
+        query.$or = [
+          { name: new RegExp(search, 'i') },
+          { description: new RegExp(search, 'i') }
+        ];
+      }
+      if (category && category !== 'all') {
+        if (mongoose.Types.ObjectId.isValid(category)) {
+          query.category = new mongoose.Types.ObjectId(category);
+        } else {
+          const catDoc = await CategoryModel.findOne({ slug: category.toLowerCase().trim() });
+          if (catDoc) {
+            query.category = catDoc._id;
+          } else {
+            query.category = new mongoose.Types.ObjectId();
+          }
+        }
+      }
+      if (type && type !== 'all') {
+        query.type = type;
+      }
+      query.price = { $gte: minPrice, $lte: maxPrice };
+
+      let sortOption: any = { createdAt: -1 };
+      if (sort === 'price_asc') sortOption = { price: 1 };
+      if (sort === 'price_desc') sortOption = { price: -1 };
+      if (sort === 'rating') sortOption = { 'ratings.average': -1 };
+
+      const [docs, total] = await Promise.all([
+        ProductModel.find(query).populate('category').sort(sortOption).skip((page - 1) * limit).limit(limit),
+        ProductModel.countDocuments(query)
       ]);
-      return { results: rows.rows.map(mapProduct), total: parseInt(total.rows[0].count), totalPages: Math.ceil(parseInt(total.rows[0].count)/limit) };
-    },
-    listAdmin: async (filters: any = {}) => {
-      const { page=1, limit=10, search='', type='' } = filters;
-      const offset = (page-1)*limit;
-      const conditions: string[] = [];
-      const vals: any[] = [];
-      let i = 1;
-      if (search) { conditions.push(`(p.name ILIKE $${i} OR p.brand ILIKE $${i} OR p.sku ILIKE $${i})`); vals.push(`%${search}%`); i++; }
-      if (type) { conditions.push(`p.type=$${i++}`); vals.push(type); }
-      const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-      const [rows, total] = await Promise.all([
-        p.query(`SELECT p.*,c.name as category_name,c.slug as category_slug FROM products p LEFT JOIN categories c ON p.category_id=c.id ${where} ORDER BY p.created_at DESC LIMIT $${i} OFFSET $${i+1}`, [...vals, limit, offset]),
-        p.query(`SELECT COUNT(*) FROM products p ${where}`, vals)
-      ]);
-      return { results: rows.rows.map(mapProduct), total: parseInt(total.rows[0].count), totalPages: Math.ceil(parseInt(total.rows[0].count)/limit) };
-    },
-    findBySlug: async (slug: string) => {
-      const r = await p.query(`SELECT p.*,c.name as category_name,c.slug as category_slug FROM products p LEFT JOIN categories c ON p.category_id=c.id WHERE p.slug=$1`, [slug]);
-      return r.rows[0] ? mapProduct(r.rows[0]) : null;
+      return { results: docs.map(mapProduct), total, totalPages: Math.ceil(total / limit) };
     },
     findById: async (id: string) => {
-      const r = await p.query(`SELECT p.*,c.name as category_name,c.slug as category_slug FROM products p LEFT JOIN categories c ON p.category_id=c.id WHERE p.id=$1`, [id]);
-      return r.rows[0] ? mapProduct(r.rows[0]) : null;
+      try {
+        const p = await ProductModel.findById(id).populate('category');
+        return p ? mapProduct(p) : null;
+      } catch {
+        return null;
+      }
+    },
+    findBySlug: async (slug: string) => {
+      const p = await ProductModel.findOne({ slug: slug.toLowerCase().trim() }).populate('category');
+      return p ? mapProduct(p) : null;
     },
     create: async (data: any) => {
-      const slug = data.slug || data.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') + '-' + Date.now();
-      let catId = data.categoryId || data.category || null;
-      if (catId && typeof catId === 'string' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(catId)) {
-        const catRes = await p.query('SELECT id FROM categories WHERE slug = $1 OR name ILIKE $1', [catId]);
-        catId = catRes.rows[0]?.id || null;
-      }
-      const r = await p.query(`
-        INSERT INTO products (name,slug,description,short_description,brand,type,price,sale_price,sku,stock,images,category_id,tags,is_active,is_featured,specifications,attributes,variants)
-        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *
-      `, [
-        data.name, slug, data.description, data.shortDescription||null, data.brand||'Amin', data.type||'jewellery',
-        data.price||0, data.salePrice||null, data.sku||`SKU-${Date.now()}`, data.stock||0,
-        JSON.stringify(data.images||[]), catId,
-        JSON.stringify(data.tags||[]), data.isActive!==false, data.isFeatured||false,
-        JSON.stringify(data.specifications||{}), JSON.stringify(data.attributes||[]),
-        JSON.stringify(data.variants||[])
-      ]);
-      return mapProduct(r.rows[0]);
+      const catId = data.category_id || data.categoryId || data.category;
+      const p = await ProductModel.create({
+        name: data.name,
+        slug: data.slug.toLowerCase().trim(),
+        description: data.description,
+        shortDescription: data.shortDescription,
+        brand: data.brand || 'Amin',
+        type: data.type || 'jewellery',
+        price: data.price,
+        salePrice: data.salePrice,
+        sku: data.sku,
+        stock: data.stock || 0,
+        images: data.images || [],
+        category: catId ? new mongoose.Types.ObjectId(catId) : undefined,
+        tags: data.tags || [],
+        isActive: data.isActive !== undefined ? data.isActive : true,
+        isFeatured: data.isFeatured || false,
+        specifications: data.specifications || {},
+        attributes: data.attributes || [],
+        variants: data.variants || [],
+        ratings: data.ratings || { average: 0, count: 0 }
+      });
+      return mapProduct(p);
     },
     update: async (id: string, data: any) => {
-      const fields: string[] = [];
-      const vals: any[] = [];
-      let i = 1;
-      const fieldMap: Record<string, string> = {
-        name: 'name', description: 'description', shortDescription: 'short_description',
-        brand: 'brand', type: 'type', price: 'price', salePrice: 'sale_price',
-        sku: 'sku', stock: 'stock', isActive: 'is_active', isFeatured: 'is_featured',
-      };
-      for (const [key, col] of Object.entries(fieldMap)) {
-        if (data[key] !== undefined) { fields.push(`${col}=$${i++}`); vals.push(data[key]); }
-      }
-      if (data.images !== undefined) { fields.push(`images=$${i++}`); vals.push(JSON.stringify(data.images)); }
-      if (data.tags !== undefined) { fields.push(`tags=$${i++}`); vals.push(JSON.stringify(data.tags)); }
-      if (data.variants !== undefined) { fields.push(`variants=$${i++}`); vals.push(JSON.stringify(data.variants)); }
-      if (data.specifications !== undefined) { fields.push(`specifications=$${i++}`); vals.push(JSON.stringify(data.specifications)); }
-      if (data.attributes !== undefined) { fields.push(`attributes=$${i++}`); vals.push(JSON.stringify(data.attributes)); }
-      if (data.categoryId || data.category) {
-        let catId = data.categoryId || data.category;
-        if (catId && typeof catId === 'string' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(catId)) {
-          const catRes = await p.query('SELECT id FROM categories WHERE slug = $1 OR name ILIKE $1', [catId]);
-          catId = catRes.rows[0]?.id || null;
+      try {
+        const updateData: any = {};
+        const fields = ['name', 'slug', 'description', 'shortDescription', 'brand', 'type', 'price', 'salePrice', 'sku', 'stock', 'images', 'tags', 'isActive', 'isFeatured', 'specifications', 'attributes', 'variants', 'ratings'];
+        fields.forEach(f => {
+          if (data[f] !== undefined) updateData[f] = data[f];
+        });
+        const catId = data.category_id || data.categoryId || data.category;
+        if (catId !== undefined) {
+          updateData.category = catId ? new mongoose.Types.ObjectId(catId) : null;
         }
-        fields.push(`category_id=$${i++}`); vals.push(catId);
+
+        const p = await ProductModel.findByIdAndUpdate(id, { $set: updateData }, { new: true }).populate('category');
+        return p ? mapProduct(p) : null;
+      } catch {
+        return null;
       }
-      if (!fields.length) return Product.findById(id);
-      fields.push(`updated_at=NOW()`);
-      vals.push(id);
-      const r = await p.query(`UPDATE products SET ${fields.join(',')} WHERE id=$${i} RETURNING *`, vals);
-      return r.rows[0] ? mapProduct(r.rows[0]) : null;
     },
     delete: async (id: string) => {
-      await p.query('DELETE FROM products WHERE id=$1', [id]);
+      try {
+        await ProductModel.findByIdAndDelete(id);
+      } catch {}
     },
-    facets: async (type?: string) => {
-      const conditions: string[] = ['p.is_active=true'];
-      const vals: any[] = [];
-      if (type) { conditions.push(`p.type=$1`); vals.push(type); }
-      const where = `WHERE ${conditions.join(' AND ')}`;
-      const [brands, priceRange, categories] = await Promise.all([
-        p.query(`SELECT DISTINCT p.brand FROM products p ${where} ORDER BY p.brand`, vals),
-        p.query(`SELECT MIN(p.price) as min, MAX(p.price) as max FROM products p ${where}`, vals),
-        p.query(`SELECT DISTINCT c.id, c.name, c.slug, COUNT(p.id) as count FROM products p JOIN categories c ON p.category_id=c.id ${where} GROUP BY c.id, c.name, c.slug ORDER BY c.name`, vals),
-      ]);
-      return {
-        brands: brands.rows.map((r: any) => r.brand),
-        minPrice: parseFloat(priceRange.rows[0]?.min || 0),
-        maxPrice: parseFloat(priceRange.rows[0]?.max || 50000),
-        categories: categories.rows.map((r: any) => ({ id: r.id, name: r.name, slug: r.slug, count: parseInt(r.count) }))
-      };
-    },
-    count: async () => {
-      const r = await p.query('SELECT COUNT(*) FROM products WHERE is_active=true');
-      return parseInt(r.rows[0].count);
-    },
-    deductStock: async (id: string, sku: string, quantity: number) => {
-      const r = await p.query('SELECT id, stock, variants FROM products WHERE id=$1', [id]);
-      const prod = r.rows[0];
-      if (!prod) return false;
-
-      const currentStock = parseInt(prod.stock) || 0;
-      const newStock = Math.max(0, currentStock - quantity);
-
-      let variants = typeof prod.variants === 'string' ? JSON.parse(prod.variants) : (prod.variants || []);
-      if (Array.isArray(variants)) {
-        variants = variants.map((v: any) => {
+    deductStock: async (productId: string, sku: string, quantity: number) => {
+      const p = await ProductModel.findById(productId);
+      if (!p) throw new Error('Product not found for stock deduction');
+      if (p.stock < quantity) throw new Error(`Insufficient stock for product ${p.name}`);
+      
+      p.stock -= quantity;
+      
+      if (p.variants && p.variants.length > 0) {
+        p.variants = p.variants.map((v: any) => {
           if (v.sku === sku) {
-            return { ...v, stock: Math.max(0, (parseInt(v.stock) || 0) - quantity) };
+            v.stock = Math.max(0, (v.stock || 0) - quantity);
           }
           return v;
         });
       }
-
-      await p.query('UPDATE products SET stock=$1, variants=$2, updated_at=NOW() WHERE id=$3', [newStock, JSON.stringify(variants), id]);
+      
+      p.markModified('variants');
+      await p.save();
       return true;
     }
   };
 
   const Order = {
     create: async (data: any) => {
-      const num = `ORD-${Date.now()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
-      const validUserId = isUuid(data.userId) ? data.userId : null;
-      const r = await p.query(`
-        INSERT INTO orders (order_number,user_id,user_email,items,total,subtotal,tax,shipping,status,payment_status,payment_method,payment_details,shipping_address,coupon_code)
-        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *
-      `, [
-        num, validUserId, data.userEmail||null,
-        JSON.stringify(data.items||[]), data.total||0, data.subtotal||data.total||0,
-        data.tax||0, data.shipping||0, data.status||'pending', data.paymentStatus||'pending',
-        data.paymentMethod||'cod', JSON.stringify(data.paymentDetails||{}),
-        JSON.stringify(data.shippingAddress||{}), data.couponCode||null
-      ]);
-      return mapOrder(r.rows[0]);
+      const num = data.orderNumber || `ORD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const o = await OrderModel.create({
+        orderNumber: num,
+        userId: data.userId,
+        userEmail: data.userEmail,
+        items: data.items || [],
+        total: data.total,
+        subtotal: data.subtotal,
+        tax: data.tax || 0,
+        shipping: data.shipping || 0,
+        status: data.status || 'pending',
+        paymentStatus: data.paymentStatus || 'pending',
+        paymentMethod: data.paymentMethod || 'cod',
+        paymentDetails: data.paymentDetails || {},
+        shippingAddress: data.shippingAddress || {},
+        couponCode: data.couponCode
+      });
+      return mapOrder(o);
     },
     findById: async (id: string) => {
       try {
-        if (!isUuid(id)) {
-          return await Order.findByOrderNumber(id);
+        let o = null;
+        if (mongoose.Types.ObjectId.isValid(id)) {
+          o = await OrderModel.findById(id);
         }
-        const r = await p.query('SELECT * FROM orders WHERE id=$1', [id]);
-        return r.rows[0] ? mapOrder(r.rows[0]) : null;
+        if (!o) {
+          o = await OrderModel.findOne({ orderNumber: id });
+        }
+        return o ? mapOrder(o) : null;
       } catch {
         return null;
       }
     },
     findByOrderNumber: async (num: string) => {
-      try {
-        const r = await p.query('SELECT * FROM orders WHERE order_number=$1', [num]);
-        return r.rows[0] ? mapOrder(r.rows[0]) : null;
-      } catch {
-        return null;
-      }
+      const o = await OrderModel.findOne({ orderNumber: num });
+      return o ? mapOrder(o) : null;
     },
-    listByUser: async (userId: string, page=1, limit=10) => {
-      try {
-        const offset = (page-1)*limit;
-        if (!isUuid(userId)) {
-          const [rows, total] = await Promise.all([
-            p.query('SELECT * FROM orders WHERE user_email=$1 ORDER BY created_at DESC LIMIT $2 OFFSET $3', [userId, limit, offset]),
-            p.query('SELECT COUNT(*) FROM orders WHERE user_email=$1', [userId])
-          ]);
-          return { results: rows.rows.map(mapOrder), total: parseInt(rows.rows.length ? total.rows[0]?.count || '0' : '0'), totalPages: Math.ceil(parseInt(rows.rows.length ? total.rows[0]?.count || '0' : '0')/limit) };
-        }
-        const [rows, total] = await Promise.all([
-          p.query('SELECT * FROM orders WHERE user_id=$1 ORDER BY created_at DESC LIMIT $2 OFFSET $3', [userId, limit, offset]),
-          p.query('SELECT COUNT(*) FROM orders WHERE user_id=$1', [userId])
-        ]);
-        return { results: rows.rows.map(mapOrder), total: parseInt(total.rows[0]?.count || '0'), totalPages: Math.ceil(parseInt(total.rows[0]?.count || '0')/limit) };
-      } catch {
-        return { results: [], total: 0, totalPages: 0 };
-      }
+    findByRazorpayOrderId: async (rzpOrderId: string) => {
+      const o = await OrderModel.findOne({ 'paymentDetails.razorpayOrderId': rzpOrderId });
+      return o ? mapOrder(o) : null;
     },
-    listAdmin: async (page=1, limit=10, status='') => {
-      try {
-        const offset = (page-1)*limit;
-        const where = status && status!=='all' ? 'WHERE status=$3' : '';
-        const params: any[] = status && status!=='all' ? [limit, offset, status] : [limit, offset];
-        const [rows, total] = await Promise.all([
-          p.query(`SELECT * FROM orders ${where} ORDER BY created_at DESC LIMIT $1 OFFSET $2`, params),
-          p.query(`SELECT COUNT(*) FROM orders ${where}`, status && status!=='all' ? [status] : [])
-        ]);
-        return { results: rows.rows.map(mapOrder), total: parseInt(total.rows[0]?.count || '0'), totalPages: Math.ceil(parseInt(total.rows[0]?.count || '0')/limit) };
-      } catch {
-        return { results: [], total: 0, totalPages: 0 };
-      }
-    },
-    updateStatus: async (id: string, status: string, paymentStatus?: string, paymentDetails?: any) => {
-      try {
-        if (!isUuid(id)) return null;
-        const fields = ['status=$2','updated_at=NOW()'];
-        const vals: any[] = [id, status];
-        let i = 3;
-        if (paymentStatus) { fields.push(`payment_status=$${i++}`); vals.push(paymentStatus); }
-        if (paymentDetails) { fields.push(`payment_details=$${i++}`); vals.push(JSON.stringify(paymentDetails)); }
-        const r = await p.query(`UPDATE orders SET ${fields.join(',')} WHERE id=$1 RETURNING *`, vals);
-        return r.rows[0] ? mapOrder(r.rows[0]) : null;
-      } catch {
-        return null;
-      }
-    },
-
-    stats: async () => {
-      const [rev, statuses, payments] = await Promise.all([
-        p.query(`SELECT SUM(total) as total_revenue, COUNT(*) as total_orders, AVG(total) as avg_order FROM orders WHERE status != 'cancelled'`),
-        p.query(`SELECT status as "_id", COUNT(*) as count FROM orders GROUP BY status`),
-        p.query(`SELECT payment_method as "_id", SUM(total) as revenue FROM orders WHERE payment_status='paid' GROUP BY payment_method`)
+    listByUser: async (userId: string, page = 1, limit = 10) => {
+      const query: any = {
+        $or: [
+          { userId: userId },
+          { userEmail: userId }
+        ]
+      };
+      const [docs, total] = await Promise.all([
+        OrderModel.find(query).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
+        OrderModel.countDocuments(query)
       ]);
+      return { results: docs.map(mapOrder), total, totalPages: Math.ceil(total / limit) };
+    },
+    listAdmin: async (page = 1, limit = 10, status = '') => {
+      const query: any = {};
+      if (status && status !== 'all') {
+        query.status = status;
+      }
+      const [docs, total] = await Promise.all([
+        OrderModel.find(query).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
+        OrderModel.countDocuments(query)
+      ]);
+      return { results: docs.map(mapOrder), total, totalPages: Math.ceil(total / limit) };
+    },
+    updateStatus: async (id: string, status: string, paymentStatus: string, paymentDetails: any) => {
+      try {
+        const updateData: any = {};
+        if (status) updateData.status = status;
+        if (paymentStatus) updateData.paymentStatus = paymentStatus;
+        if (paymentDetails) updateData.paymentDetails = paymentDetails;
+        const o = await OrderModel.findByIdAndUpdate(id, { $set: updateData }, { new: true });
+        return o ? mapOrder(o) : null;
+      } catch {
+        return null;
+      }
+    },
+    stats: async () => {
+      const [orders, productsCount, usersCount] = await Promise.all([
+        OrderModel.find({}),
+        ProductModel.countDocuments({ isActive: true }),
+        UserModel.countDocuments()
+      ]);
+      
+      let totalRevenue = 0;
+      let totalOrders = orders.length;
+      let pendingOrders = 0;
+      let processingOrders = 0;
+      let shippedOrders = 0;
+      let deliveredOrders = 0;
+      let cancelledOrders = 0;
+
+      orders.forEach((o: any) => {
+        if (o.paymentStatus === 'paid') {
+          totalRevenue += o.total;
+        }
+        if (o.status === 'pending') pendingOrders++;
+        else if (o.status === 'processing') processingOrders++;
+        else if (o.status === 'shipped') shippedOrders++;
+        else if (o.status === 'delivered') deliveredOrders++;
+        else if (o.status === 'cancelled') cancelledOrders++;
+      });
+
+      const salesChart = [
+        { name: 'Jan', sales: 0 },
+        { name: 'Feb', sales: 0 },
+        { name: 'Mar', sales: 0 },
+        { name: 'Apr', sales: 0 },
+        { name: 'May', sales: 0 },
+        { name: 'Jun', sales: totalRevenue }
+      ];
+
       return {
-        totalRevenue: parseFloat(rev.rows[0]?.total_revenue)||0,
-        totalOrders: parseInt(rev.rows[0]?.total_orders)||0,
-        avgOrderValue: parseFloat(rev.rows[0]?.avg_order)||0,
-        statusBreakdown: statuses.rows.map((r:any)=>({_id: r._id, count: parseInt(r.count)})),
-        paymentBreakdown: payments.rows.map((r:any)=>({_id: r._id, revenue: parseFloat(r.revenue)||0}))
+        totalRevenue,
+        totalOrders,
+        pendingOrders,
+        processingOrders,
+        shippedOrders,
+        deliveredOrders,
+        cancelledOrders,
+        productsCount,
+        usersCount,
+        salesChart
       };
     }
   };
 
   const Banner = {
-    list: async (type?: string) => {
-      const where = type ? `WHERE type=$1 AND is_active=true` : `WHERE is_active=true`;
-      const r = await p.query(`SELECT * FROM banners ${where} ORDER BY sort_order ASC`, type ? [type] : []);
-      return r.rows.map(mapBanner);
-    },
-    listAll: async () => {
-      const r = await p.query('SELECT * FROM banners ORDER BY sort_order ASC');
-      return r.rows.map(mapBanner);
+    list: async () => {
+      const docs = await BannerModel.find({ isActive: true }).sort({ sortOrder: 1 });
+      return docs.map(mapBanner);
     },
     create: async (data: any) => {
-      const r = await p.query('INSERT INTO banners (title,subtitle,image,link,type,is_active,sort_order) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING *',
-        [data.title, data.subtitle||null, data.image, data.link||null, data.type||'hero', data.isActive!==false, data.sortOrder||0]);
-      return mapBanner(r.rows[0]);
+      const b = await BannerModel.create({
+        title: data.title,
+        subtitle: data.subtitle,
+        image: data.image,
+        link: data.link,
+        type: data.type || 'hero',
+        isActive: data.isActive !== undefined ? data.isActive : true,
+        sortOrder: data.sortOrder || 0
+      });
+      return mapBanner(b);
     },
     update: async (id: string, data: any) => {
-      const fields: string[] = [];
-      const vals: any[] = [];
-      let i = 1;
-      ['title','subtitle','image','link','type'].forEach(f => { if(data[f]!==undefined){fields.push(`${f}=$${i++}`);vals.push(data[f]);} });
-      if(data.isActive!==undefined){fields.push(`is_active=$${i++}`);vals.push(data.isActive);}
-      if(data.sortOrder!==undefined){fields.push(`sort_order=$${i++}`);vals.push(data.sortOrder);}
-      if(!fields.length) return null;
-      vals.push(id);
-      const r = await p.query(`UPDATE banners SET ${fields.join(',')} WHERE id=$${i} RETURNING *`, vals);
-      return mapBanner(r.rows[0]);
+      try {
+        const updateData: any = {};
+        ['title', 'subtitle', 'image', 'link', 'type', 'isActive', 'sortOrder'].forEach(k => {
+          if (data[k] !== undefined) updateData[k] = data[k];
+        });
+        const b = await BannerModel.findByIdAndUpdate(id, { $set: updateData }, { new: true });
+        return b ? mapBanner(b) : null;
+      } catch {
+        return null;
+      }
     },
-    delete: async (id: string) => { await p.query('DELETE FROM banners WHERE id=$1',[id]); }
+    delete: async (id: string) => {
+      try {
+        await BannerModel.findByIdAndDelete(id);
+      } catch {}
+    }
   };
 
   const Faq = {
     list: async () => {
-      const r = await p.query('SELECT * FROM faqs WHERE is_active=true ORDER BY sort_order ASC');
-      return r.rows.map(mapFaq);
-    },
-    listAll: async () => {
-      const r = await p.query('SELECT * FROM faqs ORDER BY sort_order ASC');
-      return r.rows.map(mapFaq);
+      const docs = await FaqModel.find({ isActive: true }).sort({ sortOrder: 1 });
+      return docs.map(mapFaq);
     },
     create: async (data: any) => {
-      const r = await p.query('INSERT INTO faqs (question,answer,category,is_active,sort_order) VALUES($1,$2,$3,$4,$5) RETURNING *',
-        [data.question, data.answer, data.category||'general', data.isActive!==false, data.sortOrder||0]);
-      return mapFaq(r.rows[0]);
+      const f = await FaqModel.create({
+        question: data.question,
+        answer: data.answer,
+        category: data.category || 'general',
+        isActive: data.isActive !== undefined ? data.isActive : true,
+        sortOrder: data.sortOrder || 0
+      });
+      return mapFaq(f);
     },
     update: async (id: string, data: any) => {
-      const fields: string[] = [];
-      const vals: any[] = [];
-      let i = 1;
-      ['question','answer','category'].forEach(f => { if(data[f]!==undefined){fields.push(`${f}=$${i++}`);vals.push(data[f]);} });
-      if(data.isActive!==undefined){fields.push(`is_active=$${i++}`);vals.push(data.isActive);}
-      if(!fields.length) return null;
-      vals.push(id);
-      const r = await p.query(`UPDATE faqs SET ${fields.join(',')} WHERE id=$${i} RETURNING *`, vals);
-      return mapFaq(r.rows[0]);
+      try {
+        const updateData: any = {};
+        ['question', 'answer', 'category', 'isActive', 'sortOrder'].forEach(k => {
+          if (data[k] !== undefined) updateData[k] = data[k];
+        });
+        const f = await FaqModel.findByIdAndUpdate(id, { $set: updateData }, { new: true });
+        return f ? mapFaq(f) : null;
+      } catch {
+        return null;
+      }
     },
-    delete: async (id: string) => { await p.query('DELETE FROM faqs WHERE id=$1',[id]); }
+    delete: async (id: string) => {
+      try {
+        await FaqModel.findByIdAndDelete(id);
+      } catch {}
+    }
   };
 
   const Otp = {
     save: async (email: string, code: string) => {
       const cleanEmail = email.toLowerCase().trim();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-      await p.query(`
-        INSERT INTO otps (email, code, expires_at)
-        VALUES ($1, $2, $3)
-        ON CONFLICT (email) DO UPDATE SET code = $2, expires_at = $3, created_at = NOW()
-      `, [cleanEmail, code.trim(), expiresAt]);
+      await OtpModel.findOneAndUpdate(
+        { email: cleanEmail },
+        { code: code.trim(), expiresAt },
+        { upsert: true, new: true }
+      );
     },
     verify: async (email: string, code: string) => {
       const cleanEmail = email.toLowerCase().trim();
-      const cleanCode = code.trim();
-      const r = await p.query(`
-        SELECT * FROM otps WHERE email = $1 AND code = $2 AND expires_at > NOW()
-      `, [cleanEmail, cleanCode]);
-      if (r.rows.length > 0) {
-        await p.query('DELETE FROM otps WHERE email = $1', [cleanEmail]);
+      const doc = await OtpModel.findOne({ email: cleanEmail, code: code.trim(), expiresAt: { $gt: new Date() } });
+      if (doc) {
+        await OtpModel.deleteOne({ email: cleanEmail });
         return true;
       }
+      return false;
     }
   };
 
   const Wishlist = {
     list: async (userId: string) => {
-      const r = await p.query(`
-        SELECT w.id as wishlist_id, p.* FROM wishlist w
-        JOIN products p ON w.product_id = p.id
-        WHERE w.user_id = $1
-        ORDER BY w.created_at DESC
-      `, [userId]);
-      return r.rows.map(mapProduct);
+      const docs = await WishlistModel.find({ userId }).populate('product');
+      return docs
+        .filter(d => d.product)
+        .map(d => mapProduct(d.product));
     },
     add: async (userId: string, productId: string) => {
-      const r = await p.query(`
-        INSERT INTO wishlist (user_id, product_id)
-        VALUES ($1, $2)
-        ON CONFLICT (user_id, product_id) DO NOTHING
-        RETURNING *
-      `, [userId, productId]);
-      return r.rows[0] || null;
+      const existing = await WishlistModel.findOne({ userId, product: new mongoose.Types.ObjectId(productId) });
+      if (existing) return existing;
+      const w = await WishlistModel.create({
+        userId,
+        product: new mongoose.Types.ObjectId(productId)
+      });
+      return w;
     },
     remove: async (userId: string, productId: string) => {
-      await p.query(`
-        DELETE FROM wishlist WHERE user_id = $1 AND product_id = $2
-      `, [userId, productId]);
+      await WishlistModel.deleteOne({ userId, product: new mongoose.Types.ObjectId(productId) });
       return true;
     }
   };
 
   return { User, Category, Product, Order, Banner, Faq, Otp, Wishlist };
-}
-
-// ── Row Mappers (DB columns → JS camelCase) ───────────────────────────────────
-function mapUser(r: any) {
-  const addresses = typeof r.addresses === 'string' ? JSON.parse(r.addresses) : (r.addresses || []);
-  return {
-    _id: r.id,
-    id: r.id,
-    name: r.name,
-    email: r.email,
-    phone: r.phone,
-    role: r.role,
-    isActive: r.is_active,
-    password: r.password,
-    addresses,
-    createdAt: r.created_at,
-  };
-}
-
-function mapCategory(r: any) {
-  return { _id: r.id, id: r.id, name: r.name, slug: r.slug, description: r.description, image: r.image, isActive: r.is_active };
-}
-function mapProduct(r: any) {
-  const variants = typeof r.variants === 'string' ? JSON.parse(r.variants) : (r.variants||[]);
-  const images = typeof r.images === 'string' ? JSON.parse(r.images) : (r.images||[]);
-  const tags = typeof r.tags === 'string' ? JSON.parse(r.tags) : (r.tags||[]);
-  return {
-    _id: r.id, id: r.id, name: r.name, slug: r.slug, description: r.description,
-    shortDescription: r.short_description, brand: r.brand, type: r.type,
-    price: parseFloat(r.price)||0, salePrice: r.sale_price ? parseFloat(r.sale_price) : null,
-    sku: r.sku, stock: r.stock, images, tags, isActive: r.is_active, isFeatured: r.is_featured,
-    specifications: typeof r.specifications === 'string' ? JSON.parse(r.specifications) : (r.specifications||{}),
-    attributes: typeof r.attributes === 'string' ? JSON.parse(r.attributes) : (r.attributes||[]),
-    variants, ratings: typeof r.ratings === 'string' ? JSON.parse(r.ratings) : (r.ratings||{average:0,count:0}),
-    category: r.category_id ? { _id: r.category_id, id: r.category_id, name: r.category_name||'', slug: r.category_slug||'' } : null,
-    createdAt: r.created_at, updatedAt: r.updated_at,
-  };
-}
-function mapOrder(r: any) {
-  const items = typeof r.items === 'string' ? JSON.parse(r.items) : (r.items||[]);
-  const shippingAddress = typeof r.shipping_address === 'string' ? JSON.parse(r.shipping_address) : (r.shipping_address||{});
-  const paymentDetails = typeof r.payment_details === 'string' ? JSON.parse(r.payment_details) : (r.payment_details||{});
-  return {
-    _id: r.id, id: r.id, orderNumber: r.order_number, userId: r.user_id, userEmail: r.user_email,
-    items, total: parseFloat(r.total)||0, subtotal: parseFloat(r.subtotal)||0,
-    tax: parseFloat(r.tax)||0, shipping: parseFloat(r.shipping)||0,
-    status: r.status, paymentStatus: r.payment_status, paymentMethod: r.payment_method,
-    paymentDetails, shippingAddress, couponCode: r.coupon_code,
-    createdAt: r.created_at, updatedAt: r.updated_at,
-  };
-}
-function mapBanner(r: any) {
-  return { _id: r.id, id: r.id, title: r.title, subtitle: r.subtitle, image: r.image, link: r.link, type: r.type, isActive: r.is_active, sortOrder: r.sort_order, createdAt: r.created_at };
-}
-function mapFaq(r: any) {
-  return { _id: r.id, id: r.id, question: r.question, answer: r.answer, category: r.category, isActive: r.is_active, sortOrder: r.sort_order };
 }

@@ -12,3 +12,6 @@ This project is connected with OmniRoute local AI proxy and Ollama inference eng
 - `ollama-local/deepseek-r1:7b`: Complex Reasoning & Logic
 - `ollama-local/qwen2.5:0.5b`: Ultra-fast Single-word / Syntax Check
 - `auto/best-coding` / `auto/best-reasoning`: Cloud Fallback Combos
+
+## Language Preference
+- **Hinglish Directive**: Always respond to the user using Hinglish (Hindi + English using the Latin script / English characters). **NEVER use the Devnagari (Hindi) script (हिंदी लिपि) under any circumstances.** Always write using the Latin script (English alphabets).

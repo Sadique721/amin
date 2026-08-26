@@ -161,6 +161,12 @@ const cartSlice = createSlice({
       .addCase(applyCoupon.rejected, (state, action) => {
         state.loading = false;
         state.couponError = action.payload as string;
+      })
+      .addCase('auth/logout', (state) => {
+        state.items = [];
+        state.coupon = null;
+        state.discountAmount = 0;
+        state.couponError = null;
       });
   },
 });
