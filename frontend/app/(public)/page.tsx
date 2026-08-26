@@ -673,6 +673,126 @@ export default function HomePage() {
         </Container>
       </section>
 
+      {/* ═══ SECTION 10.5: PREMIUM ANIMATED BRAND SPOTLIGHT ═══ */}
+      <section className="py-20 bg-black border-y border-amber-500/20 overflow-hidden relative">
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes kenburns {
+            0% { transform: scale(1) translate(0, 0); }
+            50% { transform: scale(1.08) translate(-1%, -1%); }
+            100% { transform: scale(1) translate(0, 0); }
+          }
+          @keyframes float-sparkle {
+            0% { transform: translateY(0) scale(0); opacity: 0; }
+            50% { opacity: 0.8; }
+            100% { transform: translateY(-500px) scale(1); opacity: 0; }
+          }
+          @keyframes shimmer-sweep {
+            0% { transform: translateX(-150%) rotate(45deg); }
+            100% { transform: translateX(150%) rotate(45deg); }
+          }
+          .animate-kenburns {
+            animation: kenburns 30s infinite ease-in-out;
+          }
+          .sparkle-particle {
+            position: absolute;
+            background: radial-gradient(circle, rgba(245,158,11,0.8) 0%, rgba(245,158,11,0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+          }
+          .shimmer-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 200%; height: 100%;
+            background: linear-gradient(
+              to right,
+              rgba(255,255,255,0) 0%,
+              rgba(255,255,255,0.02) 30%,
+              rgba(255,255,255,0.12) 50%,
+              rgba(255,255,255,0.02) 70%,
+              rgba(255,255,255,0) 100%
+            );
+            animation: shimmer-sweep 7s infinite linear;
+            pointer-events: none;
+          }
+        `}} />
+        <Container className="space-y-12 relative z-20">
+          <div className="text-center space-y-3">
+            <span className="text-xs uppercase tracking-[0.25em] text-amber-400 font-semibold bg-amber-500/10 px-3 py-1 rounded-full">
+              ✨ Brand Showcase
+            </span>
+            <h2 className="text-3xl md:text-5xl font-black tracking-tight text-white font-serif">
+              The AMIN Luxury Atelier
+            </h2>
+            <p className="text-sm md:text-base text-slate-400 max-w-2xl mx-auto">
+              Where timeless 18K anti-tarnish gold jewellery meets pure, dermatologically tested botanical cosmetics. Crafted to perfection.
+            </p>
+          </div>
+          
+          <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden border border-amber-500/30 shadow-2xl shadow-amber-500/5 group">
+            {/* The Image under Ken Burns panning effect */}
+            <div className="absolute inset-0 animate-kenburns">
+              <Image
+                src="/luxury-showcase.jpg"
+                alt="AMIN Luxury Jewellery & Cosmetics Collection"
+                fill
+                className="object-cover"
+                priority
+              />
+            </div>
+            
+            {/* Glossy Shimmer Overlay */}
+            <div className="shimmer-overlay" />
+            
+            {/* Dark Vignette Overlay for premium look */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/60 pointer-events-none z-10" />
+            
+            {/* Floating Sparkle Particles (rising up like a video animation) */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
+              {Array.from({ length: 25 }).map((_, i) => {
+                const size = Math.random() * 5 + 2; // 2px to 7px
+                const left = Math.random() * 100; // 0% to 100%
+                const delay = Math.random() * 8; // 0s to 8s
+                const duration = Math.random() * 8 + 6; // 6s to 14s
+                return (
+                  <div
+                    key={i}
+                    className="sparkle-particle"
+                    style={{
+                      width: `${size}px`,
+                      height: `${size}px`,
+                      left: `${left}%`,
+                      bottom: '5%',
+                      animation: `float-sparkle ${duration}s infinite linear`,
+                      animationDelay: `${delay}s`,
+                    }}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Details overlay */}
+            <div className="absolute bottom-8 left-8 right-8 z-20 flex flex-col md:flex-row md:items-end justify-between gap-4 pointer-events-auto">
+              <div className="space-y-2">
+                <h3 className="text-xl md:text-2xl font-bold text-white tracking-wide font-serif">
+                  Imperial Diamonds & PRAO Golds
+                </h3>
+                <p className="text-xs md:text-sm text-slate-300 max-w-md">
+                  Experience sweat-proof, anti-tarnish daily wear jewellery combined with premium dermatologist-tested beauty formulations.
+                </p>
+              </div>
+              <Link
+                href="/shop"
+                className={cn(
+                  buttonVariants({ variant: 'default' }),
+                  "bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-full px-6 py-2 flex items-center gap-2 shadow-lg transition-transform hover:scale-105 active:scale-95"
+                )}
+              >
+                Explore Collection <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+        </Container>
+      </section>
+
       {/* ═══ SECTION 11: NEWSLETTER CTA ═══ */}
       <section className="py-20 bg-gradient-to-r from-amber-950 via-slate-900 to-rose-950 relative overflow-hidden">
         <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle at 30% 50%, rgba(245,158,11,0.4) 0%, transparent 50%), radial-gradient(circle at 70% 50%, rgba(244,63,94,0.3) 0%, transparent 50%)' }} />
