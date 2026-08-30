@@ -32,6 +32,20 @@
 </tr>
 </table>
 
+<!-- ========== NEW: SYSTEM DIAGRAM SECTION ========== -->
+## 📊 System Architecture & Workflow
+
+```mermaid
+flowchart LR
+    A[Sandbox Input] --> B{Utility Script Router}
+    B --> C[Java Experiments]
+    B --> D[Python Scripts]
+    B --> E[Shell Tools]
+    C --> F[Console Output]
+    D --> F
+    E --> F
+```
+
 ---
 
 <div align="center">
